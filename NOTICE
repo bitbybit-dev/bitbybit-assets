@@ -1,0 +1,350 @@
+NOTICE — Third-Party Components in Bitbybit CDN Assets
+===============================================================
+
+This repository hosts CDN assets for the Bitbybit platform, including
+the Bitbybit Runner, fonts, BabylonJS ecosystem files, textures, and
+3D model assets. Each third-party component is governed by its
+respective license, not by the Bitbybit Runner License.
+
+===============================================================================
+  PART A — BITBYBIT RUNNER COMPONENTS
+===============================================================================
+
+The following components are bundled in or loaded alongside the
+Bitbybit Runner. Your rights under their open-source licenses are
+not restricted.
+
+-------------------------------------------------------------------------------
+
+1. OpenCASCADE Technology (OCCT)
+   License: GNU Lesser General Public License v2.1 (LGPL-2.1)
+   Source:  https://dev.opencascade.org/
+   Usage:   Compiled to WebAssembly, loaded as a separate Web Worker at
+            runtime. The OCCT worker and WASM binary can be independently
+            replaced via the cdnUrl configuration option. See documentation
+            for the worker interface specification.
+   LGPL-2.1 full text: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
+
+2. BabylonJS
+   License: Apache License 2.0
+   Source:  https://github.com/BabylonJS/Babylon.js
+   Usage:   Bundled in bitbybit-runner-babylonjs.js (full version).
+            Excluded from lite version.
+   Apache-2.0 full text: https://www.apache.org/licenses/LICENSE-2.0
+
+3. Three.js
+   License: MIT License
+   Source:  https://github.com/mrdoob/three.js
+   Usage:   Bundled in bitbybit-runner-threejs.js (full version).
+            Excluded from lite version.
+
+4. PlayCanvas
+   License: MIT License
+   Source:  https://github.com/playcanvas/engine
+   Usage:   Bundled in bitbybit-runner-playcanvas.js (full version).
+            Excluded from lite version.
+
+5. JSCAD
+   License: MIT License
+   Source:  https://github.com/jscad/OpenJSCAD.org
+   Usage:   Loaded as a separate Web Worker at runtime.
+
+6. Manifold
+   License: Apache License 2.0
+   Source:  https://github.com/elalish/manifold
+   Usage:   Compiled to WebAssembly, loaded as a separate Web Worker at
+            runtime.
+
+7. Havok Physics
+   License: Havok License (free for non-commercial use; commercial use
+            requires a separate Havok license agreement)
+   Source:  https://www.havok.com/
+   Usage:   Optional. Loaded only in the BabylonJS runner when
+            enablePhysics: true is set. Loaded as a separate script file.
+            Files located in havok/ and babylonjs/havok/.
+   Note:    If you use the Havok physics feature in a commercial product,
+            you are responsible for obtaining appropriate Havok licensing.
+
+8. opentype.js
+   License: MIT License
+   Source:  https://github.com/opentypejs/opentype.js
+   Usage:   Used for font parsing in CAD text operations.
+
+9. JSONPath Plus
+   License: MIT License
+   Copyright: 2011-2019 Stefan Goessner, Subbu Allamaraju, Mike Brevoort,
+              Robert Krahn, Brett Zamir, Richard Schneider
+   Source:  https://github.com/JSONPath-Plus/JSONPath
+   Usage:   Bundled into the Runner via @bitbybit-dev/core. Used for
+            JSONPath query evaluation.
+
+10. Bitbybit Open-Source Libraries
+   License: MIT License
+   Source:  https://github.com/bitbybit-dev/bitbybit
+   Packages: @bitbybit-dev/core, @bitbybit-dev/occt, @bitbybit-dev/base,
+             @bitbybit-dev/babylonjs, @bitbybit-dev/threejs,
+             @bitbybit-dev/playcanvas, and related packages.
+
+===============================================================================
+  PART B — BABYLONJS ECOSYSTEM FILES
+===============================================================================
+
+The following files are distributed in the babylonjs/ directory as
+supporting assets for the BabylonJS 3D engine. They are separate from
+the Runner bundle itself.
+
+-------------------------------------------------------------------------------
+
+11. Draco 3D Data Compression (Google)
+    License: Apache License 2.0
+    Source:  https://github.com/google/draco
+    Files:   babylonjs/draco_decoder.js, babylonjs/draco_decoder.wasm,
+             babylonjs/draco_decoder_gltf.js, babylonjs/draco_decoder_gltf.wasm,
+             babylonjs/draco_encoder.js, babylonjs/draco_encoder.wasm,
+             babylonjs/draco_encoder_wasm_wrapper.js,
+             babylonjs/draco_wasm_wrapper.js,
+             babylonjs/draco_wasm_wrapper_gltf.js
+    License file: babylonjs/draco.license
+
+12. earcut (Mapbox)
+    License: ISC License
+    Source:  https://github.com/mapbox/earcut
+    Files:   babylonjs/earcut.min.js
+    License file: babylonjs/earcut.license
+
+13. Recast Navigation
+    License: zlib License
+    Source:  https://github.com/recastnavigation/recastnavigation
+    Files:   babylonjs/recast.js, babylonjs/recast.d.ts
+    Note:    Compiled to JavaScript via Emscripten by the BabylonJS project.
+
+14. meshoptimizer (Arseny Kapoulkine)
+    License: MIT License
+    Source:  https://github.com/zeux/meshoptimizer
+    Files:   babylonjs/meshopt_decoder.js
+
+15. Basis Universal / KTX2 Transcoders (Google / Khronos Group)
+    License: Apache License 2.0
+    Source:  https://github.com/BinomialLLC/basis_universal
+             https://github.com/KhronosGroup/KTX-Software
+    Files:   babylonjs/basis_encoder.js, babylonjs/basis_encoder.wasm,
+             babylonjs/basisTranscoder/*, babylonjs/ktx2Transcoders/*,
+             babylonjs/libktx.js, babylonjs/libktx.wasm,
+             babylonjs/zstddec.wasm,
+             babylonjs/babylon.ktx2Decoder.js (and related .d.ts/.map files)
+
+16. glTF 2.0 Interface Definitions (Khronos Group)
+    License: Apache License 2.0
+    Source:  https://github.com/KhronosGroup/glTF
+    Files:   babylonjs/glTF2Interface/
+    License file: babylonjs/glTF2Interface/license.md
+
+17. glTF Validator (Khronos Group)
+    License: Apache License 2.0
+    Source:  https://github.com/KhronosGroup/glTF-Validator
+    Files:   babylonjs/gltf_validator.js
+
+===============================================================================
+  PART C — SHADER TRANSPILERS
+===============================================================================
+
+-------------------------------------------------------------------------------
+
+18. glslang (Khronos Group)
+    License: Apache License 2.0 and BSD 3-Clause
+    Source:  https://github.com/AntoscencoVlad662/AntoscencoVlad-glslang
+             (BabylonJS WASM build)
+    Files:   glslang/glslang.js, glslang/glslang.wasm,
+             babylonjs/glslang/glslang.js, babylonjs/glslang/glslang.wasm
+    Note:    Compiled to WebAssembly. Used for GLSL to SPIR-V compilation.
+
+19. Tint / Dawn WGSL Transpiler (Google)
+    License: BSD 3-Clause License
+    Source:  https://dawn.googlesource.com/dawn
+    Files:   twgsl/twgsl.js, twgsl/twgsl.wasm,
+             babylonjs/twgsl/twgsl.js, babylonjs/twgsl/twgsl.wasm
+    Note:    Compiled to WebAssembly. Used for SPIR-V to WGSL transpilation
+             (WebGPU shader support).
+
+===============================================================================
+  PART D — FONTS
+===============================================================================
+
+The fonts/ directory contains font files used for 3D text extrusion
+operations. These font files have been modified from the originals by
+MB "Bit by bit developers". Modifications consist of automated geometry
+processing to remove self-intersecting outlines for compatibility with
+3D text extrusion operations. Original unmodified font files are
+available from Google Fonts (https://fonts.google.com/).
+
+Each font's original license file is included in its subdirectory.
+
+-------------------------------------------------------------------------------
+
+20. Roboto (Google)
+    License: Apache License 2.0
+    Files:   fonts/Roboto/
+    License file: fonts/Roboto/LICENSE.txt
+    Modification notice: Font outlines have been modified to remove
+    self-intersections. This constitutes a modification under Apache 2.0
+    Section 4(b).
+
+21. Roboto Slab (Google)
+    License: Apache License 2.0
+    Files:   fonts/RobotoSlab/
+    License file: fonts/RobotoSlab/LICENSE.txt
+    Modification notice: Font outlines have been modified to remove
+    self-intersections. This constitutes a modification under Apache 2.0
+    Section 4(b).
+
+22. Aboreto
+    Copyright: 2022 The Aboreto Project Authors
+    License: SIL Open Font License 1.1 (no Reserved Font Names)
+    Files:   fonts/Aboreto/
+    License file: fonts/Aboreto/OFL.txt
+    Modification notice: Font outlines have been modified to remove
+    self-intersections.
+
+23. Bungee
+    Copyright: 2008 The Bungee Project Authors (David Jonathan Ross)
+    License: SIL Open Font License 1.1 (no Reserved Font Names)
+    Files:   fonts/Bungee/
+    License file: fonts/Bungee/OFL.txt
+    Modification notice: Font outlines have been modified to remove
+    self-intersections.
+
+24. Indie Flower
+    Copyright: 2010 Kimberly Geswein
+    License: SIL Open Font License 1.1 (no Reserved Font Names)
+    Files:   fonts/IndieFlower/
+    License file: fonts/IndieFlower/OFL.txt
+    Modification notice: Font outlines have been modified to remove
+    self-intersections.
+
+25. Lugrasimo
+    Copyright: 2023 The Lugrasimo Project Authors
+    License: SIL Open Font License 1.1 (no Reserved Font Names)
+    Files:   fonts/Lugrasimo/
+    License file: fonts/Lugrasimo/OFL.txt
+    Modification notice: Font outlines have been modified to remove
+    self-intersections.
+
+26. Orbitron
+    Copyright: 2018 The Orbitron Project Authors
+    License: SIL Open Font License 1.1
+    Reserved Font Name: "Orbitron"
+    Files:   fonts/Orbitron/
+    License file: fonts/Orbitron/OFL.txt
+    Modification notice: Font outlines have been modified to remove
+    self-intersections. Because "Orbitron" is a Reserved Font Name under
+    the OFL, these modified files should be renamed in future versions.
+    See OFL FAQ: https://scripts.sil.org/OFL-FAQ_web
+
+27. Silkscreen
+    Copyright: 2001 The Silkscreen Project Authors
+    License: SIL Open Font License 1.1 (no Reserved Font Names)
+    Files:   fonts/Silkscreen/
+    License file: fonts/Silkscreen/OFL.txt
+    Modification notice: Font outlines have been modified to remove
+    self-intersections.
+
+28. Tektur
+    Copyright: 2023 The Tektur Project Authors
+    License: SIL Open Font License 1.1 (no Reserved Font Names)
+    Files:   fonts/Tektur/
+    License file: fonts/Tektur/OFL.txt
+    Modification notice: Font outlines have been modified to remove
+    self-intersections.
+
+29. Workbench
+    Copyright: 2021 The Workbench Project Authors
+    License: SIL Open Font License 1.1 (no Reserved Font Names)
+    Files:   fonts/Workbench/
+    License file: fonts/Workbench/OFL.txt
+    Modification notice: Font outlines have been modified to remove
+    self-intersections.
+
+===============================================================================
+  PART E — ADDITIONAL ASSETS
+===============================================================================
+
+Company-Owned Assets
+--------------------
+The following assets are created by and owned by MB "Bit by bit
+developers". They are distributed under the Bitbybit Runner License.
+
+  - assets/logo/                    Company logo files
+  - assets/nature/                  3D model assets (trees, vegetation)
+  - assets/architecture/            3D model assets (buildings)
+  - textures/skybox/grey_gradient/  Skybox environment textures (company-created)
+
+BabylonJS-Sourced Assets
+------------------------
+The following texture assets originate from the BabylonJS project and
+are governed by the Apache License 2.0 (see component 2 above).
+
+  - textures/skybox/city/           environmentSpecular.env
+  - textures/skybox/clear_sky/      environment.env
+  - textures/skybox/default_skybox/ skybox_*.jpg
+
+Source: https://github.com/BabylonJS/Babylon.js
+
+===============================================================================
+  LICENSE TEXTS
+===============================================================================
+
+MIT License text (applies to components 3, 4, 5, 8, 9, 10, 14):
+
+  Permission is hereby granted, free of charge, to any person obtaining a
+  copy of this software and associated documentation files (the "Software"),
+  to deal in the Software without restriction, including without limitation
+  the rights to use, copy, modify, merge, publish, distribute, sublicense,
+  and/or sell copies of the Software, and to permit persons to whom the
+  Software is furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included
+  in all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+
+-------------------------------------------------------------------------------
+
+ISC License text (applies to component 11):
+
+  Permission to use, copy, modify, and/or distribute this software for any
+  purpose with or without fee is hereby granted, provided that the above
+  copyright notice and this permission notice appear in all copies.
+
+  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+-------------------------------------------------------------------------------
+
+LGPL-2.1 Compliance Notice (OpenCASCADE Technology):
+
+The OCCT component is dynamically loaded at runtime as a separate Web Worker
+(bitbybit-dev-occt-webworker.js) and WebAssembly binary
+(bitbybit-dev-occt.*.wasm). These files are NOT compiled into the Runner
+bundle. Per LGPL-2.1 Section 6, you may replace the OCCT worker and WASM
+with your own modified version by:
+
+  1. Compiling your modified OpenCASCADE source to WebAssembly.
+  2. Creating a Web Worker that implements the same message protocol
+     (see documentation: https://bitbybit.dev/learn/runners/worker-protocol).
+  3. Hosting your custom worker and WASM files on your own server.
+  4. Using the cdnUrl option when initializing the runner:
+     runner.run({ cdnUrl: 'https://your-server.com/assets/' })
+
+The OpenCASCADE source code is publicly available at:
+https://dev.opencascade.org/
+
+-------------------------------------------------------------------------------
+
+For questions about third-party licensing, contact: info@bitbybit.dev

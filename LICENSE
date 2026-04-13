@@ -1,0 +1,194 @@
+Bitbybit Runner License
+Version 1.0, April 2026
+
+Copyright (c) 2026 MB "Bit by bit developers"
+All rights reserved except as expressly granted below.
+
+-------------------------------------------------------------------------------
+
+SCOPE OF THIS LICENSE
+
+This repository contains multiple categories of files:
+
+  a) RUNNER FILES (runner/, workers/, wasm/) — governed by this Bitbybit
+     Runner License.
+
+  b) COMPANY-OWNED ASSETS (assets/, textures/) — governed by this Bitbybit
+     Runner License.
+
+  c) THIRD-PARTY OPEN-SOURCE FILES (babylonjs/, glslang/, twgsl/, havok/,
+     fonts/) — governed by their respective licenses (Apache 2.0, MIT,
+     ISC, SIL OFL 1.1, LGPL-2.1, zlib, BSD 3-Clause, Havok License).
+     See the NOTICE file for a complete list.
+
+  d) MODIFIED FONTS (fonts/) — modified from originals obtained from
+     Google Fonts. Governed by their original licenses (SIL Open Font
+     License 1.1 or Apache 2.0). Modifications consist of automated
+     geometry processing to remove self-intersecting outlines for
+     compatibility with 3D text extrusion. See NOTICE for details.
+
+This Bitbybit Runner License applies ONLY to categories (a) and (b) above.
+It does not restrict your rights under the third-party licenses that govern
+categories (c) and (d).
+
+-------------------------------------------------------------------------------
+
+1. DEFINITIONS
+
+"Runner" means the compiled Bitbybit Runner JavaScript bundle files
+(bitbybit-runner-babylonjs.js, bitbybit-runner-threejs.js,
+bitbybit-runner-playcanvas.js, bitbybit-runner-core.js, and their
+respective "lite" variants), the associated Web Worker files, WebAssembly
+binaries, and any supporting assets distributed alongside them.
+
+"Open-Source Components" means the portions of the Runner derived from
+third-party open-source projects, as listed in the NOTICE file. These
+components are governed by their respective licenses.
+
+"Proprietary Components" means all portions of the Runner that are not
+Open-Source Components, including but not limited to proprietary algorithms,
+orchestration logic, and integration code authored by MB "Bit by bit
+developers".
+
+"CDN Assets" means the Runner files and supporting assets (Web Workers,
+WebAssembly binaries, fonts) hosted on the Bitbybit CDN at
+git-cdn.bitbybit.dev or any successor URL.
+
+-------------------------------------------------------------------------------
+
+2. GRANT OF LICENSE
+
+Subject to the terms of this License, MB "Bit by bit developers" grants you
+a worldwide, royalty-free, non-exclusive, non-sublicensable license to:
+
+  a) USE the Runner in your own applications, websites, products, and
+     services, including commercial use, without requiring a bitbybit.dev
+     account.
+
+  b) EMBED the Runner in products and services that you distribute to your
+     own end-users (for example, a Shopify app, a WordPress plugin, or a
+     standalone web application).
+
+  c) SELF-HOST the CDN Assets on your own infrastructure for use in your
+     own applications, provided you maintain the original directory
+     structure and do not modify the files.
+
+No account registration or fee is required to use the Runner under this
+License.
+
+-------------------------------------------------------------------------------
+
+3. RESTRICTIONS
+
+You may NOT:
+
+  a) REVERSE-ENGINEER, decompile, disassemble, or otherwise attempt to
+     derive the source code or underlying algorithms of the Proprietary
+     Components of the Runner.
+
+  b) MODIFY, alter, patch, or create derivative works of the Runner bundle
+     files or their Proprietary Components.
+
+  c) REDISTRIBUTE the Runner as a standalone product, library, or
+     development tool. You may not host the Runner files as a public CDN
+     service, package registry, or download mirror intended for use by
+     third parties, except as part of embedding the Runner in your own
+     application for your own end-users.
+
+  d) REMOVE or alter any copyright notices, license texts, or attribution
+     notices included in or alongside the Runner.
+
+  e) USE the Runner to circumvent API authentication, usage limits, or
+     access controls of the Bitbybit Platform or API Services.
+
+  f) CLAIM that your product is endorsed by, affiliated with, or officially
+     supported by MB "Bit by bit developers" without written permission.
+
+-------------------------------------------------------------------------------
+
+4. OPEN-SOURCE COMPONENTS
+
+The Runner incorporates Open-Source Components that are licensed under their
+respective open-source licenses (including MIT, LGPL v2.1, and Apache 2.0).
+Nothing in this License restricts your rights under those open-source
+licenses with respect to those components. A complete list of Open-Source
+Components and their licenses is provided in the accompanying NOTICE file.
+
+LGPL Compliance: The OpenCASCADE Technology (OCCT) component is licensed
+under LGPL v2.1 and is loaded as a separate, dynamically-linked Web Worker
+at runtime. You may replace the OCCT Web Worker and WebAssembly binary with
+your own LGPL-compliant build by using the cdnUrl configuration option or
+by self-hosting modified worker files. See the Bitbybit documentation for
+the worker interface specification.
+
+If you wish to modify or use the Open-Source Components independently of
+the Runner, their source code is available at:
+https://github.com/bitbybit-dev/bitbybit
+
+-------------------------------------------------------------------------------
+
+5. BUILD TOOLING
+
+The build scripts, tooling, configurations, and processes used to compile
+and assemble the Runner are proprietary to MB "Bit by bit developers" and
+are not part of this License grant. No right to the build tooling is
+granted, implied, or transferred.
+
+-------------------------------------------------------------------------------
+
+6. CDN AVAILABILITY
+
+CDN Assets hosted at git-cdn.bitbybit.dev are provided for convenience.
+MB "Bit by bit developers" makes no guarantees regarding the availability,
+uptime, or continued hosting of CDN Assets. Versions may be deprecated or
+removed at any time. For production deployments, self-hosting is
+recommended.
+
+-------------------------------------------------------------------------------
+
+7. DISCLAIMER OF WARRANTIES
+
+THE RUNNER IS PROVIDED "AS IS" AND "AS AVAILABLE", WITHOUT WARRANTY OF ANY
+KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
+
+MB "BIT BY BIT DEVELOPERS" DOES NOT WARRANT THAT THE RUNNER WILL BE
+UNINTERRUPTED, ERROR-FREE, OR FREE OF HARMFUL COMPONENTS, OR THAT THE
+RESULTS OBTAINED FROM USE OF THE RUNNER WILL BE ACCURATE OR RELIABLE.
+GEOMETRY PROCESSING AND CAD OPERATIONS MAY PRODUCE RESULTS THAT DIFFER
+FROM EXPECTED OUTPUTS DUE TO ALGORITHMIC LIMITATIONS, FLOATING-POINT
+PRECISION, OR INPUT DATA QUALITY.
+
+-------------------------------------------------------------------------------
+
+8. LIMITATION OF LIABILITY
+
+IN NO EVENT SHALL MB "BIT BY BIT DEVELOPERS" BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING BUT NOT LIMITED TO PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES,
+LOSS OF USE, DATA, OR PROFITS, OR BUSINESS INTERRUPTION) ARISING IN ANY WAY
+OUT OF THE USE OF THE RUNNER, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+DAMAGE.
+
+-------------------------------------------------------------------------------
+
+9. TERMINATION
+
+This License is effective until terminated. Your rights under this License
+terminate automatically if you fail to comply with any of its terms.
+Upon termination, you must cease all use of the Runner and destroy all
+copies in your possession.
+
+-------------------------------------------------------------------------------
+
+10. GOVERNING LAW
+
+This License shall be governed by and construed in accordance with the laws
+of the Republic of Lithuania, without regard to its conflict of laws
+provisions.
+
+-------------------------------------------------------------------------------
+
+For questions about this License, contact: info@bitbybit.dev
+For commercial licensing inquiries (including white-label, OEM, or
+redistribution rights), contact: info@bitbybit.dev
