@@ -1,5 +1,5 @@
 
-declare module KTX2DECODER {
+declare namespace KTX2DECODER {
 
 }
 

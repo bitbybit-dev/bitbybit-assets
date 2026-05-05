@@ -5,7 +5,7 @@ declare module "babylonjs-ktx2decoder" {
 }
 
 
-declare module KTX2DECODER {
+declare namespace KTX2DECODER {
 
 }
 
