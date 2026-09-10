@@ -2136,7 +2136,7 @@ declare namespace Bit {
              */
             type ManifoldPointer = {
                 hash: number;
-                type: string;
+                type: "manifold-shape";
             };
             /**
              * A handle to a 2D cross section inside the Manifold kernel. Cross sections are built, offset and
@@ -2145,7 +2145,7 @@ declare namespace Bit {
              */
             type CrossSectionPointer = {
                 hash: number;
-                type: string;
+                type: "manifold-shape";
             };
             /**
              * A handle to raw mesh data inside the Manifold kernel, used when importing an existing mesh into
@@ -2153,7 +2153,7 @@ declare namespace Bit {
              */
             type MeshPointer = {
                 hash: number;
-                type: string;
+                type: "manifold-shape";
             };
             /**
              * How overlapping and self-intersecting outlines decide what is inside. evenOdd alternates with
@@ -12665,23 +12665,27 @@ declare namespace Bit {
          */
         declare namespace Draw {
             type DrawOptions = DrawOcctShapeOptions | DrawBasicGeometryOptions | DrawManifoldOrCrossSectionOptions;
-            type Entity = number[] | [
-                number,
-                number,
-                number
-            ] | Base.Point3 | Base.Vector3 | Base.Line3 | Base.Segment3 | Base.Polyline3 | Base.VerbCurve | Base.VerbSurface | Inputs.OCCT.TopoDSShapePointer | Inputs.JSCAD.JSCADEntity | Inputs.OCCT.DecomposedMeshDto | Inputs.Tag.TagDto | {
-                type: string;
-                name?: string;
-                entityName?: string;
-            } | number[][] | Base.Point3[] | Base.Vector3[] | Base.Line3[] | Base.Segment3[] | Base.Polyline3[] | Base.VerbCurve[] | Base.VerbSurface[] | Inputs.OCCT.TopoDSShapePointer[] | Inputs.JSCAD.JSCADEntity[] | Inputs.OCCT.DecomposedMeshDto[] | Inputs.Tag.TagDto[] | {
-                type: string[];
-                name?: string;
-                entityName?: string;
-            } | {
-                type: string;
-                name?: string;
-                entityName?: string;
-            }[];
+            /**
+             * Everything a draw call will accept: points, lines, segments and polylines; Verb curves and
+             * surfaces; the handles the OCCT, Manifold and JSCAD kernels return; tags; whatever a layer
+             * above these packages has taught the call to draw; and a list of any one of them. This union is
+             * what makes one draw call able to render anything these packages produce without you having to
+             * say which kind it is.
+             *
+             * The list arms are one per kind rather than a single list of the union, because that is what is
+             * true: drawing a list applies one set of options to one kind of thing, and every plural handler
+             * reads its list as homogeneous. A mixed list is not something this call can draw, and saying so
+             * here is what stops one being written.
+             *
+             * `Base.Vector3` is not listed and is still accepted: it is the same type as `Base.Point3`.
+             *
+             * `number[]` and `number[][]` are listed, and are the loosest members here on purpose. A point is
+             * the tuple `Base.Point3`, but the vector services are honestly `number[]` - they operate on a
+             * vector of any length - so every result of `vector.add`, `cross`, `lerp` and their siblings is a
+             * `number[]`, and drawing one is ordinary. Dropping these arms would narrow the union at the cost
+             * of making the library's own output undrawable without a cast.
+             */
+            type Entity = number[] | Base.Point3 | Base.Line3 | Base.Segment3 | Base.Polyline3 | Base.VerbCurve | Base.VerbSurface | Inputs.OCCT.TopoDSShapePointer | Inputs.OCCT.DecomposedMeshDto | Inputs.Manifold.ManifoldPointer | Inputs.Manifold.CrossSectionPointer | Inputs.JSCAD.JSCADEntity | Inputs.Tag.TagDto | CustomGeometryDrawable | number[][] | Base.Point3[] | Base.Line3[] | Base.Segment3[] | Base.Polyline3[] | Base.VerbCurve[] | Base.VerbSurface[] | Inputs.OCCT.TopoDSShapePointer[] | Inputs.OCCT.DecomposedMeshDto[] | Inputs.Manifold.ManifoldPointer[] | Inputs.Manifold.CrossSectionPointer[] | Inputs.JSCAD.JSCADEntity[] | Inputs.Tag.TagDto[];
             /**
              * Metadata a drawn tag carries so that handing it back updates it in place.
              */
@@ -12706,13 +12710,48 @@ declare namespace Bit {
             type DrawnTags = DrawnTag[] & {
                 userData?: DrawnTagMeta | undefined;
             };
-            class DrawAny<U> {
-                constructor(entity?: Entity, options?: DrawOptions);
+            /**
+             * A drawable a layer above these packages taught the draw call to render, drawn as geometry.
+             * `type` is the discriminant it is matched on, the same convention the kernels already follow
+             * at runtime with "occ-shape" and "manifold-shape".
+             */
+            interface CustomGeometryDrawable {
+                readonly type: string;
+                readonly name: string;
+            }
+            /**
+             * Everything drawing can produce, for the dispatch that does not yet know which of them it is
+             * about to produce. A caller does know, which is what `Drawn` is for.
+             */
+            type DrawnAny<T> = T | DrawnTag | DrawnTags | undefined;
+            /**
+             * What drawing a particular entity resolves to.
+             *
+             * One call draws a dozen kinds of thing, and what comes back depends on which kind went in: a
+             * tag becomes the tag itself, because it renders as an HTML overlay positioned from the scene
+             * rather than as geometry in it; an overlay a host application resolves becomes a handle that
+             * only knows how to dispose itself; everything else becomes a scene object. Spelling that out
+             * here is what lets a caller use what it gets back without first narrowing a union it already
+             * knows the answer to.
+             *
+             * An `E` that is not known - the whole `Entity` union, or an `any` - resolves to the union of
+             * every branch, which is the honest answer for a caller that does not know either.
+             *
+             * The empty-list arm is not decoration. `{ entity: [] }` infers `E` as `never[]`, and `never`
+             * satisfies every other branch, so without it a literal empty list types as drawn tags.
+             */
+            type Drawn<E, T> = E extends readonly unknown[] ? ([
+                E[number]
+            ] extends [
+                never
+            ] ? undefined : E[number] extends Inputs.Tag.TagDto ? DrawnTags : T) : E extends Inputs.Tag.TagDto ? DrawnTag : T;
+            class DrawAny<U, E extends Entity = Entity> {
+                constructor(entity?: E, options?: DrawOptions, group?: U);
                 /**
                  * Entity to be drawn - can be a single or multiple points, lines, polylines, verb curves, verb surfaces, jscad meshes, jscad polygons, jscad paths, occt shapes, tags, nodes
                  * @default undefined
                  */
-                entity: Entity;
+                entity: E;
                 /**
                  * Options that help you control how your drawn objects look like. This property is optional. In order to pick the right option you need to know which entity you are going to draw. For example if you draw points, lines, polylines or jscad meshes you can use basic geometry options, but if you want to draw OCCT shapes, use OCCT options.
                  * @default undefined
@@ -12772,17 +12811,17 @@ declare namespace Bit {
                  */
                 computeNormals: boolean;
                 /**
-                 * Draw two-sided faces with different colors for front and back. This helps visualize face orientation.
+                 * Draw two-sided faces with different colors for front and back. This helps visualize face orientation. Only applies to surfaces.
                  * @default true
                  */
                 drawTwoSided: boolean;
                 /**
-                 * Hex colour string for back face colour (negative side of the face). Only used when drawTwoSided is true.
+                 * Hex colour string for back face colour (negative side of the face). Only used when drawTwoSided is true and drawing surfaces.
                  * @default #0000ff
                  */
                 backFaceColour: Base.Color;
                 /**
-                 * Back face opacity value between 0 and 1. Only used when drawTwoSided is true.
+                 * Back face opacity value between 0 and 1. Only used when drawTwoSided is true and drawing surfaces.
                  * @default 1
                  * @minimum 0
                  * @maximum 1
@@ -12908,17 +12947,17 @@ declare namespace Bit {
                  */
                 faceIndexColour: Base.Color;
                 /**
-                 * Draw two-sided faces with different colors for front and back. This helps visualize face orientation.
+                 * Draw two-sided faces with different colors for front and back. This helps visualize face orientation. Only applies to surfaces.
                  * @default true
                  */
                 drawTwoSided: boolean;
                 /**
-                 * Hex colour string for back face colour (negative side of the face). Only used when drawTwoSided is true.
+                 * Hex colour string for back face colour (negative side of the face). Only used when drawTwoSided is true and drawing surfaces.
                  * @default #0000ff
                  */
                 backFaceColour: Base.Color;
                 /**
-                 * Back face opacity value between 0 and 1. Only used when drawTwoSided is true.
+                 * Back face opacity value between 0 and 1. Only used when drawTwoSided is true and drawing surfaces.
                  * @default 1
                  * @minimum 0
                  * @maximum 1
@@ -12979,7 +13018,7 @@ declare namespace Bit {
                 colorMapStrategy: Base.colorMapStrategyEnum;
                 /**
                  * Size affect how big the drawn points are and how wide lines are.
-                 * @default 1
+                 * @default 0.1
                  * @minimum 0
                  * @maximum Infinity
                  * @step 0.1
@@ -13004,17 +13043,17 @@ declare namespace Bit {
                  */
                 hidden: boolean;
                 /**
-                 * Draw two-sided faces with different colors for front and back. This helps visualize face orientation.
+                 * Draw two-sided faces with different colors for front and back. This helps visualize face orientation. Only applies to surfaces.
                  * @default true
                  */
                 drawTwoSided: boolean;
                 /**
-                 * Hex colour string for back face colour (negative side of the face). Only used when drawTwoSided is true.
+                 * Hex colour string for back face colour (negative side of the face). Only used when drawTwoSided is true and drawing surfaces.
                  * @default #0000ff
                  */
                 backFaceColour: Base.Color;
                 /**
-                 * Back face opacity value between 0 and 1. Only used when drawTwoSided is true.
+                 * Back face opacity value between 0 and 1. Only used when drawTwoSided is true and drawing surfaces.
                  * @default 1
                  * @minimum 0
                  * @maximum 1
@@ -13255,25 +13294,39 @@ declare namespace Bit {
                  */
                 unlit: boolean;
             }
+            /**
+             * The kind of geometry a draw call detected, in singular and plural forms - point, line, node,
+             * polyline, Verb curve and surface, JSCAD mesh, and so on. Written onto a drawn object so that
+             * handing it back finds the handler that made it, and readable so you can tell what a handle
+             * refers to when updating or disposing it.
+             *
+             * The values are strings rather than ordinals, and the membership is the same in every renderer.
+             * As ordinals they were neither: the three renderers listed different kinds, so the same number
+             * meant a Manifold solid in one and a list of OCCT shapes in another, and a value written by one
+             * renderer read as a different kind in the next. A string says what it is wherever it is read.
+             */
             enum drawingTypes {
-                point = 0,
-                points = 1,
-                line = 2,
-                lines = 3,
-                node = 4,
-                nodes = 5,
-                polyline = 6,
-                polylines = 7,
-                verbCurve = 8,
-                verbCurves = 9,
-                verbSurface = 10,
-                verbSurfaces = 11,
-                jscadMesh = 12,
-                jscadMeshes = 13,
-                occt = 14,
-                occtShapes = 15,
-                tag = 16,
-                tags = 17
+                point = "point",
+                points = "points",
+                line = "line",
+                lines = "lines",
+                node = "node",
+                nodes = "nodes",
+                polyline = "polyline",
+                polylines = "polylines",
+                verbCurve = "verbCurve",
+                verbCurves = "verbCurves",
+                verbSurface = "verbSurface",
+                verbSurfaces = "verbSurfaces",
+                jscadMesh = "jscadMesh",
+                jscadMeshes = "jscadMeshes",
+                jscadPath = "jscadPath",
+                jscadPaths = "jscadPaths",
+                occt = "occt",
+                occtShapes = "occtShapes",
+                manifold = "manifold",
+                tag = "tag",
+                tags = "tags"
             }
         }
         /**
@@ -33318,25 +33371,80 @@ declare namespace Bit {
          */
         quaternionToMatrix(inputs: Inputs.OCCT.QuaternionToMatrixDto): Promise<Inputs.Base.TransformMatrix>;
     }
-    /** What drawAny hands back: a group for geometry, the tag or tags for tags, nothing for an empty entity. */
-    type DrawnEntity = THREEJS.Group | Inputs.Draw.DrawnTag | Inputs.Draw.DrawnTags | undefined;
+    /**
+     * Everything drawing can hand back: a group for geometry, the tag or tags for tags, a disposable
+     * overlay for one a host application resolves, nothing for an empty entity.
+     *
+     * This is what the dispatch is typed as, because it runs before the kind is known. A caller does
+     * know, and gets the one arm that applies through `Inputs.Draw.Drawn`.
+     */
+    type DrawnEntity = Inputs.Draw.DrawnAny<THREEJS.Group>;
     declare class Draw extends DrawCore {
         readonly drawHelper: DrawHelper;
         readonly context: Context;
         readonly tag: Tag;
         private defaultBasicOptions;
         private defaultPolylineOptions;
-        drawAnyAsync(inputs: Inputs.Draw.DrawAny<THREEJS.Group>): Promise<DrawnEntity>;
+        /**
+         * Draws any kind of geometry after all input promises are resolved. Inputs can also be non-promise like.
+         *
+         * What comes back depends on what went in, and the type says so: an OCCT, JSCAD or Manifold
+         * shape, a point, a line, a polyline or a mesh resolves to a Three.js group; a tag resolves to the drawn
+         * tag, and a list of tags to the list, because a tag renders as an HTML overlay positioned from
+         * the scene rather than as geometry in it; an entity a host application resolves into an overlay
+         * resolves to something whose only method is `dispose`. So a caller that knows what it is drawing
+         * does not have to narrow a union to use the result.
+         *
+         * Drawing an empty list draws nothing and resolves undefined. A literal `[]` is typed as that;
+         * a list variable that happens to be empty is not, because whether a list is empty is not
+         * something the type of the list says.
+         * @param inputs Contains options and entities to be drawn
+         * @returns What drawing the given entity produces - see above
+         */
+        drawAnyAsync<E extends Inputs.Draw.Entity>(inputs: Inputs.Draw.DrawAny<THREEJS.Group, E>): Promise<Inputs.Draw.Drawn<E, THREEJS.Group>>;
+        /**
+         * Every branch of the asynchronous dispatch, typed as what it can actually produce.
+         *
+         * A package that adds entity kinds overrides this rather than the public signature: two
+         * unresolved conditional types over the same `E` have no provable relation to each other, so a
+         * narrower override of `drawAnyAsync` cannot typecheck however correct it is.
+         * @ignore true
+         */
+        private cachedSyncHandlers;
+        /**
+         * What this renderer draws each synchronous kind with, keyed by the kind's name in the ordered
+         * table. A kind absent from here is one this renderer does not draw, and the walk skips it.
+         * @ignore true
+         */
+        private syncHandlers;
+        private cachedAsyncHandlers;
+        /**
+         * The same for the kinds that have to cross to a worker and back.
+         *
+         * The two JSCAD entries ask their own check again rather than asserting: a handler that takes the
+         * narrowed entity can only be given one honestly, and re-running a check the table just ran is
+         * cheaper than a cast that could be wrong.
+         * @ignore true
+         */
+        private asyncHandlers;
+        protected drawResolvedAsync(inputs: Inputs.Draw.DrawAny<THREEJS.Group>): Promise<DrawnEntity>;
         private handleDecomposedMeshShape;
         private handleDecomposedMeshes;
         /**
          * Draws any kind of geometry that does not need asynchronous computing, thus it cant be used with shapes coming from occt or jscad
          * @param inputs Contains options and entities to be drawn
-         * @returns ThreeJS Group
+         * @returns What drawing the given entity produces: a group for geometry, the tag or tags for
+         * a tag, a disposable overlay for one a host application resolves, nothing for an empty list.
          * @group draw sync
          * @shortname draw sync
          */
-        drawAny(inputs: Inputs.Draw.DrawAny<THREEJS.Group>): DrawnEntity;
+        drawAny<E extends Inputs.Draw.Entity>(inputs: Inputs.Draw.DrawAny<THREEJS.Group, E>): Inputs.Draw.Drawn<E, THREEJS.Group>;
+        /**
+         * Every branch of the synchronous dispatch, typed as what it can actually produce. Overridden
+         * instead of the public signature, for the reason given on its asynchronous twin.
+         * @ignore true
+         */
+        protected drawResolved(inputs: Inputs.Draw.DrawAny<THREEJS.Group>): DrawnEntity;
         /**
          * Creates draw options for basic geometry types like points, lines, polylines, surfaces and jscad meshes
          * @param inputs option definition
@@ -33382,6 +33490,15 @@ declare namespace Bit {
         private handleOcctShapes;
         private handleLine;
         private handlePoint;
+        /**
+         * A JSCAD path drawn as the polyline it is.
+         *
+         * The path's points are two-dimensional and its closing segment is implied by `isClosed`, so
+         * both are resolved before the polyline handler sees it - which then applies the same options,
+         * metadata and update handling every other polyline gets.
+         */
+        private handleJscadPath;
+        private handleJscadPaths;
         private handlePolyline;
         private handleVerbCurve;
         private handleVerbSurface;
@@ -38970,7 +39087,28 @@ declare namespace Bit {
          * @shortname draw anything
          * @disposableOutput true
          */
-        drawAnyAsync(inputs: Inputs.Draw.DrawAny<THREEJS.Group>): Promise<DrawnEntity>;
+        drawAnyAsync<E extends Inputs.Draw.Entity>(inputs: Inputs.Draw.DrawAny<THREEJS.Group, E>): Promise<Inputs.Draw.Drawn<E, THREEJS.Group>>;
+        /**
+         * The kinds this layer adds are resolved asynchronously, so the synchronous entry point cannot
+         * draw them.
+         *
+         * Saying so here rather than letting the base dispatch fall through is what turns a silent
+         * `undefined` - and a TypeError on whatever the caller does with it - into a message naming the
+         * method that does work. The public types cannot distinguish the two entry points, because both
+         * derive their result from the entity they were given.
+         * @ignore true
+         */
+        protected drawResolved(inputs: Inputs.Draw.DrawAny<THREEJS.Group>): DrawnEntity;
+        /**
+         * The kinds this layer adds to the draw call, and then everything the renderer already knew.
+         *
+         * The extra kinds are added here rather than by overriding `drawAnyAsync`, because that method
+         * says what a given entity resolves to and TypeScript cannot relate two such conditional types
+         * to each other - so a narrower override of it cannot typecheck however correct it is. This is
+         * the seam the renderer provides for exactly that.
+         * @ignore true
+         */
+        protected drawResolvedAsync(inputs: Inputs.Draw.DrawAny<THREEJS.Group>): Promise<DrawnEntity>;
         /**
          * Creates draw options for basic geometry types like points, lines, polylines, surfaces and jscad meshes
          * @param inputs option definition

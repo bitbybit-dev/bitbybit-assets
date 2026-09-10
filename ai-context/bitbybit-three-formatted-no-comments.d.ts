@@ -658,15 +658,15 @@ declare namespace Bit {
         declare namespace Manifold {
             type ManifoldPointer = {
                 hash: number;
-                type: string;
+                type: "manifold-shape";
             };
             type CrossSectionPointer = {
                 hash: number;
-                type: string;
+                type: "manifold-shape";
             };
             type MeshPointer = {
                 hash: number;
-                type: string;
+                type: "manifold-shape";
             };
             enum fillRuleEnum {
                 evenOdd = "EvenOdd",
@@ -3519,23 +3519,7 @@ declare namespace Bit {
         }
         declare namespace Draw {
             type DrawOptions = DrawOcctShapeOptions | DrawBasicGeometryOptions | DrawManifoldOrCrossSectionOptions;
-            type Entity = number[] | [
-                number,
-                number,
-                number
-            ] | Base.Point3 | Base.Vector3 | Base.Line3 | Base.Segment3 | Base.Polyline3 | Base.VerbCurve | Base.VerbSurface | Inputs.OCCT.TopoDSShapePointer | Inputs.JSCAD.JSCADEntity | Inputs.OCCT.DecomposedMeshDto | Inputs.Tag.TagDto | {
-                type: string;
-                name?: string;
-                entityName?: string;
-            } | number[][] | Base.Point3[] | Base.Vector3[] | Base.Line3[] | Base.Segment3[] | Base.Polyline3[] | Base.VerbCurve[] | Base.VerbSurface[] | Inputs.OCCT.TopoDSShapePointer[] | Inputs.JSCAD.JSCADEntity[] | Inputs.OCCT.DecomposedMeshDto[] | Inputs.Tag.TagDto[] | {
-                type: string[];
-                name?: string;
-                entityName?: string;
-            } | {
-                type: string;
-                name?: string;
-                entityName?: string;
-            }[];
+            type Entity = number[] | Base.Point3 | Base.Line3 | Base.Segment3 | Base.Polyline3 | Base.VerbCurve | Base.VerbSurface | Inputs.OCCT.TopoDSShapePointer | Inputs.OCCT.DecomposedMeshDto | Inputs.Manifold.ManifoldPointer | Inputs.Manifold.CrossSectionPointer | Inputs.JSCAD.JSCADEntity | Inputs.Tag.TagDto | CustomGeometryDrawable | number[][] | Base.Point3[] | Base.Line3[] | Base.Segment3[] | Base.Polyline3[] | Base.VerbCurve[] | Base.VerbSurface[] | Inputs.OCCT.TopoDSShapePointer[] | Inputs.OCCT.DecomposedMeshDto[] | Inputs.Manifold.ManifoldPointer[] | Inputs.Manifold.CrossSectionPointer[] | Inputs.JSCAD.JSCADEntity[] | Inputs.Tag.TagDto[];
             interface DrawnTagMeta {
                 type: drawingTypes;
                 options: DrawOptions | {
@@ -3548,9 +3532,19 @@ declare namespace Bit {
             type DrawnTags = DrawnTag[] & {
                 userData?: DrawnTagMeta | undefined;
             };
-            class DrawAny<U> {
-                constructor(entity?: Entity, options?: DrawOptions);
-                entity: Entity;
+            interface CustomGeometryDrawable {
+                readonly type: string;
+                readonly name: string;
+            }
+            type DrawnAny<T> = T | DrawnTag | DrawnTags | undefined;
+            type Drawn<E, T> = E extends readonly unknown[] ? ([
+                E[number]
+            ] extends [
+                never
+            ] ? undefined : E[number] extends Inputs.Tag.TagDto ? DrawnTags : T) : E extends Inputs.Tag.TagDto ? DrawnTag : T;
+            class DrawAny<U, E extends Entity = Entity> {
+                constructor(entity?: E, options?: DrawOptions, group?: U);
+                entity: E;
                 options?: DrawOptions | undefined;
                 group?: U | undefined;
             }
@@ -3656,24 +3650,27 @@ declare namespace Bit {
                 unlit: boolean;
             }
             enum drawingTypes {
-                point = 0,
-                points = 1,
-                line = 2,
-                lines = 3,
-                node = 4,
-                nodes = 5,
-                polyline = 6,
-                polylines = 7,
-                verbCurve = 8,
-                verbCurves = 9,
-                verbSurface = 10,
-                verbSurfaces = 11,
-                jscadMesh = 12,
-                jscadMeshes = 13,
-                occt = 14,
-                occtShapes = 15,
-                tag = 16,
-                tags = 17
+                point = "point",
+                points = "points",
+                line = "line",
+                lines = "lines",
+                node = "node",
+                nodes = "nodes",
+                polyline = "polyline",
+                polylines = "polylines",
+                verbCurve = "verbCurve",
+                verbCurves = "verbCurves",
+                verbSurface = "verbSurface",
+                verbSurfaces = "verbSurfaces",
+                jscadMesh = "jscadMesh",
+                jscadMeshes = "jscadMeshes",
+                jscadPath = "jscadPath",
+                jscadPaths = "jscadPaths",
+                occt = "occt",
+                occtShapes = "occtShapes",
+                manifold = "manifold",
+                tag = "tag",
+                tags = "tags"
             }
         }
         interface OrbitCameraInstance {
@@ -8777,17 +8774,23 @@ declare namespace Bit {
         mirrorPlaneToMatrix(inputs: Inputs.OCCT.MirrorPlaneToMatrixDto): Promise<Inputs.Base.TransformMatrix>;
         quaternionToMatrix(inputs: Inputs.OCCT.QuaternionToMatrixDto): Promise<Inputs.Base.TransformMatrix>;
     }
-    type DrawnEntity = THREEJS.Group | Inputs.Draw.DrawnTag | Inputs.Draw.DrawnTags | undefined;
+    type DrawnEntity = Inputs.Draw.DrawnAny<THREEJS.Group>;
     declare class Draw extends DrawCore {
         readonly drawHelper: DrawHelper;
         readonly context: Context;
         readonly tag: Tag;
         private defaultBasicOptions;
         private defaultPolylineOptions;
-        drawAnyAsync(inputs: Inputs.Draw.DrawAny<THREEJS.Group>): Promise<DrawnEntity>;
+        drawAnyAsync<E extends Inputs.Draw.Entity>(inputs: Inputs.Draw.DrawAny<THREEJS.Group, E>): Promise<Inputs.Draw.Drawn<E, THREEJS.Group>>;
+        private cachedSyncHandlers;
+        private syncHandlers;
+        private cachedAsyncHandlers;
+        private asyncHandlers;
+        protected drawResolvedAsync(inputs: Inputs.Draw.DrawAny<THREEJS.Group>): Promise<DrawnEntity>;
         private handleDecomposedMeshShape;
         private handleDecomposedMeshes;
-        drawAny(inputs: Inputs.Draw.DrawAny<THREEJS.Group>): DrawnEntity;
+        drawAny<E extends Inputs.Draw.Entity>(inputs: Inputs.Draw.DrawAny<THREEJS.Group, E>): Inputs.Draw.Drawn<E, THREEJS.Group>;
+        protected drawResolved(inputs: Inputs.Draw.DrawAny<THREEJS.Group>): DrawnEntity;
         optionsSimple(inputs: Inputs.Draw.DrawBasicGeometryOptions): Inputs.Draw.DrawBasicGeometryOptions;
         optionsOcctShape(inputs: Inputs.Draw.DrawOcctShapeOptions): Inputs.Draw.DrawOcctShapeOptions;
         createTexture(inputs: Inputs.Draw.GenericTextureDto): THREEJS.Texture;
@@ -8800,6 +8803,8 @@ declare namespace Bit {
         private handleOcctShapes;
         private handleLine;
         private handlePoint;
+        private handleJscadPath;
+        private handleJscadPaths;
         private handlePolyline;
         private handleVerbCurve;
         private handleVerbSurface;
@@ -9670,7 +9675,9 @@ declare namespace Bit {
         readonly tag: Tag;
         private readonly advanced;
         readonly context: Context;
-        drawAnyAsync(inputs: Inputs.Draw.DrawAny<THREEJS.Group>): Promise<DrawnEntity>;
+        drawAnyAsync<E extends Inputs.Draw.Entity>(inputs: Inputs.Draw.DrawAny<THREEJS.Group, E>): Promise<Inputs.Draw.Drawn<E, THREEJS.Group>>;
+        protected drawResolved(inputs: Inputs.Draw.DrawAny<THREEJS.Group>): DrawnEntity;
+        protected drawResolvedAsync(inputs: Inputs.Draw.DrawAny<THREEJS.Group>): Promise<DrawnEntity>;
         optionsSimple(inputs: Inputs.Draw.DrawBasicGeometryOptions): Inputs.Draw.DrawBasicGeometryOptions;
         optionsOcctShape(inputs: Inputs.Draw.DrawOcctShapeOptions): Inputs.Draw.DrawOcctShapeOptions;
     }

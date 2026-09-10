@@ -2247,7 +2247,7 @@ declare namespace Bit {
              */
             type ManifoldPointer = {
                 hash: number;
-                type: string;
+                type: "manifold-shape";
             };
             /**
              * A handle to a 2D cross section inside the Manifold kernel. Cross sections are built, offset and
@@ -2256,7 +2256,7 @@ declare namespace Bit {
              */
             type CrossSectionPointer = {
                 hash: number;
-                type: string;
+                type: "manifold-shape";
             };
             /**
              * A handle to raw mesh data inside the Manifold kernel, used when importing an existing mesh into
@@ -2264,7 +2264,7 @@ declare namespace Bit {
              */
             type MeshPointer = {
                 hash: number;
-                type: string;
+                type: "manifold-shape";
             };
             /**
              * How overlapping and self-intersecting outlines decide what is inside. evenOdd alternates with
@@ -17712,28 +17712,26 @@ declare namespace Bit {
              */
             type DrawOptions = DrawBasicGeometryOptions | DrawManifoldOrCrossSectionOptions | DrawOcctShapeOptions | DrawOcctShapeSimpleOptions | DrawOcctShapeMaterialOptions | DrawNodeOptions;
             /**
-             * Everything a draw call will accept: points, vectors, lines, segments and polylines; Verb curves
-             * and surfaces; OCCT shape handles; tags; meshes from any kernel; and lists of any of them. This
-             * union is what makes one draw call able to render anything these packages produce without you
-             * having to say which kind it is.
+             * Everything a draw call will accept: points, lines, segments and polylines; Verb curves and
+             * surfaces; the handles the OCCT, Manifold and JSCAD kernels return; tags; a BabylonJS node, which draws as an axis triad; whatever a layer
+             * above these packages has taught the call to draw; and a list of any one of them. This union is
+             * what makes one draw call able to render anything these packages produce without you having to
+             * say which kind it is.
+             *
+             * The list arms are one per kind rather than a single list of the union, because that is what is
+             * true: drawing a list applies one set of options to one kind of thing, and every plural handler
+             * reads its list as homogeneous. A mixed list is not something this call can draw, and saying so
+             * here is what stops one being written.
+             *
+             * `Base.Vector3` is not listed and is still accepted: it is the same type as `Base.Point3`.
+             *
+             * `number[]` and `number[][]` are listed, and are the loosest members here on purpose. A point is
+             * the tuple `Base.Point3`, but the vector services are honestly `number[]` - they operate on a
+             * vector of any length - so every result of `vector.add`, `cross`, `lerp` and their siblings is a
+             * `number[]`, and drawing one is ordinary. Dropping these arms would narrow the union at the cost
+             * of making the library's own output undrawable without a cast.
              */
-            type Entity = number[] | [
-                number,
-                number,
-                number
-            ] | Base.Point3 | Base.Vector3 | Base.Line3 | Base.Segment3 | Base.Polyline3 | Base.VerbCurve | Base.VerbSurface | Inputs.OCCT.TopoDSShapePointer | Inputs.JSCAD.JSCADEntity | Inputs.OCCT.DecomposedMeshDto | Inputs.Tag.TagDto | {
-                type: string;
-                name?: string;
-                entityName?: string;
-            } | number[][] | Base.Point3[] | Base.Vector3[] | Base.Line3[] | Base.Segment3[] | Base.Polyline3[] | Base.VerbCurve[] | Base.VerbSurface[] | Inputs.OCCT.TopoDSShapePointer[] | Inputs.JSCAD.JSCADEntity[] | Inputs.OCCT.DecomposedMeshDto[] | Inputs.Tag.TagDto[] | {
-                type: string[];
-                name?: string;
-                entityName?: string;
-            } | {
-                type: string;
-                name?: string;
-                entityName?: string;
-            }[];
+            type Entity = number[] | Base.Point3 | Base.Line3 | Base.Segment3 | Base.Polyline3 | Base.VerbCurve | Base.VerbSurface | Inputs.OCCT.TopoDSShapePointer | Inputs.OCCT.DecomposedMeshDto | Inputs.Manifold.ManifoldPointer | Inputs.Manifold.CrossSectionPointer | Inputs.JSCAD.JSCADEntity | Inputs.Tag.TagDto | CustomGeometryDrawable | CustomOverlayDrawable | BABYLON.TransformNode | number[][] | Base.Point3[] | Base.Line3[] | Base.Segment3[] | Base.Polyline3[] | Base.VerbCurve[] | Base.VerbSurface[] | Inputs.OCCT.TopoDSShapePointer[] | Inputs.OCCT.DecomposedMeshDto[] | Inputs.Manifold.ManifoldPointer[] | Inputs.Manifold.CrossSectionPointer[] | Inputs.JSCAD.JSCADEntity[] | Inputs.Tag.TagDto[] | BABYLON.TransformNode[];
             /**
              * Metadata a drawn tag carries so that handing it back updates it in place.
              */
@@ -17760,13 +17758,72 @@ declare namespace Bit {
             type DrawnTags = DrawnTag[] & {
                 metadata?: DrawnTagMeta | undefined;
             };
-            class DrawAny {
-                constructor(entity?: Entity, options?: DrawOptions, babylonMesh?: BABYLON.Mesh | BABYLON.LinesMesh);
+            /**
+             * What every drawn output has in common: it can be released. A layer above these packages that
+             * draws an overlay - a label, a dimension, a marker - hands back one of these rather than a
+             * mesh, because positioning something from the scene is not the same as being geometry in it.
+             */
+            interface DrawnOverlay {
+                dispose(): void;
+            }
+            /**
+             * A drawable a layer above these packages taught the draw call to render, drawn as geometry.
+             * `type` is the discriminant it is matched on, the same convention the kernels already follow
+             * at runtime with "occ-shape" and "manifold-shape".
+             */
+            interface CustomGeometryDrawable {
+                readonly type: string;
+                readonly name: string;
+            }
+            /** The same, for a drawable that draws an overlay rather than geometry. */
+            interface CustomOverlayDrawable {
+                readonly type: string;
+                readonly entityName: string;
+            }
+            /**
+             * Everything drawing can produce, for the dispatch that runs before the kind is known. A caller
+             * does know, and gets the one arm that applies through `Drawn`.
+             *
+             * The node arm is not the mesh arm: drawing a node draws an axis triad, which is a
+             * `TransformNode` and not geometry, and saying so is what lets that path return what it builds
+             * instead of asserting it is a mesh.
+             */
+            type DrawnAny<T> = T | BABYLON.TransformNode | BABYLON.TransformNode[] | DrawnTag | DrawnTags | DrawnOverlay | undefined;
+            /**
+             * What drawing a particular entity resolves to.
+             *
+             * One call draws a dozen kinds of thing, and what comes back depends on which kind went in: a
+             * tag becomes the tag itself, because it renders as an HTML overlay positioned from the scene
+             * rather than as geometry in it; an overlay a host application resolves becomes a handle that
+             * only knows how to dispose itself; a node becomes the node, because drawing one draws an axis
+             * triad parented to it rather than replacing it with geometry; everything else becomes a mesh.
+             * Spelling that out here is what lets a caller use what it gets back without first narrowing a
+             * union it already knows the answer to.
+             *
+             * A mesh is matched before a node in the single-entity arms so that handing a drawn mesh back to
+             * update it in place still resolves to a mesh - `Mesh` extends `TransformNode`, so the node arm
+             * would otherwise swallow it and hand back the wider type. The list arms do not repeat that:
+             * there is no update path that takes a list, so a list of meshes is drawn as the list of nodes
+             * it is, and claiming a single mesh there would describe a result nothing can produce.
+             *
+             * An `E` that is not known - the whole `Entity` union, or an `any` - resolves to the union of
+             * every branch, which is the honest answer for a caller that does not know either.
+             *
+             * The empty-list arm is not decoration. `{ entity: [] }` infers `E` as `never[]`, and `never`
+             * satisfies every other branch, so without it a literal empty list types as drawn tags.
+             */
+            type Drawn<E, T> = E extends readonly unknown[] ? ([
+                E[number]
+            ] extends [
+                never
+            ] ? undefined : E[number] extends Inputs.Tag.TagDto ? DrawnTags : E[number] extends BABYLON.TransformNode ? BABYLON.TransformNode[] : T) : E extends Inputs.Tag.TagDto ? DrawnTag : E extends CustomOverlayDrawable ? DrawnOverlay : E extends BABYLON.Mesh ? T : E extends BABYLON.TransformNode ? BABYLON.TransformNode : T;
+            class DrawAny<E extends Entity = Entity> {
+                constructor(entity?: E, options?: DrawOptions, babylonMesh?: BABYLON.Mesh | BABYLON.LinesMesh);
                 /**
                  * Entity to be drawn - can be a single or multiple points, lines, polylines, verb curves, verb surfaces, jscad meshes, jscad polygons, jscad paths, occt shapes, tags, nodes
                  * @default undefined
                  */
-                entity: Entity;
+                entity: E;
                 /**
                  * Options that help you control how your drawn objects look like. This property is optional. In order to pick the right option you need to know which entity you are going to draw. For example if you draw points, lines, polylines or jscad meshes you can use basic geometry options, but if you want to draw OCCT shapes, use OCCT options.
                  * @default undefined
@@ -18505,28 +18562,37 @@ declare namespace Bit {
             }
             /**
              * The kind of geometry a draw call detected, in singular and plural forms - point, line, node,
-             * polyline, Verb curve and surface, JSCAD mesh, and so on. Returned on drawn objects so you can
-             * tell what a handle refers to when updating or disposing it.
+             * polyline, Verb curve and surface, JSCAD mesh, and so on. Written onto a drawn object so that
+             * handing it back finds the handler that made it, and readable so you can tell what a handle
+             * refers to when updating or disposing it.
+             *
+             * The values are strings rather than ordinals, and the membership is the same in every renderer.
+             * As ordinals they were neither: the three renderers listed different kinds, so the same number
+             * meant a Manifold solid in one and a list of OCCT shapes in another, and a value written by one
+             * renderer read as a different kind in the next. A string says what it is wherever it is read.
              */
             enum drawingTypes {
-                point = 0,
-                points = 1,
-                line = 2,
-                lines = 3,
-                node = 4,
-                nodes = 5,
-                polyline = 6,
-                polylines = 7,
-                verbCurve = 8,
-                verbCurves = 9,
-                verbSurface = 10,
-                verbSurfaces = 11,
-                jscadMesh = 12,
-                jscadMeshes = 13,
-                occt = 14,
-                manifold = 15,
-                tag = 16,
-                tags = 17
+                point = "point",
+                points = "points",
+                line = "line",
+                lines = "lines",
+                node = "node",
+                nodes = "nodes",
+                polyline = "polyline",
+                polylines = "polylines",
+                verbCurve = "verbCurve",
+                verbCurves = "verbCurves",
+                verbSurface = "verbSurface",
+                verbSurfaces = "verbSurfaces",
+                jscadMesh = "jscadMesh",
+                jscadMeshes = "jscadMeshes",
+                jscadPath = "jscadPath",
+                jscadPaths = "jscadPaths",
+                occt = "occt",
+                occtShapes = "occtShapes",
+                manifold = "manifold",
+                tag = "tag",
+                tags = "tags"
             }
         }
         /**
@@ -42552,16 +42618,26 @@ declare namespace Bit {
         /**
          * Draws any kind of geometry and returns the babylon mesh
          * @param inputs Contains options and entities to be drawn
-         * @returns BabylonJS Mesh Promise. Resolves undefined when there is nothing to draw, which is the
-         * case for an undefined entity and for an empty list; a mesh is what every drawable output is
-         * declared as, so the empty case is not spelled in the type. Drawing a tag resolves the tag itself
-         * rather than a mesh, for the same reason.
+         * @returns What drawing the given entity produces: a mesh for geometry, the tag or tags for a
+         * tag, a disposable overlay for one a host application resolves, an axis triad's node for a
+         * node. Drawing an empty list draws nothing and resolves undefined; a literal `[]` is typed as
+         * that, a list variable that happens to be empty is not, because whether a list is empty is not
+         * something the type of the list says.
          * @group draw async
          * @shortname draw async
          * @drawable true
          * @disposableOutput true
          */
-        drawAnyAsync(inputs: Inputs.Draw.DrawAny): Promise<BABYLON.Mesh>;
+        drawAnyAsync<E extends Inputs.Draw.Entity>(inputs: Inputs.Draw.DrawAny<E>): Promise<Inputs.Draw.Drawn<E, BABYLON.Mesh>>;
+        /**
+         * Every branch of the asynchronous dispatch, typed as what it can actually produce.
+         *
+         * A package that adds entity kinds overrides this rather than the public signature: two
+         * unresolved conditional types over the same `E` have no provable relation to each other, so a
+         * narrower override of `drawAnyAsync` cannot typecheck however correct it is.
+         * @ignore true
+         */
+        protected drawResolvedAsync(inputs: Inputs.Draw.DrawAny): Promise<Inputs.Draw.DrawnAny<BABYLON.Mesh>>;
         private mergedOcctShapeOptions;
         private handleDecomposedMeshShape;
         private handleDecomposedMeshes;
@@ -42582,7 +42658,45 @@ declare namespace Bit {
          * @group draw sync
          * @shortname draw sync
          */
-        drawAny(inputs: Inputs.Draw.DrawAny): BABYLON.Mesh;
+        drawAny<E extends Inputs.Draw.Entity>(inputs: Inputs.Draw.DrawAny<E>): Inputs.Draw.Drawn<E, BABYLON.Mesh>;
+        private cachedSyncHandlers;
+        /**
+         * What this renderer draws each synchronous kind with, keyed by the kind's name in the ordered
+         * table. A kind absent from here is one this renderer does not draw, and the walk skips it.
+         * @ignore true
+         */
+        private syncHandlers;
+        private cachedAsyncHandlers;
+        /**
+         * The same for the kinds that have to cross to a worker and back.
+         *
+         * The two JSCAD entries ask their own check again rather than asserting: a handler that takes the
+         * narrowed entity can only be given one honestly, and re-running a check the table just ran is
+         * cheaper than a cast that could be wrong.
+         * @ignore true
+         */
+        private asyncHandlers;
+        /**
+         * Whether the entity is a node this renderer can draw an axis triad for.
+         *
+         * The engine-agnostic check this replaces asks whether `id` is a string containing "node", which
+         * any object can satisfy and most real nodes do not: it matched only the ones this library named
+         * itself, so a node from a loaded model, or one a script constructed, typechecked as drawable
+         * and then silently drew nothing. A node is a renderer's own concept, so the honest check lives
+         * beside the renderer that has the type to ask about.
+         * @ignore true
+         */
+        detectNode(entity: unknown): entity is BABYLON.TransformNode;
+        /**
+         * @ignore true
+         */
+        detectNodes(entity: unknown): entity is BABYLON.TransformNode[];
+        /**
+         * Every branch of the synchronous dispatch, typed as what it can actually produce. Overridden
+         * instead of the public signature, for the reason given on its asynchronous twin.
+         * @ignore true
+         */
+        protected drawResolved(inputs: Inputs.Draw.DrawAny): Inputs.Draw.DrawnAny<BABYLON.Mesh>;
         /**
          * Draws a grid mesh on the ground plane in 3D space. This helps to orient yourself in the world.
          * @param inputs Describes various parameters of the grid mesh like size, colour, etc.
@@ -42681,6 +42795,15 @@ declare namespace Bit {
         private handleVerbSurface;
         private handleVerbCurve;
         private handleNode;
+        /**
+         * A JSCAD path drawn as the polyline it is.
+         *
+         * The path's points are two-dimensional and its closing segment is implied by `isClosed`, so
+         * both are resolved before the polyline handler sees it - which then applies the same options,
+         * metadata and update handling every other polyline gets.
+         */
+        private handleJscadPath;
+        private handleJscadPaths;
         private handlePolyline;
         private handlePoint;
         private handleLine;
@@ -42690,6 +42813,21 @@ declare namespace Bit {
         private handleOcctShape;
         private handleOcctShapes;
         private handleJscadMesh;
+        /**
+         * The settings a drawn node can carry, which is not the set a drawn mesh can.
+         *
+         * Drawing a node parents an axis triad to it: the node itself is not geometry, so pickability,
+         * casting shadows and receiving them belong to the lines the triad is made of rather than to the
+         * node. Sending a node through the mesh path instead writes members onto an object that has none
+         * and registers a non-mesh as a shadow caster, which the shadow map then walks as geometry.
+         *
+         * The settings reach the triad only, which is why the caller passes it rather than letting this
+         * ask the node for its meshes. Any transform node can be drawn - a loaded model hangs its whole
+         * mesh tree off one - and asking the node would take the model with it, making every mesh in it
+         * unpickable and re-registering all of them as shadow casters, because a draw call was made
+         * about the node they happen to be parented to.
+         */
+        private applyNodeSettingsAndMetadata;
         private applyGlobalSettingsAndMetadataAndShadowCasting;
     }
     declare class Color {
@@ -48796,7 +48934,28 @@ declare namespace Bit {
          * @shortname draw anything
          * @disposableOutput true
          */
-        drawAnyAsync(inputs: Inputs.Draw.DrawAny): Promise<BABYLON.Mesh>;
+        drawAnyAsync<E extends Inputs.Draw.Entity>(inputs: Inputs.Draw.DrawAny<E>): Promise<Inputs.Draw.Drawn<E, BABYLON.Mesh>>;
+        /**
+         * The kinds this layer adds are resolved asynchronously, so the synchronous entry point cannot
+         * draw them.
+         *
+         * Saying so here rather than letting the base dispatch fall through is what turns a silent
+         * `undefined` - and a TypeError on whatever the caller does with it - into a message naming the
+         * method that does work. The public types cannot distinguish the two entry points, because both
+         * derive their result from the entity they were given.
+         * @ignore true
+         */
+        protected drawResolved(inputs: Inputs.Draw.DrawAny): Inputs.Draw.DrawnAny<BABYLON.Mesh>;
+        /**
+         * The kinds this layer adds to the draw call, and then everything the renderer already knew.
+         *
+         * The extra kinds are added here rather than by overriding `drawAnyAsync`, because that method
+         * says what a given entity resolves to and TypeScript cannot relate two such conditional types
+         * to each other - so a narrower override of it cannot typecheck however correct it is. This is
+         * the seam the renderer provides for exactly that.
+         * @ignore true
+         */
+        protected drawResolvedAsync(inputs: Inputs.Draw.DrawAny): Promise<Inputs.Draw.DrawnAny<BABYLON.Mesh>>;
         /**
          * Draws a grid mesh on the ground plane in 3D space. This helps to orient yourself in the world.
          * @param inputs Describes various parameters of the grid mesh like size, colour, etc.

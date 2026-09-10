@@ -730,15 +730,15 @@ declare namespace Bit {
         declare namespace Manifold {
             type ManifoldPointer = {
                 hash: number;
-                type: string;
+                type: "manifold-shape";
             };
             type CrossSectionPointer = {
                 hash: number;
-                type: string;
+                type: "manifold-shape";
             };
             type MeshPointer = {
                 hash: number;
-                type: string;
+                type: "manifold-shape";
             };
             enum fillRuleEnum {
                 evenOdd = "EvenOdd",
@@ -5098,23 +5098,7 @@ declare namespace Bit {
         }
         declare namespace Draw {
             type DrawOptions = DrawBasicGeometryOptions | DrawManifoldOrCrossSectionOptions | DrawOcctShapeOptions | DrawOcctShapeSimpleOptions | DrawOcctShapeMaterialOptions | DrawNodeOptions;
-            type Entity = number[] | [
-                number,
-                number,
-                number
-            ] | Base.Point3 | Base.Vector3 | Base.Line3 | Base.Segment3 | Base.Polyline3 | Base.VerbCurve | Base.VerbSurface | Inputs.OCCT.TopoDSShapePointer | Inputs.JSCAD.JSCADEntity | Inputs.OCCT.DecomposedMeshDto | Inputs.Tag.TagDto | {
-                type: string;
-                name?: string;
-                entityName?: string;
-            } | number[][] | Base.Point3[] | Base.Vector3[] | Base.Line3[] | Base.Segment3[] | Base.Polyline3[] | Base.VerbCurve[] | Base.VerbSurface[] | Inputs.OCCT.TopoDSShapePointer[] | Inputs.JSCAD.JSCADEntity[] | Inputs.OCCT.DecomposedMeshDto[] | Inputs.Tag.TagDto[] | {
-                type: string[];
-                name?: string;
-                entityName?: string;
-            } | {
-                type: string;
-                name?: string;
-                entityName?: string;
-            }[];
+            type Entity = number[] | Base.Point3 | Base.Line3 | Base.Segment3 | Base.Polyline3 | Base.VerbCurve | Base.VerbSurface | Inputs.OCCT.TopoDSShapePointer | Inputs.OCCT.DecomposedMeshDto | Inputs.Manifold.ManifoldPointer | Inputs.Manifold.CrossSectionPointer | Inputs.JSCAD.JSCADEntity | Inputs.Tag.TagDto | CustomGeometryDrawable | CustomOverlayDrawable | BABYLON.TransformNode | number[][] | Base.Point3[] | Base.Line3[] | Base.Segment3[] | Base.Polyline3[] | Base.VerbCurve[] | Base.VerbSurface[] | Inputs.OCCT.TopoDSShapePointer[] | Inputs.OCCT.DecomposedMeshDto[] | Inputs.Manifold.ManifoldPointer[] | Inputs.Manifold.CrossSectionPointer[] | Inputs.JSCAD.JSCADEntity[] | Inputs.Tag.TagDto[] | BABYLON.TransformNode[];
             interface DrawnTagMeta {
                 type: drawingTypes;
                 options: DrawOptions | {
@@ -5127,9 +5111,26 @@ declare namespace Bit {
             type DrawnTags = DrawnTag[] & {
                 metadata?: DrawnTagMeta | undefined;
             };
-            class DrawAny {
-                constructor(entity?: Entity, options?: DrawOptions, babylonMesh?: BABYLON.Mesh | BABYLON.LinesMesh);
-                entity: Entity;
+            interface DrawnOverlay {
+                dispose(): void;
+            }
+            interface CustomGeometryDrawable {
+                readonly type: string;
+                readonly name: string;
+            }
+            interface CustomOverlayDrawable {
+                readonly type: string;
+                readonly entityName: string;
+            }
+            type DrawnAny<T> = T | BABYLON.TransformNode | BABYLON.TransformNode[] | DrawnTag | DrawnTags | DrawnOverlay | undefined;
+            type Drawn<E, T> = E extends readonly unknown[] ? ([
+                E[number]
+            ] extends [
+                never
+            ] ? undefined : E[number] extends Inputs.Tag.TagDto ? DrawnTags : E[number] extends BABYLON.TransformNode ? BABYLON.TransformNode[] : T) : E extends Inputs.Tag.TagDto ? DrawnTag : E extends CustomOverlayDrawable ? DrawnOverlay : E extends BABYLON.Mesh ? T : E extends BABYLON.TransformNode ? BABYLON.TransformNode : T;
+            class DrawAny<E extends Entity = Entity> {
+                constructor(entity?: E, options?: DrawOptions, babylonMesh?: BABYLON.Mesh | BABYLON.LinesMesh);
+                entity: E;
                 options?: DrawOptions | undefined;
                 babylonMesh?: BABYLON.Mesh | BABYLON.LinesMesh | undefined;
             }
@@ -5275,24 +5276,27 @@ declare namespace Bit {
                 unlit: boolean;
             }
             enum drawingTypes {
-                point = 0,
-                points = 1,
-                line = 2,
-                lines = 3,
-                node = 4,
-                nodes = 5,
-                polyline = 6,
-                polylines = 7,
-                verbCurve = 8,
-                verbCurves = 9,
-                verbSurface = 10,
-                verbSurfaces = 11,
-                jscadMesh = 12,
-                jscadMeshes = 13,
-                occt = 14,
-                manifold = 15,
-                tag = 16,
-                tags = 17
+                point = "point",
+                points = "points",
+                line = "line",
+                lines = "lines",
+                node = "node",
+                nodes = "nodes",
+                polyline = "polyline",
+                polylines = "polylines",
+                verbCurve = "verbCurve",
+                verbCurves = "verbCurves",
+                verbSurface = "verbSurface",
+                verbSurfaces = "verbSurfaces",
+                jscadMesh = "jscadMesh",
+                jscadMeshes = "jscadMeshes",
+                jscadPath = "jscadPath",
+                jscadPaths = "jscadPaths",
+                occt = "occt",
+                occtShapes = "occtShapes",
+                manifold = "manifold",
+                tag = "tag",
+                tags = "tags"
             }
         }
         declare namespace BabylonNode {
@@ -11130,14 +11134,22 @@ declare namespace Bit {
         private defaultPolylineOptions;
         private defaultNodeOptions;
         drawAnyAsyncNoReturn(inputs: Inputs.Draw.DrawAny): Promise<void>;
-        drawAnyAsync(inputs: Inputs.Draw.DrawAny): Promise<BABYLON.Mesh>;
+        drawAnyAsync<E extends Inputs.Draw.Entity>(inputs: Inputs.Draw.DrawAny<E>): Promise<Inputs.Draw.Drawn<E, BABYLON.Mesh>>;
+        protected drawResolvedAsync(inputs: Inputs.Draw.DrawAny): Promise<Inputs.Draw.DrawnAny<BABYLON.Mesh>>;
         private mergedOcctShapeOptions;
         private handleDecomposedMeshShape;
         private handleDecomposedMeshes;
         private decomposedMeshesContainerCounter;
         private updateAny;
         drawAnyNoReturn(inputs: Inputs.Draw.DrawAny): void;
-        drawAny(inputs: Inputs.Draw.DrawAny): BABYLON.Mesh;
+        drawAny<E extends Inputs.Draw.Entity>(inputs: Inputs.Draw.DrawAny<E>): Inputs.Draw.Drawn<E, BABYLON.Mesh>;
+        private cachedSyncHandlers;
+        private syncHandlers;
+        private cachedAsyncHandlers;
+        private asyncHandlers;
+        detectNode(entity: unknown): entity is BABYLON.TransformNode;
+        detectNodes(entity: unknown): entity is BABYLON.TransformNode[];
+        protected drawResolved(inputs: Inputs.Draw.DrawAny): Inputs.Draw.DrawnAny<BABYLON.Mesh>;
         drawGridMeshNoReturn(inputs: Inputs.Draw.SceneDrawGridMeshDto): void;
         drawGridMesh(inputs: Inputs.Draw.SceneDrawGridMeshDto): BABYLON.Mesh;
         optionsSimple(inputs: Inputs.Draw.DrawBasicGeometryOptions): Inputs.Draw.DrawBasicGeometryOptions;
@@ -11160,6 +11172,8 @@ declare namespace Bit {
         private handleVerbSurface;
         private handleVerbCurve;
         private handleNode;
+        private handleJscadPath;
+        private handleJscadPaths;
         private handlePolyline;
         private handlePoint;
         private handleLine;
@@ -11169,6 +11183,7 @@ declare namespace Bit {
         private handleOcctShape;
         private handleOcctShapes;
         private handleJscadMesh;
+        private applyNodeSettingsAndMetadata;
         private applyGlobalSettingsAndMetadataAndShadowCasting;
     }
     declare class Color {
@@ -12252,7 +12267,9 @@ declare namespace Bit {
         private readonly things;
         private readonly advanced;
         readonly context: Context;
-        drawAnyAsync(inputs: Inputs.Draw.DrawAny): Promise<BABYLON.Mesh>;
+        drawAnyAsync<E extends Inputs.Draw.Entity>(inputs: Inputs.Draw.DrawAny<E>): Promise<Inputs.Draw.Drawn<E, BABYLON.Mesh>>;
+        protected drawResolved(inputs: Inputs.Draw.DrawAny): Inputs.Draw.DrawnAny<BABYLON.Mesh>;
+        protected drawResolvedAsync(inputs: Inputs.Draw.DrawAny): Promise<Inputs.Draw.DrawnAny<BABYLON.Mesh>>;
         drawGridMesh(inputs: Inputs.Draw.SceneDrawGridMeshDto): BABYLON.Mesh;
         optionsSimple(inputs: Inputs.Draw.DrawBasicGeometryOptions): Inputs.Draw.DrawBasicGeometryOptions;
         optionsOcctShape(inputs: Inputs.Draw.DrawOcctShapeOptions): Inputs.Draw.DrawOcctShapeOptions;
