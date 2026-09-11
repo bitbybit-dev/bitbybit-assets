@@ -2,7 +2,7 @@
 
 ## About Bitbybit
 
-Bitbybit.dev v1.2.0-rc.2 is a comprehensive web-based 3D CAD platform that enables developers to build parametric models, e-commerce product configurators, and interactive 3D experiences directly in the browser-no installation required.
+Bitbybit.dev v1.2.0 is a comprehensive web-based 3D CAD platform that enables developers to build parametric models, e-commerce product configurators, and interactive 3D experiences directly in the browser-no installation required.
 
 **Key Capabilities:**
 - Build 3D configurators and CAD applications in the browser

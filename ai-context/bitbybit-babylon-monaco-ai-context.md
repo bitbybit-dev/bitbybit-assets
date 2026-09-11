@@ -2,7 +2,7 @@
 
 ## Platform Overview
 
-Bitbybit.dev v1.2.0-rc.2 is a web-based 3D CAD platform running BabylonJS v9.13.0. This context is specifically for the **Monaco TypeScript Editor** at [bitbybit.dev/app?editor=typescript](https://bitbybit.dev/app?editor=typescript).
+Bitbybit.dev v1.2.0 is a web-based 3D CAD platform running BabylonJS v9.13.0. This context is specifically for the **Monaco TypeScript Editor** at [bitbybit.dev/app?editor=typescript](https://bitbybit.dev/app?editor=typescript).
 
 **Important:** This editor provides full API access with intellisense. Gold subscribers unlock additional `bitbybit.things` and `bitbybit.advanced` category algorithms for premium parametric models.
 
