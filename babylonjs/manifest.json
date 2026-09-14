@@ -1,0 +1,362 @@
+{
+  "version": "9.26.0",
+  "snapshotTimestamp": 1789037558440,
+  "snapshotSha256": "510295704be7342ea442b2e4323119fcccf9b0a1292f6f35df0e3e8a99c548d2",
+  "havok": {
+    "package": "@babylonjs/havok",
+    "version": "1.3.13",
+    "wasmSha256": "cfd9769b27dbd77aa8cf6bd9940d3a2bc69f6729dcb36030756ee22fae8ca65a"
+  },
+  "files": [
+    {
+      "path": "audiov2-test.js",
+      "bytes": 16457,
+      "sha256": "210b72792305dc509839c54d08f94de61431c21f862462ca65df42ab9257c9bd"
+    },
+    {
+      "path": "babylon.ktx2Decoder.d.ts",
+      "bytes": 54,
+      "sha256": "1acaebae44e31ff46d3e1ab21f499163dd86840cc5ba61846d08d44057cc1841"
+    },
+    {
+      "path": "babylon.ktx2Decoder.js",
+      "bytes": 24450,
+      "sha256": "25663f05949aa4b1fd480b5bf49056e6216eab945ee0e5a9f59428b21689b111"
+    },
+    {
+      "path": "babylon.ktx2Decoder.js.map",
+      "bytes": 106794,
+      "sha256": "c596129b72feb3a2d6191ca73e071a8ed4b19077b9aea80ba79cfcab0b5e2b74"
+    },
+    {
+      "path": "babylon.ktx2Decoder.max.js",
+      "bytes": 24450,
+      "sha256": "25663f05949aa4b1fd480b5bf49056e6216eab945ee0e5a9f59428b21689b111"
+    },
+    {
+      "path": "babylon.ktx2Decoder.max.js.map",
+      "bytes": 106794,
+      "sha256": "c596129b72feb3a2d6191ca73e071a8ed4b19077b9aea80ba79cfcab0b5e2b74"
+    },
+    {
+      "path": "babylon.ktx2Decoder.module.d.ts",
+      "bytes": 133,
+      "sha256": "c1f3114d1df6c5728ec5c2e63ca6089558e40aba03448fa14b8f87d0b812bd0b"
+    },
+    {
+      "path": "babylon.max.js.map",
+      "bytes": 29251431,
+      "sha256": "235399732bf8adf0d261c3cfda4da1e4f01f231df7415be45093b6aa895248ba"
+    },
+    {
+      "path": "babylonUsdImporter/4/README.md",
+      "bytes": 1525,
+      "sha256": "4ed6a3ff0898de8df1c8e4bfae7941f84af4d43e7d0d0e1b618677a7aca5c0bf"
+    },
+    {
+      "path": "babylonUsdImporter/4/babylon-usd-importer.data",
+      "bytes": 778733,
+      "sha256": "ededef6a1ecbc5aa112ffa0f4e2713a13bca316ae005b3d95b91fd8dad240225"
+    },
+    {
+      "path": "babylonUsdImporter/4/babylon-usd-importer.js",
+      "bytes": 116847,
+      "sha256": "ccd71ba966d27b1b08aa540915cb983ece00262b440f519d94c2505e2b88c120"
+    },
+    {
+      "path": "babylonUsdImporter/4/babylon-usd-importer.wasm",
+      "bytes": 8909328,
+      "sha256": "a747403456dfb21f6442992622d5efbfe59637e68939a472fc01de319be4c3a8"
+    },
+    {
+      "path": "babylonUsdImporter/4/babylon-usd-importer.worker.js",
+      "bytes": 7173,
+      "sha256": "caaf962049c25a16ed15745508d1dd547580e36edf36f7a9ebc0f27759de2dc5"
+    },
+    {
+      "path": "babylonUsdImporter/4/openusd.license",
+      "bytes": 49827,
+      "sha256": "4d6e8e3a9bd0104e10c48e3bc6af2f0976448a70a377d20cef674740f96f4452"
+    },
+    {
+      "path": "babylonUsdImporter/4/tbb.license",
+      "bytes": 11357,
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    {
+      "path": "babylonUsdImporter/4/zlib.license",
+      "bytes": 1002,
+      "sha256": "e32ff4e00d9d94930537635291da39e7e612703334bf6fde8c7f1686fe8a45a2"
+    },
+    {
+      "path": "basisTranscoder/1/basis_transcoder.js",
+      "bytes": 67103,
+      "sha256": "30791c2973a4d95efb72c1d59151f96b5e113e101b72bf55303df5dd3166cd76"
+    },
+    {
+      "path": "basisTranscoder/1/basis_transcoder.wasm",
+      "bytes": 472914,
+      "sha256": "57edc886080bbcda30a399c9d56efed5813335c8ac968a6f9bb080826c1d099c"
+    },
+    {
+      "path": "basisTranscoder/basis_transcoder.js",
+      "bytes": 58707,
+      "sha256": "ead562c7588989f211590a580140dee40c5adcc59076da6b82881e778484f816"
+    },
+    {
+      "path": "basisTranscoder/basis_transcoder.wasm",
+      "bytes": 217809,
+      "sha256": "48294ab7fcc57dfa9030ccb3e8bd1916fc6a0114d83e0250657fbf883651f674"
+    },
+    {
+      "path": "basis_encoder.js",
+      "bytes": 218751,
+      "sha256": "566fd36d6fa7c79fae09cffa979b366d623bef0424753c0dd0f7e49c95e84244"
+    },
+    {
+      "path": "basis_encoder.wasm",
+      "bytes": 2325068,
+      "sha256": "e91e4794d806ff5162481e1a4209bcbd49246b8b631474c80ea204e95a418786"
+    },
+    {
+      "path": "draco.license",
+      "bytes": 11556,
+      "sha256": "5ad8c213095c573921d7388edf93f6a9f54490b8ebf3b165ae8ef1947cf70846"
+    },
+    {
+      "path": "draco_decoder.js",
+      "bytes": 719546,
+      "sha256": "1092ad56afe01cfc1fc2f013a50a237a13453f44a56afb20f3945b4c16c80ee9"
+    },
+    {
+      "path": "draco_decoder.wasm",
+      "bytes": 285747,
+      "sha256": "c55a594e8ffd18426d36b27fea9618af3df5e173640a3e56d46f09d76f0574f2"
+    },
+    {
+      "path": "draco_decoder_gltf.js",
+      "bytes": 512600,
+      "sha256": "7708de68a2a2476befe1d5c19fa750a1911ae9c8d90ed2dcf116887a30b7ff7f"
+    },
+    {
+      "path": "draco_decoder_gltf.wasm",
+      "bytes": 192420,
+      "sha256": "a680d927bed9cb864ddbd63521868891af2bfbe755092761b4837487618df8ac"
+    },
+    {
+      "path": "draco_encoder.js",
+      "bytes": 904716,
+      "sha256": "ac9b66ae7af9013472ac431ec2d59a3b81291780076bce67f837e9db353da241"
+    },
+    {
+      "path": "draco_encoder.wasm",
+      "bytes": 386067,
+      "sha256": "909c36ee55ac343b4b0d0cd724c5112b4883786541c8f02b02684a939dfc975e"
+    },
+    {
+      "path": "draco_encoder_wasm_wrapper.js",
+      "bytes": 48337,
+      "sha256": "198c519baafc1bf7d216e13db5b69bf9482719da87b27054c60557945c8d47e1"
+    },
+    {
+      "path": "draco_wasm_wrapper.js",
+      "bytes": 58876,
+      "sha256": "49abe7b723c3705ffcbf6b45bb65d3ef9213fc086e1e9ed741cae8447adff69a"
+    },
+    {
+      "path": "draco_wasm_wrapper_gltf.js",
+      "bytes": 58569,
+      "sha256": "81f4b0efec08cdc233595c5a35a45c4591611b23aa15882f3a0c648af2d2bf49"
+    },
+    {
+      "path": "earcut.license",
+      "bytes": 751,
+      "sha256": "c5a5cbf13ecc99169f0ce87af462eb37bbb0a8d337144b527e86b248a1ec8913"
+    },
+    {
+      "path": "earcut.min.js",
+      "bytes": 6519,
+      "sha256": "e08d38c0f98cd8ab3a79282c0a00c14071002e778c602afb47841bf9e2d5112d"
+    },
+    {
+      "path": "glTF2Interface/babylon.glTF2Interface.d.ts",
+      "bytes": 47773,
+      "sha256": "6e2bfd890a1fcd921344dee1b5c76cf1a39060fadf902f45a40a6eb629ececb4"
+    },
+    {
+      "path": "glTF2Interface/babylonjs-gltf2interface.stub.ts",
+      "bytes": 2183,
+      "sha256": "43dde762e05a324b5e0b108b0b23bf9d6882e3089cf45d982cca393e02e85666"
+    },
+    {
+      "path": "glTF2Interface/license.md",
+      "bytes": 9226,
+      "sha256": "9362ea9ea17cb221a20cbbd63f404710834cc273d2a9a7b60314fd68ab702cd6"
+    },
+    {
+      "path": "glslang/glslang.js",
+      "bytes": 16030,
+      "sha256": "c3a3c2a47284b16b60293fa08a5842fbe8689ac617edc857ab6cb8134a590db4"
+    },
+    {
+      "path": "glslang/glslang.wasm",
+      "bytes": 943680,
+      "sha256": "d79453e0803ebcdf3753c6b1d8d51543b52fed96f7f0d4aec94acd847e225169"
+    },
+    {
+      "path": "gltf_validator.js",
+      "bytes": 374598,
+      "sha256": "cb643d0cc77440d60937bc1f59c6422a97b04add91864c189b439293a016793a"
+    },
+    {
+      "path": "havok/HavokPhysics.wasm",
+      "bytes": 2094566,
+      "sha256": "cfd9769b27dbd77aa8cf6bd9940d3a2bc69f6729dcb36030756ee22fae8ca65a"
+    },
+    {
+      "path": "havok/HavokPhysics_umd.js",
+      "bytes": 67605,
+      "sha256": "f378353fc44b33ee2c66b3110490ecfa72993a47652a3e57ba49c752f175f864"
+    },
+    {
+      "path": "ktx2Transcoders/1/msc_basis_transcoder.js",
+      "bytes": 63318,
+      "sha256": "b8906bae7e55606aba070642eb3bce790a2b5aea774874e120e9fd41f7c7d60b"
+    },
+    {
+      "path": "ktx2Transcoders/1/msc_basis_transcoder.wasm",
+      "bytes": 455582,
+      "sha256": "29becbf0eef2ce9f6d72109ad217704ec3799c432da0c26e3893b793ecab6bdc"
+    },
+    {
+      "path": "ktx2Transcoders/1/uastc_astc.wasm",
+      "bytes": 12212,
+      "sha256": "6846c972b4a52d938866f43896fd2b2450052da807cdd1285e898be80614d612"
+    },
+    {
+      "path": "ktx2Transcoders/1/uastc_bc7.wasm",
+      "bytes": 14650,
+      "sha256": "be442ab8c0cbf734ded98e6ad38112aaba23c83bfeecac4213ded54631fc4eef"
+    },
+    {
+      "path": "ktx2Transcoders/1/uastc_r8_unorm.wasm",
+      "bytes": 14139,
+      "sha256": "0467c98b150a630e5a51f7810843e8b7fd9aad22e3888baf70aad255c55d02bc"
+    },
+    {
+      "path": "ktx2Transcoders/1/uastc_rg8_unorm.wasm",
+      "bytes": 17611,
+      "sha256": "fb45a2c103c59cec21c3708a6534d43cd4381669f66d3292dd8a6e4e1956d773"
+    },
+    {
+      "path": "ktx2Transcoders/1/uastc_rgba8_srgb_v2.wasm",
+      "bytes": 24158,
+      "sha256": "1f4d2e8bfef4e31679b23d473e1c410c29f7e485a739e76c5b357628f4190874"
+    },
+    {
+      "path": "ktx2Transcoders/1/uastc_rgba8_unorm_v2.wasm",
+      "bytes": 30121,
+      "sha256": "b7470b26a847994cdeb9226eeba1e3711688e378ee438b7dd941e83cb598b694"
+    },
+    {
+      "path": "ktx2Transcoders/msc_basis_transcoder.js",
+      "bytes": 63318,
+      "sha256": "b8906bae7e55606aba070642eb3bce790a2b5aea774874e120e9fd41f7c7d60b"
+    },
+    {
+      "path": "ktx2Transcoders/msc_basis_transcoder.wasm",
+      "bytes": 455582,
+      "sha256": "29becbf0eef2ce9f6d72109ad217704ec3799c432da0c26e3893b793ecab6bdc"
+    },
+    {
+      "path": "ktx2Transcoders/uastc_astc.wasm",
+      "bytes": 13147,
+      "sha256": "4a41177c3f6e3359abbaa44dea62c84aa7b01d7555e50e32b55b19e503483b91"
+    },
+    {
+      "path": "ktx2Transcoders/uastc_bc7.wasm",
+      "bytes": 15109,
+      "sha256": "82529adb00ebd4a0e5a91e5eeb5b06baa59fc84f262fe83edaa8769d6e32d0f1"
+    },
+    {
+      "path": "ktx2Transcoders/uastc_rgba32_srgb.wasm",
+      "bytes": 24551,
+      "sha256": "529515ffd387544b7701f87fb8170a38a64353e64f3f8ec97b535ef5ba496f39"
+    },
+    {
+      "path": "ktx2Transcoders/uastc_rgba32_unorm.wasm",
+      "bytes": 30389,
+      "sha256": "aec1a7394e81240b773f066c12df89569198e287e198cf247c65cbd5b3e71b2e"
+    },
+    {
+      "path": "libktx.js",
+      "bytes": 206453,
+      "sha256": "74bf50178f5e37567df93031298a6ccc2104c33bf051d80f15f84b34022f9865"
+    },
+    {
+      "path": "libktx.wasm",
+      "bytes": 440706,
+      "sha256": "134ba7d33cf030dd44c3b372d3ed382b263b11cd28cef691f75123f46eef7902"
+    },
+    {
+      "path": "meshopt.license",
+      "bytes": 1086,
+      "sha256": "9d665b55ed2643c4fc86594749427b031c7b3367e11760a73c6dc69c415b2d3f"
+    },
+    {
+      "path": "meshopt_decoder.js",
+      "bytes": 25486,
+      "sha256": "a706bbac4cfbea66798936a2c35d1036f594fec955514508e9c14ec329f020fd"
+    },
+    {
+      "path": "recast.d.ts",
+      "bytes": 3286,
+      "sha256": "710f123e876e266a906988bc8d881d817c3a6ea2c620f3c19798e288434998ee"
+    },
+    {
+      "path": "recast.js",
+      "bytes": 624894,
+      "sha256": "b5f63fe28900a3c0110d059a67a460b6d8cf5d92496629e74be7ea0bc47234d9"
+    },
+    {
+      "path": "sceneJs.js",
+      "bytes": 21636,
+      "sha256": "3a2afc304c2ea88a54a55adc124de65623f26973a52a5b2b15605866bea28350"
+    },
+    {
+      "path": "sceneTs.js",
+      "bytes": 885,
+      "sha256": "7f637ad2d46864b52d0da456dceb5897263e1e2a832d7a643976941dd49844ba"
+    },
+    {
+      "path": "split.js",
+      "bytes": 5312,
+      "sha256": "7e23fcc23aafc1f1c2dbd0058da4e2609a3e1f5dbbb84f6303d2718694bd0606"
+    },
+    {
+      "path": "test.html",
+      "bytes": 2747,
+      "sha256": "50eee57e07e3add91242a1d41a411b70393aaec47b3f07b9c391ba6ab045f13d"
+    },
+    {
+      "path": "timestamp.js",
+      "bytes": 94,
+      "sha256": "fe8f5459119b00da88918a88ca19bfc2c8b0767bf085c0c813c49311ce010788"
+    },
+    {
+      "path": "twgsl/twgsl.js",
+      "bytes": 74555,
+      "sha256": "b4f1f66263b801210f955f74aa71f1939be647ce0fd80ea5befd12a78499d5ff"
+    },
+    {
+      "path": "twgsl/twgsl.wasm",
+      "bytes": 1702916,
+      "sha256": "a434c2decdbb38caadf5f486d806384a1543554828c983c77922b2d92579914c"
+    },
+    {
+      "path": "zstddec.wasm",
+      "bytes": 29232,
+      "sha256": "67d12d34f82ef700ec3a3795a77590252858c70330908a87ed1e73efc268cb4b"
+    }
+  ]
+}

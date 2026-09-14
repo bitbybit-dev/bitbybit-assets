@@ -1012,6 +1012,18 @@ declare namespace BABYLON.GLTF2 {
     }
 
     /**
+     * Interfaces from the KHR_gaussian_splatting extension
+     */
+
+    /** @internal */
+    interface IKHRGaussianSplatting {
+        kernel: string;
+        colorSpace: string;
+        projection?: string;
+        sortingMethod?: string;
+    }
+
+    /**
      * Interfaces from the EXT_lights_ies extension
      */
 
@@ -1529,11 +1541,11 @@ declare namespace BABYLON.GLTF2 {
      */
     type NodeIndex = number;
     /**
-     * Value types supported (in js it is either boolean or number)
+     * Value types supported (in js it is either boolean or number, or string for opaque references)
      */
-    type ValueType = (boolean | number)[];
+    type ValueType = (boolean | number | string)[];
 
-    type ValueSignature = "bool" | "float" | "float2" | "float3" | "float4" | "float2x2" | "float3x3" | "float4x4" | "int" | "custom";
+    type ValueSignature = "bool" | "float" | "float2" | "float3" | "float4" | "float2x2" | "float3x3" | "float4x4" | "int" | "ref" | "custom";
 
     type ConfigurationValueType = (boolean | number | string)[];
 
