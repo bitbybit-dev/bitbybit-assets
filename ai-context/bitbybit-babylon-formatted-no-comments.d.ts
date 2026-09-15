@@ -344,7 +344,7 @@ declare namespace Bit {
             }
             class DrawSolidMeshesDto<T> {
                 constructor(meshes?: JSCADEntity[], opacity?: number, colours?: string | string[], updatable?: boolean, hidden?: boolean, jscadMesh?: T, drawTwoSided?: boolean, backFaceColour?: string, backFaceOpacity?: number);
-                meshes: JSCADEntity[];
+                meshes?: JSCADEntity[] | undefined;
                 opacity: number;
                 colours: string | string[];
                 updatable: boolean;
@@ -379,10 +379,10 @@ declare namespace Bit {
                 fileName: string;
             }
             class DownloadGeometryDto {
-                constructor(geometry?: JSCADEntity | JSCADEntity[], fileName?: string, options?: any);
+                constructor(geometry?: JSCADEntity | JSCADEntity[], fileName?: string, options?: Record<string, unknown>);
                 geometry: JSCADEntity | JSCADEntity[];
                 fileName: string;
-                options: any;
+                options?: Record<string, unknown> | undefined;
             }
             class DownloadSolidsDto {
                 constructor(meshes?: JSCADEntity[], fileName?: string);
@@ -408,14 +408,11 @@ declare namespace Bit {
                 from: JSCADEntity;
                 meshes: JSCADEntity[];
             }
-            class ExpansionDto {
-                constructor(geometry?: JSCADEntity, delta?: number, corners?: solidCornerTypeEnum, segments?: number);
-                geometry: JSCADEntity;
-                delta: number;
-                corners: solidCornerTypeEnum;
-                segments: number;
+            class MinkowskiSumDto {
+                constructor(meshes?: JSCADEntity[]);
+                meshes: JSCADEntity[];
             }
-            class OffsetDto {
+            class ExpansionDto {
                 constructor(geometry?: JSCADEntity, delta?: number, corners?: solidCornerTypeEnum, segments?: number);
                 geometry: JSCADEntity;
                 delta: number;
@@ -432,6 +429,10 @@ declare namespace Bit {
             class HullDto {
                 constructor(meshes?: JSCADEntity[]);
                 meshes: JSCADEntity[];
+            }
+            class SolidDto {
+                constructor(mesh?: JSCADEntity);
+                mesh: JSCADEntity;
             }
             class ExtrudeRectangularDto {
                 constructor(geometry?: JSCADEntity, height?: number, size?: number);
@@ -481,11 +482,6 @@ declare namespace Bit {
                 constructor(polyline?: PolylinePropertiesDto, closed?: boolean);
                 polyline: PolylinePropertiesDto;
                 closed: boolean;
-            }
-            class PathAppendCurveDto {
-                constructor(curve?: JSCADEntity, path?: JSCADEntity);
-                curve: JSCADEntity;
-                path: JSCADEntity;
             }
             class PathAppendPointsDto {
                 constructor(points?: Base.Point2[], path?: JSCADEntity);
@@ -879,6 +875,18 @@ declare namespace Bit {
                 manifold2: T;
                 searchLength: number;
             }
+            class RayCastDto<T> {
+                constructor(manifold?: T, origin?: Base.Point3, endpoint?: Base.Point3);
+                manifold: T;
+                origin: Base.Point3;
+                endpoint: Base.Point3;
+            }
+            type RayHit = {
+                faceID: number;
+                distance: number;
+                position: Base.Point3;
+                normal: Base.Vector3;
+            };
             class ManifoldRefineToleranceDto<T> {
                 constructor(manifold?: T, tolerance?: number);
                 manifold: T;
@@ -1575,10 +1583,10 @@ declare namespace Bit {
                 shape: T;
                 nrRectanglesU: number;
                 nrRectanglesV: number;
-                scalePatternU: number[];
-                scalePatternV: number[];
-                filletPattern: number[];
-                inclusionPattern: boolean[];
+                scalePatternU?: number[] | undefined;
+                scalePatternV?: number[] | undefined;
+                filletPattern?: number[] | undefined;
+                inclusionPattern?: boolean[] | undefined;
                 offsetFromBorderU: number;
                 offsetFromBorderV: number;
             }
@@ -1618,10 +1626,10 @@ declare namespace Bit {
                 shape: T;
                 nrRectanglesU: number;
                 nrRectanglesV: number;
-                scalePatternU: number[];
-                scalePatternV: number[];
-                filletPattern: number[];
-                inclusionPattern: boolean[];
+                scalePatternU?: number[] | undefined;
+                scalePatternV?: number[] | undefined;
+                filletPattern?: number[] | undefined;
+                inclusionPattern?: boolean[] | undefined;
                 holesToFaces: boolean;
                 offsetFromBorderU: number;
                 offsetFromBorderV: number;
@@ -1910,7 +1918,7 @@ declare namespace Bit {
                 sense: boolean;
             }
             class ArcEdgeCirclePointAngleDto<T> {
-                constructor(circle?: T, alphaAngle?: number, _alphaAngle2?: number, sense?: boolean);
+                constructor(circle?: T, alphaAngle?: number, sense?: boolean);
                 circle: T;
                 point: Base.Point3;
                 alphaAngle: number;
@@ -2262,13 +2270,6 @@ declare namespace Bit {
                 shapes: T[];
                 param: number;
             }
-            class PointInFaceDto<T> {
-                constructor(face: T, edge: T, tEdgeParam?: number, distance2DParam?: number);
-                face: T;
-                edge: T;
-                tEdgeParam: number;
-                distance2DParam: number;
-            }
             class PointsOnWireAtEqualLengthDto<T> {
                 constructor(shape: T, length?: number, tryNext?: boolean, includeFirst?: boolean, includeLast?: boolean);
                 shape: T;
@@ -2307,7 +2308,7 @@ declare namespace Bit {
                 direction: Base.Vector3;
             }
             class HexagonsInGridDto {
-                constructor(wdith?: number, height?: number, nrHexagonsInHeight?: number, nrHexagonsInWidth?: number, flatTop?: boolean, extendTop?: boolean, extendBottom?: boolean, extendLeft?: boolean, extendRight?: boolean, scalePatternWidth?: number[], scalePatternHeight?: number[], filletPattern?: number[], inclusionPattern?: boolean[]);
+                constructor(width?: number, height?: number, nrHexagonsInHeight?: number, nrHexagonsInWidth?: number, flatTop?: boolean, extendTop?: boolean, extendBottom?: boolean, extendLeft?: boolean, extendRight?: boolean, scalePatternWidth?: number[], scalePatternHeight?: number[], filletPattern?: number[], inclusionPattern?: boolean[]);
                 width?: number | undefined;
                 height?: number | undefined;
                 nrHexagonsInWidth?: number | undefined;
@@ -2392,7 +2393,7 @@ declare namespace Bit {
                 forceApproxC1: boolean;
             }
             class PipePolygonWireNGonDto<T> {
-                constructor(shapes?: T, radius?: number, nrCorners?: number, makeSolid?: boolean, trihedronEnum?: geomFillTrihedronEnum, forceApproxC1?: boolean);
+                constructor(shape?: T, radius?: number, nrCorners?: number, makeSolid?: boolean, trihedronEnum?: geomFillTrihedronEnum, forceApproxC1?: boolean);
                 shape: T;
                 radius: number;
                 nrCorners: number;
@@ -2469,16 +2470,6 @@ declare namespace Bit {
                 maxTolerance: number;
                 minTolerance: number;
             }
-            class FixClosedDto<T> {
-                constructor(shape?: T, precision?: number);
-                shape: T;
-                precision: number;
-            }
-            class ShapesWithToleranceDto<T> {
-                constructor(shapes?: T[], tolerance?: number);
-                shapes: T[];
-                tolerance: number;
-            }
             class ShapeWithToleranceDto<T> {
                 constructor(shape?: T, tolerance?: number);
                 shape: T;
@@ -2521,7 +2512,7 @@ declare namespace Bit {
                 scaleFactor: number;
             }
             class TransformShapesDto<T> {
-                constructor(shapes?: T[], translation?: Base.Vector3[], rotationAxes?: Base.Vector3[], rotationDegrees?: number[], scaleFactors?: number[]);
+                constructor(shapes?: T[], translations?: Base.Vector3[], rotationAxes?: Base.Vector3[], rotationAngles?: number[], scaleFactors?: number[]);
                 shapes: T[];
                 translations: Base.Vector3[];
                 rotationAxes: Base.Vector3[];
@@ -2964,17 +2955,6 @@ declare namespace Bit {
                 fileName?: string | undefined;
                 tryDownload?: boolean | undefined;
             }
-            class SaveDxfDto<T> {
-                constructor(shape?: T, fileName?: string, tryDownload?: boolean, angularDeflection?: number, curvatureDeflection?: number, minimumOfPoints?: number, uTolerance?: number, minimumLength?: number);
-                shape: T;
-                fileName: string;
-                tryDownload?: boolean | undefined;
-                angularDeflection: number;
-                curvatureDeflection: number;
-                minimumOfPoints: number;
-                uTolerance: number;
-                minimumLength: number;
-            }
             class ImportStepIgesFromTextDto {
                 constructor(text?: string, fileType?: fileTypeEnum, adjustZtoY?: boolean);
                 text: string;
@@ -3113,7 +3093,7 @@ declare namespace Bit {
                 nodes: Models.OCCT.AssemblyNodeDef[];
                 removals?: string[] | undefined;
                 partUpdates?: Models.OCCT.AssemblyPartUpdateDef<T>[] | undefined;
-                clearDocument: boolean;
+                clearDocument?: boolean | undefined;
                 loadedParts?: Models.OCCT.AssemblyLoadedPartDef[] | undefined;
             }
             class CreateImportedPartDto {
@@ -3237,19 +3217,6 @@ declare namespace Bit {
                 shapes: T[];
                 tolerance: number;
             }
-            class FaceIsoCurveAtParamDto<T> {
-                constructor(shape?: T, param?: number, dir?: "u" | "v");
-                shape: T;
-                param: number;
-                dir: "u" | "v";
-            }
-            class DivideFaceToUVPointsDto<T> {
-                constructor(shape?: T, nrOfPointsU?: number, nrOfPointsV?: number, flat?: boolean);
-                shape: T;
-                nrOfPointsU: number;
-                nrOfPointsV: number;
-                flat: boolean;
-            }
             class Geom2dEllipseDto {
                 constructor(center?: Base.Point2, direction?: Base.Vector2, radiusMinor?: number, radiusMajor?: number, sense?: boolean);
                 center: Base.Point2;
@@ -3360,7 +3327,7 @@ declare namespace Bit {
                 tolerance: number;
             }
             class TextWiresDto {
-                constructor(text?: string, xOffset?: number, yOffset?: number, height?: number, lineSpacing?: number, letterSpacing?: number, align?: Base.horizontalAlignEnum, extrudeOffset?: number, _origin?: Base.Point3, _rotation?: number, _direction?: Base.Vector3, centerOnOrigin?: boolean);
+                constructor(text?: string, xOffset?: number, yOffset?: number, height?: number, lineSpacing?: number, letterSpacing?: number, align?: Base.horizontalAlignEnum, extrudeOffset?: number, centerOnOrigin?: boolean);
                 text?: string | undefined;
                 xOffset?: number | undefined;
                 yOffset?: number | undefined;
@@ -3403,7 +3370,7 @@ declare namespace Bit {
                 direction: Base.Vector3;
             }
             class SimpleLinearLengthDimensionDto {
-                constructor(start?: Base.Point3, end?: Base.Point3, direction?: Base.Vector3, offsetFromPoints?: number, crossingSize?: number, labelSuffix?: string, labelSize?: number, labelOffset?: number, labelRotation?: number, arrowType?: dimensionEndTypeEnum, arrowSize?: number, arrowAngle?: number, arrowsFlipped?: boolean, labelFlipHorizontal?: boolean, labelFlipVertical?: boolean, labelOverwrite?: string, removeTrailingZeros?: boolean);
+                constructor(start?: Base.Point3, end?: Base.Point3, direction?: Base.Vector3, offsetFromPoints?: number, crossingSize?: number, labelSuffix?: string, labelSize?: number, labelOffset?: number, labelRotation?: number, endType?: dimensionEndTypeEnum, arrowSize?: number, arrowAngle?: number, arrowsFlipped?: boolean, labelFlipHorizontal?: boolean, labelFlipVertical?: boolean, labelOverwrite?: string, removeTrailingZeros?: boolean);
                 start: Base.Point3;
                 end: Base.Point3;
                 direction: Base.Vector3;
@@ -3424,7 +3391,7 @@ declare namespace Bit {
                 removeTrailingZeros?: boolean | undefined;
             }
             class SimpleAngularDimensionDto {
-                constructor(direction1?: Base.Point3, direction2?: Base.Point3, center?: Base.Point3, radius?: number, offsetFromCenter?: number, crossingSize?: number, radians?: boolean, labelSuffix?: string, labelSize?: number, labelOffset?: number, endType?: dimensionEndTypeEnum, arrowSize?: number, arrowAngle?: number, arrowsFlipped?: boolean, labelRotation?: number, labelFlipHorizontal?: boolean, labelFlipVertical?: boolean, labelOverwrite?: string, removeTrailingZeros?: boolean);
+                constructor(direction1?: Base.Point3, direction2?: Base.Point3, center?: Base.Point3, radius?: number, offsetFromCenter?: number, extraSize?: number, radians?: boolean, labelSuffix?: string, labelSize?: number, labelOffset?: number, endType?: dimensionEndTypeEnum, arrowSize?: number, arrowAngle?: number, arrowsFlipped?: boolean, labelRotation?: number, labelFlipHorizontal?: boolean, labelFlipVertical?: boolean, labelOverwrite?: string, removeTrailingZeros?: boolean);
                 direction1: Base.Point3;
                 direction2: Base.Point3;
                 center: Base.Point3;
@@ -3732,7 +3699,7 @@ declare namespace Bit {
                 usePointerToAttachGizmos: boolean;
                 clearGizmoOnEmptyPointerEvent: boolean;
                 scaleRatio: number;
-                attachableMeshes: BABYLON.AbstractMesh[];
+                attachableMeshes?: BABYLON.AbstractMesh[] | undefined;
             }
             class GizmoDto {
                 constructor(gizmo?: BABYLON.IGizmo);
@@ -3748,7 +3715,7 @@ declare namespace Bit {
                 gizmoManager: BABYLON.GizmoManager;
             }
             class PositionGizmoDto {
-                constructor(gizmoManager?: BABYLON.IPositionGizmo);
+                constructor(positionGizmo?: BABYLON.IPositionGizmo);
                 positionGizmo: BABYLON.IPositionGizmo;
             }
             class SetPlanarGizmoEnabled {
@@ -3858,7 +3825,7 @@ declare namespace Bit {
                 axisScaleGizmo: BABYLON.IAxisScaleGizmo;
             }
             class SetIsEnabledAxisScaleGizmoDto {
-                constructor(gizmoManager?: BABYLON.IAxisScaleGizmo, isEnabled?: boolean);
+                constructor(axisScaleGizmo?: BABYLON.IAxisScaleGizmo, isEnabled?: boolean);
                 axisScaleGizmo: BABYLON.IAxisScaleGizmo;
                 isEnabled: boolean;
             }
@@ -3867,7 +3834,7 @@ declare namespace Bit {
                 axisDragGizmo: BABYLON.IAxisDragGizmo;
             }
             class SetIsEnabledAxisDragGizmoDto {
-                constructor(gizmoManager?: BABYLON.IAxisDragGizmo, isEnabled?: boolean);
+                constructor(axisDragGizmo?: BABYLON.IAxisDragGizmo, isEnabled?: boolean);
                 axisDragGizmo: BABYLON.IAxisDragGizmo;
                 isEnabled: boolean;
             }
@@ -4009,8 +3976,8 @@ declare namespace Bit {
                 name: string;
                 isVertical: boolean;
                 spacing: number;
-                width: number | string;
-                height: number | string;
+                width?: number | string | undefined;
+                height?: number | string | undefined;
                 color: string;
                 background: string;
             }
@@ -4250,7 +4217,7 @@ declare namespace Bit {
             class CreateRadioButtonDto {
                 constructor(name?: string, group?: string, isChecked?: boolean, checkSizeRatio?: number, color?: string, background?: string, width?: number | string, height?: number | string);
                 name: string;
-                group: string;
+                group?: string | undefined;
                 isChecked: boolean;
                 checkSizeRatio: number;
                 color: string;
@@ -4355,10 +4322,10 @@ declare namespace Bit {
             class PaddingLeftRightTopBottomDto {
                 constructor(control?: BABYLON.GUI.Control, paddingLeft?: number | string, paddingRight?: number | string, paddingTop?: number | string, paddingBottom?: number | string);
                 control: BABYLON.GUI.Control;
-                paddingLeft: number | string;
-                paddingRight: number | string;
-                paddingTop: number | string;
-                paddingBottom: number | string;
+                paddingLeft?: number | string | undefined;
+                paddingRight?: number | string | undefined;
+                paddingTop?: number | string | undefined;
+                paddingBottom?: number | string | undefined;
             }
             class CloneControlDto {
                 constructor(control?: BABYLON.GUI.Control, container?: BABYLON.GUI.Container, name?: string, host?: BABYLON.GUI.AdvancedDynamicTexture);
@@ -4385,6 +4352,12 @@ declare namespace Bit {
                 constructor(fileName?: string, discardSkyboxAndGrid?: boolean);
                 fileName: string;
                 discardSkyboxAndGrid?: boolean | undefined;
+            }
+            class ExportSceneGlbBytesDto {
+                constructor(nodes?: BABYLON.Node[], discardSkyboxAndGrid?: boolean, compressWithDraco?: boolean);
+                nodes?: BABYLON.Node[] | undefined;
+                discardSkyboxAndGrid?: boolean | undefined;
+                compressWithDraco?: boolean | undefined;
             }
             class ExportSceneDto {
                 constructor(fileName?: string);
@@ -4473,9 +4446,9 @@ declare namespace Bit {
                 distance: number;
                 inclination: number;
                 azimuth: number;
-                sunPosition: Base.Vector3;
+                sunPosition?: Base.Vector3 | undefined;
                 useSunPosition: boolean;
-                cameraOffset: Base.Vector3;
+                cameraOffset?: Base.Vector3 | undefined;
                 up: number[];
                 dithering: boolean;
             }
@@ -5004,7 +4977,7 @@ declare namespace Bit {
         declare namespace BabylonTools {
             class ScreenshotDto {
                 constructor(camera?: BABYLON.Camera, width?: number, height?: number, mimeType?: string, quality?: number);
-                camera: BABYLON.Camera;
+                camera?: BABYLON.Camera | undefined;
                 width: number;
                 height: number;
                 mimeType: string;
@@ -5162,7 +5135,7 @@ declare namespace Bit {
                 arrowAngle: number;
             }
             class DrawNodeOptions {
-                constructor(colourX?: Base.Color, colourY?: Base.Color, colourZ?: Base.Color, size?: number);
+                constructor(colorX?: Base.Color, colorY?: Base.Color, colorZ?: Base.Color, size?: number);
                 colorX: Base.Color;
                 colorY: Base.Color;
                 colorZ: Base.Color;
@@ -5436,21 +5409,38 @@ declare namespace Bit {
                 wheelPrecision: number;
             }
             class SkyboxDto {
-                constructor(skybox?: Base.skyboxEnum, size?: number, blur?: number, environmentIntensity?: number, hideSkybox?: boolean);
+                constructor(skybox?: Base.skyboxEnum, size?: number, blur?: number, environmentIntensity?: number, hideSkybox?: boolean, enableGroundProjection?: boolean, projectedGroundRadius?: number, projectedGroundHeight?: number);
                 skybox: Base.skyboxEnum;
                 size: number;
                 blur: number;
                 environmentIntensity: number;
                 hideSkybox?: boolean | undefined;
+                enableGroundProjection?: boolean | undefined;
+                projectedGroundRadius?: number | undefined;
+                projectedGroundHeight?: number | undefined;
             }
             class SkyboxCustomTextureDto {
-                constructor(textureUrl?: string, textureSize?: number, size?: number, blur?: number, environmentIntensity?: number, hideSkybox?: boolean);
+                constructor(textureUrl?: string, textureSize?: number, size?: number, blur?: number, environmentIntensity?: number, hideSkybox?: boolean, enableGroundProjection?: boolean, projectedGroundRadius?: number, projectedGroundHeight?: number);
                 textureUrl?: string | undefined;
                 textureSize?: number | undefined;
                 size: number;
                 blur: number;
                 environmentIntensity: number;
                 hideSkybox?: boolean | undefined;
+                enableGroundProjection?: boolean | undefined;
+                projectedGroundRadius?: number | undefined;
+                projectedGroundHeight?: number | undefined;
+            }
+            class SkyboxFromTextureDto {
+                constructor(texture?: BABYLON.BaseTexture, size?: number, blur?: number, environmentIntensity?: number, hideSkybox?: boolean, enableGroundProjection?: boolean, projectedGroundRadius?: number, projectedGroundHeight?: number);
+                texture: BABYLON.BaseTexture;
+                size: number;
+                blur: number;
+                environmentIntensity: number;
+                hideSkybox?: boolean | undefined;
+                enableGroundProjection?: boolean | undefined;
+                projectedGroundRadius?: number | undefined;
+                projectedGroundHeight?: number | undefined;
             }
             class PointerDto {
                 statement_update: () => void;
@@ -6341,7 +6331,7 @@ declare namespace Bit {
                 factor: number;
             }
             class HexGridScaledToFitDto {
-                constructor(wdith?: number, height?: number, nrHexagonsU?: number, nrHexagonsV?: number, centerGrid?: boolean, pointsOnGround?: boolean);
+                constructor(width?: number, height?: number, nrHexagonsInHeight?: number, nrHexagonsInWidth?: number, centerGrid?: boolean, pointsOnGround?: boolean);
                 width?: number | undefined;
                 height?: number | undefined;
                 nrHexagonsInWidth?: number | undefined;
@@ -7297,6 +7287,7 @@ declare namespace Bit {
                 isAssembly: boolean;
                 isInstance: boolean;
                 definitionId?: string | undefined;
+                definitionName?: string | undefined;
                 refersToAssembly?: boolean | undefined;
                 refersToPart?: boolean | undefined;
                 nodeType: string;
@@ -7348,6 +7339,7 @@ declare namespace Bit {
                 isAssembly: boolean;
                 isInstance: boolean;
                 definitionId?: string | undefined;
+                definitionName?: string | undefined;
                 visible: boolean;
                 colorRgba?: Base.ColorRGBA | undefined;
                 transform?: Base.TransformMatrix | undefined;
@@ -7395,8 +7387,11 @@ declare namespace Bit {
                 isAssembly: boolean;
                 isReference: boolean;
                 isComponent: boolean;
+                isCompound: boolean;
+                isSubShape: boolean;
                 isFreeShape: boolean;
                 refLabel?: string | undefined;
+                refName?: string | undefined;
                 children?: string[] | undefined;
                 shapeType?: string | undefined;
             }
@@ -9438,26 +9433,31 @@ declare namespace Bit {
         }
         declare namespace Navigation {
             declare class FlyToDto {
-                constructor(cameraPosition?: Inputs.Base.Point3, cameraTarget?: Inputs.Base.Point3);
+                constructor(cameraPosition?: Inputs.Base.Point3, cameraTarget?: Inputs.Base.Point3, animationSpeed?: number, ease?: Inputs.Math.easeEnum);
                 cameraPosition: Inputs.Base.Point3;
                 cameraTarget: Inputs.Base.Point3;
+                animationSpeed: number;
+                ease: Inputs.Math.easeEnum;
             }
             declare class FocusFromAngleDto {
-                constructor(meshes?: BABYLON.Mesh[], includeChildren?: boolean, orientation?: number[], distance?: number, padding?: number, animationSpeed?: number);
+                constructor(meshes?: BABYLON.Mesh[], includeChildren?: boolean, orientation?: number[], distance?: number, padding?: number, animationSpeed?: number, ease?: Inputs.Math.easeEnum);
                 meshes: BABYLON.Mesh[];
                 includeChildren: boolean;
                 orientation: number[];
                 distance?: number;
                 padding: number;
                 animationSpeed: number;
+                ease: Inputs.Math.easeEnum;
             }
             declare class PointOfInterestDto {
-                constructor(name?: string, position?: Inputs.Base.Point3, cameraTarget?: Inputs.Base.Point3, cameraPosition?: Inputs.Base.Point3, style?: PointOfInterestStyleDto);
+                constructor(name?: string, position?: Inputs.Base.Point3, cameraTarget?: Inputs.Base.Point3, cameraPosition?: Inputs.Base.Point3, style?: PointOfInterestStyleDto, animationSpeed?: number, ease?: Inputs.Math.easeEnum);
                 name: string;
                 position: Inputs.Base.Point3;
                 cameraTarget: Inputs.Base.Point3;
                 cameraPosition: Inputs.Base.Point3;
                 style?: PointOfInterestStyleDto;
+                animationSpeed: number;
+                ease: Inputs.Math.easeEnum;
             }
             declare class PointOfInterestEntity extends PointOfInterestDto {
                 type: string;
@@ -9488,12 +9488,13 @@ declare namespace Bit {
                 alwaysOnTop: boolean;
             }
             declare class ZoomOnDto {
-                constructor(meshes?: BABYLON.Mesh[], includeChildren?: boolean, animationSpeed?: number, offset?: number, doNotUpdateMaxZ?: boolean);
+                constructor(meshes?: BABYLON.Mesh[], includeChildren?: boolean, animationSpeed?: number, offset?: number, doNotUpdateMaxZ?: boolean, ease?: Inputs.Math.easeEnum);
                 meshes: BABYLON.Mesh[];
                 includeChildren: boolean;
                 animationSpeed: number;
                 offset: number;
                 doNotUpdateMaxZ: boolean;
+                ease: Inputs.Math.easeEnum;
             }
         }
         declare namespace Dimensions {
@@ -9631,6 +9632,7 @@ declare namespace Bit {
         subtractTwo(inputs: Inputs.JSCAD.BooleanTwoObjectsDto): Promise<Inputs.JSCAD.JSCADEntity>;
         unionTwo(inputs: Inputs.JSCAD.BooleanTwoObjectsDto): Promise<Inputs.JSCAD.JSCADEntity>;
         subtractFrom(inputs: Inputs.JSCAD.BooleanObjectsFromDto): Promise<Inputs.JSCAD.JSCADEntity>;
+        minkowskiSum(inputs: Inputs.JSCAD.MinkowskiSumDto): Promise<Inputs.JSCAD.JSCADEntity>;
     }
     declare class JSCADColors {
         private readonly jscadWorkerManager;
@@ -9652,6 +9654,7 @@ declare namespace Bit {
         private readonly jscadWorkerManager;
         hullChain(inputs: Inputs.JSCAD.HullDto): Promise<Inputs.JSCAD.JSCADEntity>;
         hull(inputs: Inputs.JSCAD.HullDto): Promise<Inputs.JSCAD.JSCADEntity>;
+        isConvex(inputs: Inputs.JSCAD.SolidDto): Promise<boolean>;
     }
     declare class JSCAD {
         private readonly jscadWorkerManager;
@@ -9796,6 +9799,8 @@ declare namespace Bit {
     }
     declare class ManifoldBooleans {
         private readonly manifoldWorkerManager;
+        minkowskiSum(inputs: Inputs.Manifold.TwoManifoldsDto<Inputs.Manifold.ManifoldPointer>): Promise<Inputs.Manifold.ManifoldPointer>;
+        minkowskiDifference(inputs: Inputs.Manifold.TwoManifoldsDto<Inputs.Manifold.ManifoldPointer>): Promise<Inputs.Manifold.ManifoldPointer>;
         subtract(inputs: Inputs.Manifold.TwoManifoldsDto<Inputs.Manifold.ManifoldPointer>): Promise<Inputs.Manifold.ManifoldPointer>;
         add(inputs: Inputs.Manifold.TwoManifoldsDto<Inputs.Manifold.ManifoldPointer>): Promise<Inputs.Manifold.ManifoldPointer>;
         intersect(inputs: Inputs.Manifold.TwoManifoldsDto<Inputs.Manifold.ManifoldPointer>): Promise<Inputs.Manifold.ManifoldPointer>;
@@ -9824,6 +9829,7 @@ declare namespace Bit {
         tolerance(inputs: Inputs.Manifold.ManifoldDto<Inputs.Manifold.ManifoldPointer>): Promise<number>;
         genus(inputs: Inputs.Manifold.ManifoldDto<Inputs.Manifold.ManifoldPointer>): Promise<number>;
         minGap(inputs: Inputs.Manifold.ManifoldsMinGapDto<Inputs.Manifold.ManifoldPointer>): Promise<number>;
+        rayCast(inputs: Inputs.Manifold.RayCastDto<Inputs.Manifold.ManifoldPointer>): Promise<Inputs.Manifold.RayHit[]>;
         originalID(inputs: Inputs.Manifold.ManifoldDto<Inputs.Manifold.ManifoldPointer>): Promise<number>;
         status(inputs: Inputs.Manifold.ManifoldDto<Inputs.Manifold.ManifoldPointer>): Promise<string>;
     }
@@ -9900,6 +9906,8 @@ declare namespace Bit {
         tangent(inputs: Inputs.Manifold.MeshHalfEdgeIndexDto<Inputs.Manifold.MeshPointer>): Promise<number[]>;
         extras(inputs: Inputs.Manifold.MeshVertexIndexDto<Inputs.Manifold.MeshPointer>): Promise<number[]>;
         transform(inputs: Inputs.Manifold.MeshTriangleRunIndexDto<Inputs.Manifold.MeshPointer>): Promise<number[]>;
+        backside(inputs: Inputs.Manifold.MeshTriangleRunIndexDto<Inputs.Manifold.MeshPointer>): Promise<boolean>;
+        hasNormals(inputs: Inputs.Manifold.MeshTriangleRunIndexDto<Inputs.Manifold.MeshPointer>): Promise<boolean>;
         numProp(inputs: Inputs.Manifold.MeshDto<Inputs.Manifold.MeshPointer>): Promise<number>;
         numVert(inputs: Inputs.Manifold.MeshDto<Inputs.Manifold.MeshPointer>): Promise<number>;
         numTri(inputs: Inputs.Manifold.MeshDto<Inputs.Manifold.MeshPointer>): Promise<number>;
@@ -10830,6 +10838,9 @@ declare namespace Bit {
         loadGlbFromArrayBufferNoReturn(inputs: Inputs.Asset.AssetGlbDataDto): Promise<void>;
         exportBabylon(inputs: Inputs.BabylonIO.ExportSceneDto): void;
         exportGLB(inputs: Inputs.BabylonIO.ExportSceneGlbDto): void;
+        exportGLBBytes(inputs: Inputs.BabylonIO.ExportSceneGlbBytesDto): Promise<Uint8Array>;
+        private glbExportOptions;
+        private withAncestors;
         exportMeshToStl(inputs: Inputs.BabylonIO.ExportMeshToStlDto): Promise<any>;
         exportMeshesToStl(inputs: Inputs.BabylonIO.ExportMeshesToStlDto): Promise<any>;
         private loadAsset;
@@ -11041,6 +11052,7 @@ declare namespace Bit {
         clearAllDrawn(): void;
         enableSkybox(inputs: Inputs.BabylonScene.SkyboxDto): void;
         enableSkyboxCustomTexture(inputs: Inputs.BabylonScene.SkyboxCustomTextureDto): void;
+        enableSkyboxFromTexture(inputs: Inputs.BabylonScene.SkyboxFromTextureDto): void;
         onPointerDown(inputs: Inputs.BabylonScene.PointerDto): void;
         onPointerUp(inputs: Inputs.BabylonScene.PointerDto): void;
         onPointerMove(inputs: Inputs.BabylonScene.PointerDto): void;
@@ -11077,6 +11089,7 @@ declare namespace Bit {
         backgroundColour(inputs: Inputs.BabylonScene.SceneBackgroundColourDto): void;
         private getRadians;
         private createSkyboxMesh;
+        private createGroundProjectedSkybox;
     }
     declare class BabylonTexture {
         private readonly context;
@@ -12133,17 +12146,28 @@ declare namespace Bit {
         private createText;
         dispose(): void;
     }
+    interface CameraFlightOptions {
+        animationSpeed?: number;
+        ease?: Inputs.Math.easeEnum;
+    }
     declare class CameraManager {
         private scene;
         private camera;
         private readonly animationFrameRate;
-        private readonly animationDurationInFrames;
+        private readonly defaultAnimationSeconds;
         private readonly viewMatchAngleTolerance;
         private readonly viewMatchDistanceTolerance;
         constructor(scene: BABYLON.Scene);
-        flyTo(newPosition: BABYLON.Vector3, newTarget: BABYLON.Vector3): void;
+        flyTo(newPosition: BABYLON.Vector3, newTarget: BABYLON.Vector3, options?: CameraFlightOptions): void;
         private isAlreadyAtView;
     }
+    declare const DEFAULT_CAMERA_EASE = Inputs.Math.easeEnum.easeInOutCubic;
+    declare class EaseCurve extends BABYLON.EasingFunction {
+        private readonly curve;
+        constructor(curve: Inputs.Math.easeEnum);
+        easeInCore(gradient: number): number;
+    }
+    declare function createEaseCurve(ease: Inputs.Math.easeEnum | undefined): BABYLON.EasingFunction;
     declare class PointOfInterest {
         private scene;
         private data;
