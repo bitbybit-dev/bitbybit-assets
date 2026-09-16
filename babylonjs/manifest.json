@@ -14,6 +14,11 @@
       "sha256": "210b72792305dc509839c54d08f94de61431c21f862462ca65df42ab9257c9bd"
     },
     {
+      "path": "babylon.d.ts",
+      "bytes": 7468608,
+      "sha256": "7d27552030c2fe693025ada1fcf70a1f5b7a05dd80c2815b5457d3fdcf055b60"
+    },
+    {
       "path": "babylon.ktx2Decoder.d.ts",
       "bytes": 54,
       "sha256": "1acaebae44e31ff46d3e1ab21f499163dd86840cc5ba61846d08d44057cc1841"
@@ -207,6 +212,11 @@
       "path": "gltf_validator.js",
       "bytes": 374598,
       "sha256": "cb643d0cc77440d60937bc1f59c6422a97b04add91864c189b439293a016793a"
+    },
+    {
+      "path": "gui/babylon.gui.d.ts",
+      "bytes": 343730,
+      "sha256": "ea7de13cf13eed29bbe9718163cdcec151d5f2edc75f1a2d15ad35f78e6dea2a"
     },
     {
       "path": "havok/HavokPhysics.wasm",
