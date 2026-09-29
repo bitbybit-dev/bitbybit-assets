@@ -139,15 +139,21 @@ declare namespace Bit {
                  */
             type Mesh3 = Triangle3[];
             /**
-                 * An infinite plane: an origin point, a normal vector, and a direction vector that fixes the
-                 * plane's rotation about its own normal. That third field is what lets an operation place 2D
-                 * geometry on the plane with a predictable orientation rather than an arbitrary one.
+                 * A coordinate frame: an origin, a normal (its z axis) and a direction (its x axis, square to the
+                 * normal); its y axis is the normal crossed with the direction, so the frame is right-handed. A
+                 * frame places things: shapes land on it, profiles are drawn in its plane.
                  */
-            type Plane3 = {
+            type Frame = {
                 origin: Base.Point3;
                 normal: Base.Vector3;
                 direction: Base.Vector3;
             };
+            /**
+                 * An infinite plane: an origin point, a normal vector, and a direction vector that fixes the
+                 * plane's rotation about its own normal.
+                 * @deprecated Use `Frame`, the same three fields; `Plane3` is removed in the next major version.
+                 */
+            type Plane3 = Frame;
             /**
                  * The axis-aligned box enclosing a shape, as a min and a max corner, with the center and the
                  * width, height and length filled in as a convenience. Use it to size a camera to a model, to lay
@@ -433,7 +439,7 @@ declare namespace Bit {
                 /**
                  * Whether the last point joins back to the first; the JSCAD methods decide closure on their own
                  * and ignore this flag
-                 * @optional true
+                 * @default false
                  */
                 isClosed?: boolean | undefined;
                 /**
@@ -519,24 +525,24 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                opacity: number;
+                opacity?: number | undefined;
                 /**
                  * Hex color of the faces; a list uses its first entry. An entity colored with `colors.colorize`
                  * keeps its own color instead
                  * @default #444444
                  */
-                colours: string | string[];
+                colours?: string | string[] | undefined;
                 /**
                  * When true, the drawn mesh can be refreshed in place on later draws by passing it back as
                  * `jscadMesh`
                  * @default false
                  */
-                updatable: boolean;
+                updatable?: boolean | undefined;
                 /**
                  * When true, the mesh is created but not shown until it is made visible
                  * @default false
                  */
-                hidden: boolean;
+                hidden?: boolean | undefined;
                 /**
                  * A mesh from an earlier draw to refresh instead of creating a new one; used only when
                  * `updatable` is true
@@ -550,13 +556,13 @@ declare namespace Bit {
                  * face orientation
                  * @default true
                  */
-                drawTwoSided: boolean;
+                drawTwoSided?: boolean | undefined;
                 /**
                  * Hex color of the back faces, the side the face normal points away from; used only when
                  * `drawTwoSided` is true
                  * @default #0000ff
                  */
-                backFaceColour: string;
+                backFaceColour?: string | undefined;
                 /**
                  * How opaque the back faces are, from 0 to 1; used only when `drawTwoSided` is true
                  * @default 1
@@ -564,7 +570,7 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                backFaceOpacity: number;
+                backFaceOpacity?: number | undefined;
             }
             /**
              * The options `draw.drawAnyAsync` passes on when the entity is a list of JSCAD solids or 2D shapes:
@@ -588,24 +594,24 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                opacity: number;
+                opacity?: number | undefined;
                 /**
                  * Hex color of the faces; a list with one entry per entity colors each in turn, any other list
                  * uses its first entry. Colorized entities keep their own color
                  * @default #444444
                  */
-                colours: string | string[];
+                colours?: string | string[] | undefined;
                 /**
                  * When true, the drawn meshes can be refreshed in place on later draws by passing the parent
                  * back as `jscadMesh`
                  * @default false
                  */
-                updatable: boolean;
+                updatable?: boolean | undefined;
                 /**
                  * When true, the meshes are created but not shown until they are made visible
                  * @default false
                  */
-                hidden: boolean;
+                hidden?: boolean | undefined;
                 /**
                  * The parent mesh from an earlier draw to refresh instead of creating a new one; used only when
                  * `updatable` is true
@@ -619,13 +625,13 @@ declare namespace Bit {
                  * face orientation
                  * @default true
                  */
-                drawTwoSided: boolean;
+                drawTwoSided?: boolean | undefined;
                 /**
                  * Hex color of the back faces, the side the face normal points away from; used only when
                  * `drawTwoSided` is true
                  * @default #0000ff
                  */
-                backFaceColour: string;
+                backFaceColour?: string | undefined;
                 /**
                  * How opaque the back faces are, from 0 to 1; used only when `drawTwoSided` is true
                  * @default 1
@@ -633,7 +639,7 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                backFaceOpacity: number;
+                backFaceOpacity?: number | undefined;
             }
             /**
              * The options `draw.drawAnyAsync` passes on when the entity is a JSCAD 2D path, drawn as a line
@@ -653,7 +659,7 @@ declare namespace Bit {
                  * Hex color of the line; a path colored with `colors.colorize` keeps its own color instead
                  * @default #444444
                  */
-                colour: string;
+                colour?: string | undefined;
                 /**
                  * How opaque the line is, from 0 for invisible to 1 for solid
                  * @default 1
@@ -661,7 +667,7 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                opacity: number;
+                opacity?: number | undefined;
                 /**
                  * Thickness of the drawn line
                  * @default 10
@@ -669,13 +675,13 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                width: number;
+                width?: number | undefined;
                 /**
                  * When true, the drawn line can be refreshed in place on later draws by passing it back as
                  * `pathMesh`
                  * @default false
                  */
-                updatable: boolean;
+                updatable?: boolean | undefined;
                 /**
                  * A line from an earlier draw to refresh instead of creating a new one; used only when
                  * `updatable` is true
@@ -754,7 +760,7 @@ declare namespace Bit {
                  * Name of the downloaded file without the extension, which is added
                  * @default jscad-geometry
                  */
-                fileName: string;
+                fileName?: string | undefined;
                 /**
                  * Options handed to the DXF or 3MF writer as they are; leave it out for the defaults
                  * @default undefined
@@ -795,7 +801,7 @@ declare namespace Bit {
                  * Hex color string the geometry is always drawn in, ahead of the drawing options
                  * @default #0000ff
                  */
-                color: string;
+                color?: string | undefined;
             }
             /**
              * Feeds `booleans.union`, `booleans.intersect` and `booleans.subtract` with any number of inputs;
@@ -859,32 +865,30 @@ declare namespace Bit {
                 meshes: JSCADEntity[];
             }
             /**
-             * Feeds `expansions.expand` and `expansions.offset`: the geometry, the signed distance to move its
-             * boundary by and how the corners are shaped on the way.
+             * Feeds `expansions.offset`: the 2D shape or path, the signed distance to build its outline at and
+             * how the corners are shaped, kept sharp unless `corners` says otherwise.
              */
             class ExpansionDto {
                 constructor(geometry?: JSCADEntity, delta?: number, corners?: solidCornerTypeEnum, segments?: number);
                 /**
-                 * The 2D shape, path or solid to grow; `offset` takes 2D shapes and paths only. It stays as it
-                 * is and a new entity comes back
+                 * The 2D shape or path to outline; it stays as it is and a new entity comes back
                  * @default undefined
                  */
                 geometry: JSCADEntity;
                 /**
                  * How far the boundary moves, in model units: positive grows the geometry, negative shrinks it
-                 * (a solid accepts positive only)
                  * @default 0.1
                  * @minimum -Infinity
                  * @maximum Infinity
                  * @step 0.1
                  */
-                delta: number;
+                delta?: number | undefined;
                 /**
                  * How a convex corner is shaped: `edge` keeps it sharp, `chamfer` cuts it flat, `round` curves
-                 * it; a solid accepts `round` only
+                 * it with `segments` pieces
                  * @default edge
                  */
-                corners: solidCornerTypeEnum;
+                corners?: solidCornerTypeEnum | undefined;
                 /**
                  * Number of straight pieces a `round` corner is made of over a full circle; more makes it
                  * smoother
@@ -893,7 +897,43 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                segments: number;
+                segments?: number | undefined;
+            }
+            /**
+             * Feeds `expansions.expand`: the geometry, the signed distance to move its boundary by and how the
+             * corners are shaped, rounded unless `corners` says otherwise.
+             */
+            class ExpandDto {
+                constructor(geometry?: JSCADEntity, delta?: number, corners?: solidCornerTypeEnum, segments?: number);
+                /**
+                 * The 2D shape, path or solid to grow; it stays as it is and a new entity comes back
+                 * @default undefined
+                 */
+                geometry: JSCADEntity;
+                /**
+                 * How far the boundary moves, in model units: positive grows the geometry, negative shrinks it;
+                 * a solid or a path accepts a positive value only
+                 * @default 0.1
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                delta?: number | undefined;
+                /**
+                 * How a convex corner is shaped: `round` curves it with `segments` pieces, `chamfer` cuts it
+                 * flat, `edge` keeps it sharp; a solid accepts `round` only
+                 * @default round
+                 */
+                corners?: solidCornerTypeEnum | undefined;
+                /**
+                 * Number of straight pieces a `round` corner is made of over a full circle; more makes it
+                 * smoother, and a solid needs at least 4
+                 * @default 24
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                segments?: number | undefined;
             }
             /**
              * Feeds `extrusions.extrudeLinear`: the flat shape, how far it rises along Z and the optional twist
@@ -914,7 +954,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                height: number;
+                height?: number | undefined;
                 /**
                  * How far the top is turned relative to the bottom around Z, in degrees; 0 gives a straight
                  * extrusion
@@ -923,16 +963,16 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                twistAngle: number;
+                twistAngle?: number | undefined;
                 /**
                  * Number of slices the twist is built from, at least 1; more makes a smoother twist and a
                  * heavier mesh
                  * @default 15
-                 * @minimum 0
+                 * @minimum 1
                  * @maximum Infinity
                  * @step 1
                  */
-                twistSteps: number;
+                twistSteps?: number | undefined;
             }
             /**
              * Feeds `hulls.hull` and `hulls.hullChain` with the entities to wrap, all of one kind: solids, 2D
@@ -959,62 +999,53 @@ declare namespace Bit {
                 mesh: JSCADEntity;
             }
             /**
+             * The wall a rectangular extrusion builds, shared by `ExtrudeRectangularDto` and
+             * `ExtrudeRectangularPointsDto`: how thick and how tall.
+             */
+            abstract class ExtrudeRectangularSharedDto {
+                /**
+                 * How tall the wall is along Z, in model units, standing on the XY plane
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                height?: number | undefined;
+                /**
+                 * How far the wall reaches to each side of the path, in model units, so the wall is twice this
+                 * thick
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                size?: number | undefined;
+            }
+            /**
              * Feeds `extrusions.extrudeRectangular`: the outline to build a wall along, the wall's height along
              * Z and its half thickness.
              */
-            class ExtrudeRectangularDto {
+            class ExtrudeRectangularDto extends ExtrudeRectangularSharedDto {
                 constructor(geometry?: JSCADEntity, height?: number, size?: number);
                 /**
                  * The 2D shape or path whose outline the wall follows; the inside of a shape stays empty
                  * @default undefined
                  */
                 geometry: JSCADEntity;
-                /**
-                 * How tall the wall is along Z, in model units, standing on the XY plane
-                 * @default 1
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 0.1
-                 */
-                height: number;
-                /**
-                 * How far the wall reaches to each side of the outline, in model units, so the wall is twice
-                 * this thick
-                 * @default 1
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 0.1
-                 */
-                size: number;
             }
             /**
              * Feeds `extrusions.extrudeRectangularPoints`: the points of the line to build a wall along, the
              * wall's height along Z and its half thickness.
              */
-            class ExtrudeRectangularPointsDto {
+            class ExtrudeRectangularPointsDto extends ExtrudeRectangularSharedDto {
                 constructor(points?: Base.Point3[], height?: number, size?: number);
                 /**
                  * The corner points of the line the wall follows, in order; only X and Y are used
                  * @default undefined
                  */
                 points: Base.Point3[];
-                /**
-                 * How tall the wall is along Z, in model units, standing on the XY plane
-                 * @default 1
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 0.1
-                 */
-                height: number;
-                /**
-                 * How far the wall reaches to each side of the line, in model units, so the wall is twice this
-                 * thick
-                 * @default 1
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 0.1
-                 */
-                size: number;
             }
             /**
              * Feeds `extrusions.extrudeRotate`: the flat profile to spin around the Z axis, how far and from
@@ -1035,7 +1066,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                angle: number;
+                angle?: number | undefined;
                 /**
                  * Where the revolution starts, in degrees from the X axis
                  * @default 0
@@ -1043,16 +1074,16 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                startAngle: number;
+                startAngle?: number | undefined;
                 /**
                  * Number of steps in a full turn; a partial angle uses proportionally fewer. Fewer than 3
                  * throws an error
                  * @default 24
-                 * @minimum 0
+                 * @minimum 3
                  * @maximum Infinity
                  * @step 1
                  */
-                segments: number;
+                segments?: number | undefined;
             }
             /**
              * Feeds `polygon.createFromPolyline` with the polyline whose points become the outline of a filled
@@ -1081,11 +1112,11 @@ declare namespace Bit {
              * around it.
              */
             class PointsDto {
-                constructor(points?: Base.Point3[]);
+                constructor(points?: (Base.Point2 | Base.Point3)[]);
                 /**
-                 * The outline points in order, at least three; only X and Y are used
+                 * The outline points in order, at least three, each 2D or 3D; only X and Y are used
                  */
-                points: Base.Point3[];
+                points: (Base.Point2 | Base.Point3)[];
             }
             /**
              * Feeds `path.close` and `polygon.createFromPath` with the one 2D path to work on; a 2D shape or a
@@ -1115,7 +1146,7 @@ declare namespace Bit {
                  * When true, the last point joins back to the first and the path accepts no more points
                  * @default false
                  */
-                closed: boolean;
+                closed?: boolean | undefined;
             }
             /**
              * Feeds `path.createPathsFromPoints` with several point lists, one 2D path each; a list ending on
@@ -1146,7 +1177,7 @@ declare namespace Bit {
                  * When true, the last point joins back to the first and the path accepts no more points
                  * @default false
                  */
-                closed: boolean;
+                closed?: boolean | undefined;
             }
             /**
              * Feeds `path.appendPoints`: an open 2D path and the points to add after its last point.
@@ -1198,7 +1229,7 @@ declare namespace Bit {
                  * Where the arc ends, as a 2D point in the XY plane
                  * @default [1, 1]
                  */
-                endPoint: Base.Point2;
+                endPoint?: Base.Point2 | undefined;
                 /**
                  * Tilt of the ellipse the arc is cut from, in degrees from the X axis; it changes nothing for a
                  * circle
@@ -1207,44 +1238,44 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                xAxisRotation: number;
+                xAxisRotation?: number | undefined;
                 /**
                  * When true, the arc turns clockwise from the start to the end point; false turns
                  * counter-clockwise
                  * @default true
                  */
-                clockwise: boolean;
+                clockwise?: boolean | undefined;
                 /**
                  * When true, the longer of the two arcs between the points is taken, more than half the ellipse
                  * @default false
                  */
-                large: boolean;
+                large?: boolean | undefined;
                 /**
                  * Number of straight pieces for a full ellipse; the arc gets its proportional share
                  * @default 24
-                 * @minimum 0
+                 * @minimum 4
                  * @maximum Infinity
                  * @step 1
                  */
-                segments: number;
+                segments?: number | undefined;
                 /**
                  * Half width of the ellipse along its own X axis, in model units; scaled up when too small to
                  * reach the end point
                  * @default 1
-                 * @minimum -Infinity
+                 * @minimum 0
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radiusX: number;
+                radiusX?: number | undefined;
                 /**
                  * Half height of the ellipse along its own Y axis, in model units; equal to `radiusX` for a
                  * circular arc
                  * @default 1
-                 * @minimum -Infinity
+                 * @minimum 0
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radiusY: number;
+                radiusY?: number | undefined;
             }
             /**
              * Feeds `polygon.circle`: a filled circle in the XY plane, given by its 2D center, radius and the
@@ -1256,23 +1287,23 @@ declare namespace Bit {
                  * The 2D center point, as X and Y in the plane
                  * @default [0, 0]
                  */
-                center: Base.Point2;
+                center?: Base.Point2 | undefined;
                 /**
                  * Distance from the center to the rim, in model units
                  * @default 1
-                 * @minimum -Infinity
+                 * @minimum 0
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radius: number;
+                radius?: number | undefined;
                 /**
                  * Number of straight sides around the circle; more makes it rounder
                  * @default 24
-                 * @minimum 0
+                 * @minimum 3
                  * @maximum Infinity
                  * @step 1
                  */
-                segments: number;
+                segments?: number | undefined;
             }
             /**
              * Feeds `polygon.ellipse`: a filled ellipse in the XY plane, given by its 2D center, its two
@@ -1284,20 +1315,20 @@ declare namespace Bit {
                  * The 2D center point, as X and Y in the plane
                  * @default [0, 0]
                  */
-                center: Base.Point2;
+                center?: Base.Point2 | undefined;
                 /**
                  * The half width along X and the half height along Y, in model units, as `[x, y]`
                  * @default [1, 2]
                  */
-                radius: Base.Point2;
+                radius?: Base.Point2 | undefined;
                 /**
                  * Number of straight sides around the ellipse; more makes it rounder
                  * @default 24
-                 * @minimum 0
+                 * @minimum 3
                  * @maximum Infinity
                  * @step 1
                  */
-                segments: number;
+                segments?: number | undefined;
             }
             /**
              * Feeds `polygon.square`: a filled square in the XY plane with sides parallel to the axes, given by
@@ -1309,15 +1340,15 @@ declare namespace Bit {
                  * The 2D center point, as X and Y in the plane
                  * @default [0, 0]
                  */
-                center: Base.Point2;
+                center?: Base.Point2 | undefined;
                 /**
                  * Length of each side, in model units
                  * @default 1
-                 * @minimum -Infinity
+                 * @minimum 0
                  * @maximum Infinity
                  * @step 0.1
                  */
-                size: number;
+                size?: number | undefined;
             }
             /**
              * Feeds `polygon.rectangle`: a filled rectangle in the XY plane with sides parallel to the axes,
@@ -1329,23 +1360,23 @@ declare namespace Bit {
                  * The 2D center point, as X and Y in the plane
                  * @default [0, 0]
                  */
-                center: Base.Point2;
+                center?: Base.Point2 | undefined;
                 /**
                  * Full size along X, in model units
                  * @default 1
-                 * @minimum -Infinity
+                 * @minimum 0
                  * @maximum Infinity
                  * @step 0.1
                  */
-                width: number;
+                width?: number | undefined;
                 /**
                  * Full size along Y, in model units
                  * @default 1
-                 * @minimum -Infinity
+                 * @minimum 0
                  * @maximum Infinity
                  * @step 0.1
                  */
-                length: number;
+                length?: number | undefined;
             }
             /**
              * Feeds `polygon.roundedRectangle`: a filled rectangle in the XY plane whose four corners are
@@ -1358,41 +1389,41 @@ declare namespace Bit {
                  * The 2D center point, as X and Y in the plane
                  * @default [0, 0]
                  */
-                center: Base.Point2;
+                center?: Base.Point2 | undefined;
                 /**
                  * Radius of each rounded corner, in model units; it must be less than half of the smaller side
                  * or an error is thrown
                  * @default 0.2
-                 * @minimum -Infinity
+                 * @minimum 0
                  * @maximum Infinity
                  * @step 0.1
                  */
-                roundRadius: number;
+                roundRadius?: number | undefined;
                 /**
                  * Number of straight pieces a full circle of rounding is made of, so each corner gets a
                  * quarter; more makes it smoother
                  * @default 24
-                 * @minimum 0
+                 * @minimum 4
                  * @maximum Infinity
                  * @step 1
                  */
-                segments: number;
+                segments?: number | undefined;
                 /**
                  * Full size along X, in model units
                  * @default 1
-                 * @minimum -Infinity
+                 * @minimum 0
                  * @maximum Infinity
                  * @step 0.1
                  */
-                width: number;
+                width?: number | undefined;
                 /**
                  * Full size along Y, in model units
                  * @default 1
-                 * @minimum -Infinity
+                 * @minimum 0
                  * @maximum Infinity
                  * @step 0.1
                  */
-                length: number;
+                length?: number | undefined;
             }
             /**
              * Feeds `polygon.star`: a filled star in the XY plane, given by its 2D center, how many tips it
@@ -1404,15 +1435,15 @@ declare namespace Bit {
                  * The 2D center point, as X and Y in the plane
                  * @default [0, 0]
                  */
-                center: Base.Point2;
+                center?: Base.Point2 | undefined;
                 /**
                  * Number of tips; the star has as many notches between them
                  * @default 10
-                 * @minimum 0
+                 * @minimum 2
                  * @maximum Infinity
                  * @step 1
                  */
-                vertices: number;
+                vertices?: number | undefined;
                 /**
                  * Read only when `innerRadius` is 0: how many tips apart the edges connect, 2 for a pentagram,
                  * from which the notch radius is derived
@@ -1421,15 +1452,16 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                density: number;
+                density?: number | undefined;
                 /**
                  * Distance from the center to each tip, in model units
                  * @default 2
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                outerRadius: number;
+                outerRadius?: number | undefined;
                 /**
                  * Distance from the center to each notch, in model units; 0 lets `density` decide it
                  * @default 1
@@ -1437,15 +1469,15 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                innerRadius: number;
+                innerRadius?: number | undefined;
                 /**
                  * Direction of the first tip, in degrees counter-clockwise from the X axis
                  * @default 0
-                 * @minimum -Infinity
+                 * @minimum 0
                  * @maximum Infinity
                  * @step 1
                  */
-                startAngle: number;
+                startAngle?: number | undefined;
             }
             /**
              * Feeds `shapes.cube`: a cube with faces parallel to the axes, given by its center point and edge
@@ -1457,15 +1489,15 @@ declare namespace Bit {
                  * The point the cube is centered on, so half the edge length lies on each side of it
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
                 /**
                  * Length of every edge, in model units
                  * @default 1
-                 * @minimum -Infinity
+                 * @minimum 0
                  * @maximum Infinity
                  * @step 0.1
                  */
-                size: number;
+                size?: number | undefined;
             }
             /**
              * Feeds `shapes.cubesOnCenterPoints`: one cube of the same edge length on every center point,
@@ -1485,19 +1517,12 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                size: number;
+                size?: number | undefined;
             }
             /**
-             * Feeds `shapes.cuboid`: a box with faces parallel to the axes, given by its center point and its
-             * sizes along X, Y and Z.
+             * The size of a box, shared by `CuboidDto` and `CuboidCentersDto`.
              */
-            class CuboidDto {
-                constructor(center?: Base.Point3, width?: number, length?: number, height?: number);
-                /**
-                 * The point the box is centered on, so half of each size lies on each side of it
-                 * @default [0, 0, 0]
-                 */
-                center: Base.Point3;
+            abstract class CuboidSharedDto {
                 /**
                  * Full size along X, in model units
                  * @default 1
@@ -1505,7 +1530,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                width: number;
+                width?: number | undefined;
                 /**
                  * Full size along Z, in model units
                  * @default 1
@@ -1513,7 +1538,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                length: number;
+                length?: number | undefined;
                 /**
                  * Full size along Y, in model units
                  * @default 1
@@ -1521,55 +1546,37 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                height: number;
+                height?: number | undefined;
+            }
+            /**
+             * Feeds `shapes.cuboid`: a box with faces parallel to the axes, given by its center point and its
+             * sizes along X, Y and Z.
+             */
+            class CuboidDto extends CuboidSharedDto {
+                constructor(center?: Base.Point3, width?: number, length?: number, height?: number);
+                /**
+                 * The point the box is centered on, so half of each size lies on each side of it
+                 * @default [0, 0, 0]
+                 */
+                center?: Base.Point3 | undefined;
             }
             /**
              * Feeds `shapes.cuboidsOnCenterPoints`: one box of the same sizes on every center point, coming
              * back in the same order.
              */
-            class CuboidCentersDto {
+            class CuboidCentersDto extends CuboidSharedDto {
                 constructor(centers?: Base.Point3[], width?: number, length?: number, height?: number);
                 /**
                  * The points the boxes are centered on, one box each, in the order the results come back
                  * @default undefined
                  */
                 centers: Base.Point3[];
-                /**
-                 * Full size of every box along X, in model units
-                 * @default 1
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 0.1
-                 */
-                width: number;
-                /**
-                 * Full size of every box along Z, in model units
-                 * @default 1
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 0.1
-                 */
-                length: number;
-                /**
-                 * Full size of every box along Y, in model units
-                 * @default 1
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 0.1
-                 */
-                height: number;
             }
             /**
-             * Feeds `shapes.roundedCuboid`: a box with every edge and corner rounded, given by its center, its
-             * sizes along X, Y and Z, the rounding radius and how finely the rounding is faceted.
+             * The size and rounding of a rounded box, shared by `RoundedCuboidDto` and
+             * `RoundedCuboidCentersDto`.
              */
-            class RoundedCuboidDto {
-                constructor(center?: Base.Point3, roundRadius?: number, width?: number, length?: number, height?: number, segments?: number);
-                /**
-                 * The point the box is centered on, so half of each size lies on each side of it
-                 * @default [0, 0, 0]
-                 */
-                center: Base.Point3;
+            abstract class RoundedCuboidSharedDto {
                 /**
                  * Radius of the rounding on every edge, in model units; it must be less than half of the
                  * smallest side or an error is thrown
@@ -1578,7 +1585,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                roundRadius: number;
+                roundRadius?: number | undefined;
                 /**
                  * Full size along X, in model units, rounding included
                  * @default 1
@@ -1586,7 +1593,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                width: number;
+                width?: number | undefined;
                 /**
                  * Full size along Z, in model units, rounding included
                  * @default 1
@@ -1594,7 +1601,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                length: number;
+                length?: number | undefined;
                 /**
                  * Full size along Y, in model units, rounding included
                  * @default 1
@@ -1602,68 +1609,39 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                height: number;
+                height?: number | undefined;
                 /**
                  * Number of straight pieces a full circle of rounding is made of; more makes the edges smoother
                  * @default 24
-                 * @minimum 0
+                 * @minimum 4
                  * @maximum Infinity
                  * @step 1
                  */
-                segments: number;
+                segments?: number | undefined;
+            }
+            /**
+             * Feeds `shapes.roundedCuboid`: a box with every edge and corner rounded, given by its center, its
+             * sizes along X, Y and Z, the rounding radius and how finely the rounding is faceted.
+             */
+            class RoundedCuboidDto extends RoundedCuboidSharedDto {
+                constructor(center?: Base.Point3, roundRadius?: number, width?: number, length?: number, height?: number, segments?: number);
+                /**
+                 * The point the box is centered on, so half of each size lies on each side of it
+                 * @default [0, 0, 0]
+                 */
+                center?: Base.Point3 | undefined;
             }
             /**
              * Feeds `shapes.roundedCuboidsOnCenterPoints`: one rounded box of the same sizes and rounding on
              * every center point, coming back in the same order.
              */
-            class RoundedCuboidCentersDto {
+            class RoundedCuboidCentersDto extends RoundedCuboidSharedDto {
                 constructor(centers?: Base.Point3[], roundRadius?: number, width?: number, length?: number, height?: number, segments?: number);
                 /**
                  * The points the boxes are centered on, one box each, in the order the results come back
                  * @default undefined
                  */
                 centers: Base.Point3[];
-                /**
-                 * Radius of the rounding on every edge, in model units; it must be less than half of the
-                 * smallest side or an error is thrown
-                 * @default 0.1
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 0.1
-                 */
-                roundRadius: number;
-                /**
-                 * Full size of every box along X, in model units, rounding included
-                 * @default 1
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 0.1
-                 */
-                width: number;
-                /**
-                 * Full size of every box along Z, in model units, rounding included
-                 * @default 1
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 0.1
-                 */
-                length: number;
-                /**
-                 * Full size of every box along Y, in model units, rounding included
-                 * @default 1
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 0.1
-                 */
-                height: number;
-                /**
-                 * Number of straight pieces a full circle of rounding is made of; more makes the edges smoother
-                 * @default 24
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 1
-                 */
-                segments: number;
             }
             /**
              * Feeds `shapes.cylinderElliptic`: a cylinder standing along Z with an elliptical cross-section
@@ -1675,33 +1653,34 @@ declare namespace Bit {
                  * The point halfway up the axis; half the height lies above it along Z and half below
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
                 /**
                  * Full length along Z, in model units
                  * @default 1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                height: number;
+                height?: number | undefined;
                 /**
                  * The X and Y radii of the bottom end, in model units, as `[x, y]`
                  * @default [1, 2]
                  */
-                startRadius: Base.Vector2;
+                startRadius?: Base.Vector2 | undefined;
                 /**
                  * The X and Y radii of the top end, in model units, as `[x, y]`; `[0, 0]` closes it to a point
                  * @default [2, 3]
                  */
-                endRadius: Base.Vector2;
+                endRadius?: Base.Vector2 | undefined;
                 /**
                  * Number of flat sides around the cylinder; more makes it rounder
                  * @default 24
-                 * @minimum 0
+                 * @minimum 4
                  * @maximum Infinity
                  * @step 1
                  */
-                segments: number;
+                segments?: number | undefined;
             }
             /**
              * Feeds `shapes.cylinderEllipticOnCenterPoints`: one elliptic cylinder of the same size on every
@@ -1718,41 +1697,35 @@ declare namespace Bit {
                  * Full length of every cylinder along Z, in model units
                  * @default 1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                height: number;
+                height?: number | undefined;
                 /**
                  * The X and Y radii of every bottom end, in model units, as `[x, y]`
                  * @default [1, 2]
                  */
-                startRadius: Base.Point2;
+                startRadius?: Base.Point2 | undefined;
                 /**
                  * The X and Y radii of every top end, in model units, as `[x, y]`; `[0, 0]` closes them to a
                  * point
                  * @default [2, 3]
                  */
-                endRadius: Base.Point2;
+                endRadius?: Base.Point2 | undefined;
                 /**
                  * Number of flat sides around each cylinder; more makes them rounder
                  * @default 24
-                 * @minimum 0
+                 * @minimum 4
                  * @maximum Infinity
                  * @step 1
                  */
-                segments: number;
+                segments?: number | undefined;
             }
             /**
-             * Feeds `shapes.cylinder`: a round cylinder standing along Z, given by the point halfway up its
-             * axis, its height, its radius and how many flat sides approximate it.
+             * The size and smoothness of a cylinder, shared by `CylidnerDto` and `CylidnerCentersDto`.
              */
-            class CylidnerDto {
-                constructor(center?: Base.Point3, height?: number, radius?: number, segments?: number);
-                /**
-                 * The point halfway up the axis; half the height lies above it along Z and half below
-                 * @default [0, 0, 0]
-                 */
-                center: Base.Point3;
+            abstract class CylinderSharedDto {
                 /**
                  * Full length along Z, in model units
                  * @default 1
@@ -1760,7 +1733,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                height: number;
+                height?: number | undefined;
                 /**
                  * Distance from the axis to the side, in model units
                  * @default 1
@@ -1768,28 +1741,33 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radius: number;
+                radius?: number | undefined;
                 /**
                  * Number of flat sides around the cylinder; more makes it rounder
                  * @default 24
-                 * @minimum 0
+                 * @minimum 4
                  * @maximum Infinity
                  * @step 1
                  */
-                segments: number;
+                segments?: number | undefined;
             }
             /**
-             * Feeds `shapes.roundedCylinder`: a cylinder standing along Z whose two rims are rounded, given by
-             * the point halfway up its axis, the rounding radius, its height and radius and how finely it is
-             * faceted.
+             * Feeds `shapes.cylinder`: a round cylinder standing along Z, given by the point halfway up its
+             * axis, its height, its radius and how many flat sides approximate it.
              */
-            class RoundedCylidnerDto {
-                constructor(center?: Base.Point3, roundRadius?: number, height?: number, radius?: number, segments?: number);
+            class CylidnerDto extends CylinderSharedDto {
+                constructor(center?: Base.Point3, height?: number, radius?: number, segments?: number);
                 /**
                  * The point halfway up the axis; half the height lies above it along Z and half below
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
+            }
+            /**
+             * The size, rounding and smoothness of a rounded cylinder, shared by `RoundedCylidnerDto` and
+             * `RoundedCylidnerCentersDto`.
+             */
+            abstract class RoundedCylinderSharedDto {
                 /**
                  * Radius of the rounding on both rims, in model units; the height must be more than twice it or
                  * an error is thrown
@@ -1798,7 +1776,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                roundRadius: number;
+                roundRadius?: number | undefined;
                 /**
                  * Full length along Z, in model units, rounding included
                  * @default 1
@@ -1806,7 +1784,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                height: number;
+                height?: number | undefined;
                 /**
                  * Distance from the axis to the side, in model units
                  * @default 1
@@ -1814,77 +1792,76 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radius: number;
+                radius?: number | undefined;
                 /**
                  * Number of flat sides around the cylinder and pieces in the rounding; more makes it smoother
                  * @default 24
-                 * @minimum 0
+                 * @minimum 4
                  * @maximum Infinity
                  * @step 1
                  */
-                segments: number;
+                segments?: number | undefined;
+            }
+            /**
+             * Feeds `shapes.roundedCylinder`: a cylinder standing along Z whose two rims are rounded, given by
+             * the point halfway up its axis, the rounding radius, its height and radius and how finely it is
+             * faceted.
+             */
+            class RoundedCylidnerDto extends RoundedCylinderSharedDto {
+                constructor(center?: Base.Point3, roundRadius?: number, height?: number, radius?: number, segments?: number);
+                /**
+                 * The point halfway up the axis; half the height lies above it along Z and half below
+                 * @default [0, 0, 0]
+                 */
+                center?: Base.Point3 | undefined;
+            }
+            /**
+             * The size and smoothness of an ellipsoid, shared by `EllipsoidDto` and `EllipsoidCentersDto`.
+             */
+            abstract class EllipsoidSharedDto {
+                /**
+                 * The half sizes along X, Y and Z, in model units, as `[x, y, z]`; equal values make a sphere
+                 * @default [1, 2, 3]
+                 */
+                radius?: Base.Point3 | undefined;
+                /**
+                 * Number of facets around the ellipsoid; more makes it smoother
+                 * @default 24
+                 * @minimum 4
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                segments?: number | undefined;
             }
             /**
              * Feeds `shapes.ellipsoid`: a sphere stretched separately along X, Y and Z, given by its center,
              * its three radii and how finely it is faceted.
              */
-            class EllipsoidDto {
+            class EllipsoidDto extends EllipsoidSharedDto {
                 constructor(center?: Base.Point3, radius?: Base.Point3, segments?: number);
                 /**
                  * The point the ellipsoid is centered on
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
-                /**
-                 * The half sizes along X, Y and Z, in model units, as `[x, y, z]`; equal values make a sphere
-                 * @default [1, 2, 3]
-                 */
-                radius: Base.Point3;
-                /**
-                 * Number of facets around the ellipsoid; more makes it smoother
-                 * @default 24
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 1
-                 */
-                segments: number;
+                center?: Base.Point3 | undefined;
             }
             /**
              * Feeds `shapes.ellipsoidsOnCenterPoints`: one ellipsoid of the same radii on every center point,
              * coming back in the same order.
              */
-            class EllipsoidCentersDto {
+            class EllipsoidCentersDto extends EllipsoidSharedDto {
                 constructor(centers?: Base.Point3[], radius?: Base.Point3, segments?: number);
                 /**
                  * The points the ellipsoids are centered on, one each, in the order the results come back
                  * @default undefined
                  */
                 centers: Base.Point3[];
-                /**
-                 * The half sizes of every ellipsoid along X, Y and Z, in model units, as `[x, y, z]`
-                 * @default [1, 2, 3]
-                 */
-                radius: Base.Point3;
-                /**
-                 * Number of facets around each ellipsoid; more makes them smoother
-                 * @default 24
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 1
-                 */
-                segments: number;
             }
             /**
-             * Feeds `shapes.geodesicSphere`: a sphere made of evenly sized triangles, given by its center, its
-             * radius and how finely the twenty starting faces are subdivided.
+             * The size and subdivision of a geodesic sphere, shared by `GeodesicSphereDto` and
+             * `GeodesicSphereCentersDto`.
              */
-            class GeodesicSphereDto {
-                constructor(center?: Base.Point3, radius?: number, frequency?: number);
-                /**
-                 * The point the sphere is centered on
-                 * @default [0, 0, 0]
-                 */
-                center: Base.Point3;
+            abstract class GeodesicSphereSharedDto {
                 /**
                  * Distance from the center to the surface, in model units
                  * @default 1
@@ -1892,139 +1869,69 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radius: number;
+                radius?: number | undefined;
                 /**
                  * How finely each of the twenty starting faces is subdivided; used in whole multiples of 6, at
                  * least 6, and higher is rounder
                  * @default 12
-                 * @minimum 0
+                 * @minimum 6
                  * @maximum Infinity
                  * @step 1
                  */
-                frequency: number;
+                frequency?: number | undefined;
+            }
+            /**
+             * Feeds `shapes.geodesicSphere`: a sphere made of evenly sized triangles, given by its center, its
+             * radius and how finely the twenty starting faces are subdivided.
+             */
+            class GeodesicSphereDto extends GeodesicSphereSharedDto {
+                constructor(center?: Base.Point3, radius?: number, frequency?: number);
+                /**
+                 * The point the sphere is centered on
+                 * @default [0, 0, 0]
+                 */
+                center?: Base.Point3 | undefined;
             }
             /**
              * Feeds `shapes.geodesicSpheresOnCenterPoints`: one geodesic sphere of the same radius on every
              * center point, coming back in the same order.
              */
-            class GeodesicSphereCentersDto {
+            class GeodesicSphereCentersDto extends GeodesicSphereSharedDto {
                 constructor(centers?: Base.Point3[], radius?: number, frequency?: number);
                 /**
                  * The points the spheres are centered on, one each, in the order the results come back
                  * @default undefined
                  */
                 centers: Base.Point3[];
-                /**
-                 * Distance from each center to its surface, in model units
-                 * @default 1
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 0.1
-                 */
-                radius: number;
-                /**
-                 * How finely each of the twenty starting faces is subdivided; used in whole multiples of 6, at
-                 * least 6, and higher is rounder
-                 * @default 12
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 0.1
-                 */
-                frequency: number;
             }
             /**
              * Feeds `shapes.cylindersOnCenterPoints`: one round cylinder of the same size standing along Z on
              * every center point, coming back in the same order.
              */
-            class CylidnerCentersDto {
+            class CylidnerCentersDto extends CylinderSharedDto {
                 constructor(centers?: Base.Point3[], height?: number, radius?: number, segments?: number);
                 /**
                  * The points halfway up each axis, one cylinder each, in the order the results come back
                  * @default undefined
                  */
                 centers: Base.Point3[];
-                /**
-                 * Full length of every cylinder along Z, in model units
-                 * @default 1
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 0.1
-                 */
-                height: number;
-                /**
-                 * Distance from the axis to the side of every cylinder, in model units
-                 * @default 1
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 0.1
-                 */
-                radius: number;
-                /**
-                 * Number of flat sides around each cylinder; more makes them rounder
-                 * @default 24
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 1
-                 */
-                segments: number;
             }
             /**
              * Feeds `shapes.roundedCylindersOnCenterPoints`: one rounded cylinder of the same size on every
              * center point, coming back in the same order.
              */
-            class RoundedCylidnerCentersDto {
+            class RoundedCylidnerCentersDto extends RoundedCylinderSharedDto {
                 constructor(centers?: Base.Point3[], roundRadius?: number, height?: number, radius?: number, segments?: number);
                 /**
                  * The points halfway up each axis, one cylinder each, in the order the results come back
                  * @default undefined
                  */
                 centers: Base.Point3[];
-                /**
-                 * Radius of the rounding on both rims of every cylinder, in model units; the height must be
-                 * more than twice it or an error is thrown
-                 * @default 0.1
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 0.1
-                 */
-                roundRadius: number;
-                /**
-                 * Full length of every cylinder along Z, in model units, rounding included
-                 * @default 1
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 0.1
-                 */
-                height: number;
-                /**
-                 * Distance from the axis to the side of every cylinder, in model units
-                 * @default 1
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 0.1
-                 */
-                radius: number;
-                /**
-                 * Number of flat sides around each cylinder and pieces in the rounding; more makes them
-                 * smoother
-                 * @default 24
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 1
-                 */
-                segments: number;
             }
             /**
-             * Feeds `shapes.sphere`: a sphere given by its center point, its radius and how many facets
-             * approximate it.
+             * The size and smoothness of a sphere, shared by `SphereDto` and `SphereCentersDto`.
              */
-            class SphereDto {
-                constructor(center?: Base.Point3, radius?: number, segments?: number);
-                /**
-                 * The point the sphere is centered on
-                 * @default [0, 0, 0]
-                 */
-                center: Base.Point3;
+            abstract class SphereSharedDto {
                 /**
                  * Distance from the center to the surface, in model units
                  * @default 1
@@ -2032,43 +1939,39 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radius: number;
+                radius?: number | undefined;
                 /**
                  * Number of facets around the sphere; more makes it rounder
                  * @default 24
-                 * @minimum 0
+                 * @minimum 4
                  * @maximum Infinity
                  * @step 1
                  */
-                segments: number;
+                segments?: number | undefined;
+            }
+            /**
+             * Feeds `shapes.sphere`: a sphere given by its center point, its radius and how many facets
+             * approximate it.
+             */
+            class SphereDto extends SphereSharedDto {
+                constructor(center?: Base.Point3, radius?: number, segments?: number);
+                /**
+                 * The point the sphere is centered on
+                 * @default [0, 0, 0]
+                 */
+                center?: Base.Point3 | undefined;
             }
             /**
              * Feeds `shapes.spheresOnCenterPoints`: one sphere of the same radius on every center point, coming
              * back in the same order.
              */
-            class SphereCentersDto {
+            class SphereCentersDto extends SphereSharedDto {
                 constructor(centers?: Base.Point3[], radius?: number, segments?: number);
                 /**
                  * The points the spheres are centered on, one each, in the order the results come back
                  * @default undefined
                  */
                 centers: Base.Point3[];
-                /**
-                 * Distance from each center to its surface, in model units
-                 * @default 1
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 0.1
-                 */
-                radius: number;
-                /**
-                 * Number of facets around each sphere; more makes them rounder
-                 * @default 24
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 1
-                 */
-                segments: number;
             }
             /**
              * Feeds `shapes.torus`: a ring with a round cross-section lying flat in the XY plane around
@@ -2081,40 +1984,42 @@ declare namespace Bit {
                  * The point the ring is centered on, in model units
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
                 /**
                  * Radius of the tube itself, in model units; it must be less than `outerRadius`
                  * @default 1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                innerRadius: number;
+                innerRadius?: number | undefined;
                 /**
                  * Distance from the ring's center to the middle of the tube, in model units, so the ring spans
                  * twice the sum of both radii
                  * @default 2
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                outerRadius: number;
+                outerRadius?: number | undefined;
                 /**
                  * Number of flat pieces around the tube's cross-section; more makes the tube rounder
                  * @default 24
-                 * @minimum 0
+                 * @minimum 3
                  * @maximum Infinity
                  * @step 1
                  */
-                innerSegments: number;
+                innerSegments?: number | undefined;
                 /**
                  * Number of flat pieces around the ring; more makes the ring rounder
                  * @default 24
-                 * @minimum 0
+                 * @minimum 3
                  * @maximum Infinity
                  * @step 1
                  */
-                outerSegments: number;
+                outerSegments?: number | undefined;
                 /**
                  * Turn of the tube's cross-section about its own center, in degrees; it shows when
                  * `innerSegments` is low enough for the facets to be visible
@@ -2123,24 +2028,25 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                innerRotation: number;
+                innerRotation?: number | undefined;
                 /**
                  * How far the tube is swept around the ring, in degrees; 360 closes the ring and less leaves it
                  * open
                  * @default 360
-                 * @minimum -Infinity
+                 * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 1
                  */
-                outerRotation: number;
+                outerRotation?: number | undefined;
                 /**
                  * Where the sweep around the ring starts, in degrees from the X axis
                  * @default 0
-                 * @minimum -Infinity
+                 * @minimum 0
                  * @maximum Infinity
                  * @step 1
                  */
-                startAngle: number;
+                startAngle?: number | undefined;
             }
             /**
              * Feeds `text.createVectorText` with the text and the font options: where the text starts, how tall
@@ -2154,7 +2060,7 @@ declare namespace Bit {
                  * becomes a question mark
                  * @default Hello World
                  */
-                text: string;
+                text?: string | undefined;
                 /**
                  * Number of straight pieces used for curved strokes; more makes letters rounder
                  * @default 24
@@ -2162,7 +2068,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                segments: number;
+                segments?: number | undefined;
                 /**
                  * Where the text starts along X, in model units
                  * @default 0
@@ -2170,7 +2076,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                xOffset: number;
+                xOffset?: number | undefined;
                 /**
                  * Where the baseline of the first line sits along Y, in model units
                  * @default 0
@@ -2178,7 +2084,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                yOffset: number;
+                yOffset?: number | undefined;
                 /**
                  * Height of a capital letter, in model units; the whole text scales with it
                  * @default 1
@@ -2186,7 +2092,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                height: number;
+                height?: number | undefined;
                 /**
                  * Step from one line down to the next as a multiple of the letter height; 1.4 leaves a 40
                  * percent gap
@@ -2195,7 +2101,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                lineSpacing: number;
+                lineSpacing?: number | undefined;
                 /**
                  * Multiplies the step from one letter to the next; 1 is the font's own spacing and 2 spreads
                  * letters twice as far apart
@@ -2204,12 +2110,12 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                letterSpacing: number;
+                letterSpacing?: number | undefined;
                 /**
                  * How the lines of a multi-line text line up: to the left, the center or the right
                  * @default center
                  */
-                align: jscadTextAlignEnum;
+                align?: jscadTextAlignEnum | undefined;
                 /**
                  * Thickness the strokes will get later, in model units; the outlines are pulled in by half of
                  * it so letters keep their size once thick
@@ -2218,7 +2124,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                extrudeOffset: number;
+                extrudeOffset?: number | undefined;
             }
             /**
              * Feeds `text.cylindricalText`: the text and font options of `TextDto` plus the size of the
@@ -2231,7 +2137,7 @@ declare namespace Bit {
                  * becomes a question mark
                  * @default Hello World
                  */
-                text: string;
+                text?: string | undefined;
                 /**
                  * Length of the cylinders along Z, in model units; the strokes sit on the XY plane with half of
                  * it on each side
@@ -2240,7 +2146,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                extrusionHeight: number;
+                extrusionHeight?: number | undefined;
                 /**
                  * Radius of the cylinders, in model units, which is half the thickness of the strokes
                  * @default 0.1
@@ -2248,16 +2154,16 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                extrusionSize: number;
+                extrusionSize?: number | undefined;
                 /**
                  * Number of flat sides around each cylinder and pieces in curved strokes; more makes the
                  * letters rounder
                  * @default 24
-                 * @minimum 0
+                 * @minimum 4
                  * @maximum Infinity
                  * @step 1
                  */
-                segments: number;
+                segments?: number | undefined;
                 /**
                  * Where the text starts along X before it is centered, in model units
                  * @default 0
@@ -2265,7 +2171,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                xOffset: number;
+                xOffset?: number | undefined;
                 /**
                  * Where the baseline of the first line sits along Y, in model units
                  * @default 0
@@ -2273,7 +2179,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                yOffset: number;
+                yOffset?: number | undefined;
                 /**
                  * Height of a capital letter, in model units; the whole text scales with it
                  * @default 1
@@ -2281,7 +2187,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                height: number;
+                height?: number | undefined;
                 /**
                  * Step from one line down to the next as a multiple of the letter height; 1.4 leaves a 40
                  * percent gap
@@ -2290,7 +2196,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                lineSpacing: number;
+                lineSpacing?: number | undefined;
                 /**
                  * Multiplies the step from one letter to the next; 1 is the font's own spacing and 2 spreads
                  * letters twice as far apart
@@ -2299,12 +2205,12 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                letterSpacing: number;
+                letterSpacing?: number | undefined;
                 /**
                  * How the lines of a multi-line text line up: to the left, the center or the right
                  * @default center
                  */
-                align: jscadTextAlignEnum;
+                align?: jscadTextAlignEnum | undefined;
                 /**
                  * Pulls the strokes inward by half this amount, in model units, so thick strokes keep the
                  * intended letter size
@@ -2313,7 +2219,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                extrudeOffset: number;
+                extrudeOffset?: number | undefined;
             }
             /**
              * Feeds `text.sphericalText`: the text and font options of `TextDto` plus the size of the spheres
@@ -2326,7 +2232,7 @@ declare namespace Bit {
                  * becomes a question mark
                  * @default Hello World
                  */
-                text: string;
+                text?: string | undefined;
                 /**
                  * Radius of the spheres, in model units, which is half the thickness of the strokes
                  * @default 0.1
@@ -2334,16 +2240,16 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radius: number;
+                radius?: number | undefined;
                 /**
                  * Number of facets around each sphere and pieces in curved strokes; more makes the letters
                  * rounder
                  * @default 24
-                 * @minimum 0
+                 * @minimum 4
                  * @maximum Infinity
                  * @step 1
                  */
-                segments: number;
+                segments?: number | undefined;
                 /**
                  * Where the text starts along X before it is centered, in model units
                  * @default 0
@@ -2351,7 +2257,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                xOffset: number;
+                xOffset?: number | undefined;
                 /**
                  * Where the baseline of the first line sits along Y, in model units
                  * @default 0
@@ -2359,7 +2265,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                yOffset: number;
+                yOffset?: number | undefined;
                 /**
                  * Height of a capital letter, in model units; the whole text scales with it
                  * @default 1
@@ -2367,7 +2273,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                height: number;
+                height?: number | undefined;
                 /**
                  * Step from one line down to the next as a multiple of the letter height; 1.4 leaves a 40
                  * percent gap
@@ -2376,7 +2282,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                lineSpacing: number;
+                lineSpacing?: number | undefined;
                 /**
                  * Multiplies the step from one letter to the next; 1 is the font's own spacing and 2 spreads
                  * letters twice as far apart
@@ -2385,12 +2291,12 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                letterSpacing: number;
+                letterSpacing?: number | undefined;
                 /**
                  * How the lines of a multi-line text line up: to the left, the center or the right
                  * @default center
                  */
-                align: jscadTextAlignEnum;
+                align?: jscadTextAlignEnum | undefined;
                 /**
                  * Pulls the strokes inward by half this amount, in model units, so thick strokes keep the
                  * intended letter size
@@ -2399,7 +2305,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                extrudeOffset: number;
+                extrudeOffset?: number | undefined;
             }
             /**
              * Feeds `shapes.fromPolygonPoints` with the faces of a solid, each as the list of points around it,
@@ -2558,7 +2464,7 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                faceOpacity: number;
+                faceOpacity?: number | undefined;
                 /**
                  * A material for the faces from the rendering engine; when given it replaces the face color.
                  * @default undefined
@@ -2569,17 +2475,17 @@ declare namespace Bit {
                  * The color of the faces as a hex string such as `#ff0000`.
                  * @default #ff0000
                  */
-                faceColour: Base.Color;
+                faceColour?: Base.Color | undefined;
                 /**
                  * The color of a cross-section's lines as a hex string.
                  * @default #ff00ff
                  */
-                crossSectionColour: Base.Color;
+                crossSectionColour?: Base.Color | undefined;
                 /**
                  * How thick a cross-section's lines are drawn.
                  * @default 2
                  */
-                crossSectionWidth: number;
+                crossSectionWidth?: number | undefined;
                 /**
                  * How opaque a cross-section's lines are, from 0 to 1.
                  * @default 1
@@ -2587,23 +2493,23 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                crossSectionOpacity: number;
+                crossSectionOpacity?: number | undefined;
                 /**
                  * When true, normals are computed for the mesh so it shades smoothly.
                  * @default false
                  */
-                computeNormals: boolean;
+                computeNormals?: boolean | undefined;
                 /**
                  * When true, the back of each face is drawn in its own color, which shows which way faces
                  * point.
                  * @default true
                  */
-                drawTwoSided: boolean;
+                drawTwoSided?: boolean | undefined;
                 /**
                  * The color of the back of the faces as a hex string; used only with `drawTwoSided`.
                  * @default #0000ff
                  */
-                backFaceColour: Base.Color;
+                backFaceColour?: Base.Color | undefined;
                 /**
                  * How opaque the back of the faces is, from 0 to 1; used only with `drawTwoSided`.
                  * @default 1
@@ -2611,7 +2517,7 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                backFaceOpacity: number;
+                backFaceOpacity?: number | undefined;
             }
             /**
              * Solids or cross-sections and how to draw them, for the renderer packages: the same options as
@@ -2638,7 +2544,7 @@ declare namespace Bit {
                  * The color of the faces as a hex string such as `#ff0000`.
                  * @default #ff0000
                  */
-                faceColour: Base.Color;
+                faceColour?: Base.Color | undefined;
                 /**
                  * How opaque the faces are, from 0 for invisible to 1 for solid.
                  * @default 1
@@ -2646,17 +2552,17 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                faceOpacity: number;
+                faceOpacity?: number | undefined;
                 /**
                  * The color of a cross-section's lines as a hex string.
                  * @default #ff00ff
                  */
-                crossSectionColour: Base.Color;
+                crossSectionColour?: Base.Color | undefined;
                 /**
                  * How thick a cross-section's lines are drawn.
                  * @default 2
                  */
-                crossSectionWidth: number;
+                crossSectionWidth?: number | undefined;
                 /**
                  * How opaque a cross-section's lines are, from 0 to 1.
                  * @default 1
@@ -2664,23 +2570,23 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                crossSectionOpacity: number;
+                crossSectionOpacity?: number | undefined;
                 /**
                  * When true, normals are computed for the meshes so they shade smoothly.
                  * @default false
                  */
-                computeNormals: boolean;
+                computeNormals?: boolean | undefined;
                 /**
                  * When true, the back of each face is drawn in its own color, which shows which way faces
                  * point.
                  * @default true
                  */
-                drawTwoSided: boolean;
+                drawTwoSided?: boolean | undefined;
                 /**
                  * The color of the back of the faces as a hex string; used only with `drawTwoSided`.
                  * @default #0000ff
                  */
-                backFaceColour: Base.Color;
+                backFaceColour?: Base.Color | undefined;
                 /**
                  * How opaque the back of the faces is, from 0 to 1; used only with `drawTwoSided`.
                  * @default 1
@@ -2688,7 +2594,7 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                backFaceOpacity: number;
+                backFaceOpacity?: number | undefined;
             }
             /**
              * Mesh data for `manifold.shapes.manifoldFromMesh`, which builds a solid from it.
@@ -2776,7 +2682,7 @@ declare namespace Bit {
                  * along the positive axes.
                  * @default true
                  */
-                center: boolean;
+                center?: boolean | undefined;
                 /**
                  * The side length of the cube, in model units.
                  * @default 1
@@ -2784,7 +2690,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                size: number;
+                size?: number | undefined;
             }
             /**
              * Polygons as 2D points and a fill rule for `crossSection.shapes.create`.
@@ -2801,7 +2707,7 @@ declare namespace Bit {
                  * negative winding.
                  * @default EvenOdd
                  */
-                fillRule: fillRuleEnum;
+                fillRule?: fillRuleEnum | undefined;
             }
             /**
              * A side length and a placement for `crossSection.shapes.square`.
@@ -2812,7 +2718,7 @@ declare namespace Bit {
                  * When true, the square is centered on the origin; when false its corner sits there.
                  * @default false
                  */
-                center: boolean;
+                center?: boolean | undefined;
                 /**
                  * The side length, one number for a square or two for a rectangle along X and Y, in model
                  * units.
@@ -2821,7 +2727,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                size: number;
+                size?: number | undefined;
             }
             /**
              * A radius and a segment count for `manifold.shapes.sphere`.
@@ -2835,7 +2741,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radius: number;
+                radius?: number | undefined;
                 /**
                  * How many segments go around the sphere; rounded up to a multiple of four.
                  * @default 32
@@ -2843,7 +2749,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                circularSegments: number;
+                circularSegments?: number | undefined;
             }
             /**
              * The size and placement of a cylinder or cone for `manifold.shapes.cylinder`, which stands it
@@ -2858,7 +2764,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                height: number;
+                height?: number | undefined;
                 /**
                  * The radius of the bottom circle, in model units; must be above 0.
                  * @default 1
@@ -2866,7 +2772,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radiusLow: number;
+                radiusLow?: number | undefined;
                 /**
                  * The radius of the top circle, in model units: equal to `radiusLow` for a cylinder, smaller
                  * for a truncated cone, 0 for a pointed cone.
@@ -2875,7 +2781,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radiusHigh: number;
+                radiusHigh?: number | undefined;
                 /**
                  * How many flat sides go around the cylinder; more is rounder.
                  * @default 32
@@ -2883,12 +2789,12 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                circularSegments: number;
+                circularSegments?: number | undefined;
                 /**
                  * When true, the cylinder is centered on the origin; when false it stands on the XY plane.
                  * @default true
                  */
-                center: boolean;
+                center?: boolean | undefined;
             }
             /**
              * A radius and a segment count for `crossSection.shapes.circle`.
@@ -2902,7 +2808,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radius: number;
+                radius?: number | undefined;
                 /**
                  * How many straight sides the circle is drawn with; more is rounder.
                  * @default 32
@@ -2910,7 +2816,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                circularSegments: number;
+                circularSegments?: number | undefined;
             }
             /**
              * Two sides and a placement for `crossSection.shapes.rectangle`.
@@ -2924,7 +2830,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                length: number;
+                length?: number | undefined;
                 /**
                  * The side along Y, in model units.
                  * @default 1
@@ -2932,12 +2838,12 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                height: number;
+                height?: number | undefined;
                 /**
                  * When true, the rectangle is centered on the origin; when false its corner sits there.
                  * @default false
                  */
-                center: boolean;
+                center?: boolean | undefined;
             }
             /**
              * One solid for the methods that take nothing else, such as `manifold.evaluate.volume` or
@@ -2967,7 +2873,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                normalIdx: number;
+                normalIdx?: number | undefined;
                 /**
                  * Edges bent more than this, in degrees, get separate normals on each side and stay crisp; at 0
                  * every triangle keeps its own normal.
@@ -2976,7 +2882,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                minSharpAngle: number;
+                minSharpAngle?: number | undefined;
             }
             /**
              * A solid and two channels for `manifold.operations.calculateCurvature`.
@@ -2995,7 +2901,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                gaussianIdx: number;
+                gaussianIdx?: number | undefined;
                 /**
                  * The property channel that receives the mean curvature, the sum of the two principal
                  * curvatures; below 0 skips it.
@@ -3004,7 +2910,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                meanIdx: number;
+                meanIdx?: number | undefined;
             }
             /**
              * A count for `manifold.operations.reserveIds`, which reserves that many mesh ids.
@@ -3036,7 +2942,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 10
                  */
-                searchLength: number;
+                searchLength?: number | undefined;
             }
             /**
              * A solid and a ray segment for `manifold.evaluate.rayCast`.
@@ -3051,12 +2957,12 @@ declare namespace Bit {
                  * Where the ray segment starts.
                  * @default [0,0,0]
                  */
-                origin: Base.Point3;
+                origin?: Base.Point3 | undefined;
                 /**
                  * Where the ray segment ends; nothing beyond it is hit.
                  * @default [0,0,10]
                  */
-                endpoint: Base.Point3;
+                endpoint?: Base.Point3 | undefined;
             }
             /**
              * One place a ray segment crosses the surface of a solid, as `manifold.evaluate.rayCast` reports
@@ -3087,7 +2993,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1e-7
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
             }
             /**
              * A solid and an edge length for `manifold.operations.refineToLength`.
@@ -3105,7 +3011,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                length: number;
+                length?: number | undefined;
             }
             /**
              * A solid and a count for `manifold.operations.refine`.
@@ -3123,7 +3029,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                number: number;
+                number?: number | undefined;
             }
             /**
              * A solid and a normal channel for `manifold.operations.smoothByNormals`.
@@ -3142,7 +3048,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                normalIdx: number;
+                normalIdx?: number | undefined;
             }
             /**
              * A solid and a tolerance for `manifold.operations.simplify`.
@@ -3176,11 +3082,11 @@ declare namespace Bit {
                 /**
                  * How many properties each vertex has afterwards.
                  * @default 3
-                 * @minimum 3
+                 * @minimum 0
                  * @maximum Infinity
                  * @step 1
                  */
-                numProp: number;
+                numProp?: number | undefined;
                 /**
                  * A function that receives the new property array, the vertex position and the old properties,
                  * and fills the new array in place.
@@ -3201,11 +3107,11 @@ declare namespace Bit {
                  * Edges bent more than this, in degrees, stay sharp; the rest are smoothed. At 0 nothing is
                  * smoothed.
                  * @default 60
-                 * @minimum -Infinity
-                 * @maximum Infinity
+                 * @minimum 0
+                 * @maximum 180
                  * @step 1
                  */
-                minSharpAngle: number;
+                minSharpAngle?: number | undefined;
                 /**
                  * How much the sharp edges are rounded, from 0 for a hard edge to 1 for fully smooth.
                  * @default 0
@@ -3213,7 +3119,7 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                minSmoothness: number;
+                minSmoothness?: number | undefined;
             }
             /**
              * Points and solids for `manifold.operations.hullPoints`, which wraps them all in one convex hull.
@@ -3241,7 +3147,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                height: number;
+                height?: number | undefined;
             }
             /**
              * Mesh data for the methods that read it whole, such as `mesh.evaluate.numTri` and
@@ -3270,7 +3176,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                vertexIndex: number;
+                vertexIndex?: number | undefined;
             }
             /**
              * Mesh data and a run index for `mesh.evaluate.transform`.
@@ -3288,7 +3194,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                triangleRunIndex: number;
+                triangleRunIndex?: number | undefined;
             }
             /**
              * Mesh data and a half-edge index for `mesh.evaluate.tangent`.
@@ -3306,7 +3212,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                halfEdgeIndex: number;
+                halfEdgeIndex?: number | undefined;
             }
             /**
              * Mesh data and a triangle index for `mesh.evaluate.verts`.
@@ -3324,7 +3230,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                triangleIndex: number;
+                triangleIndex?: number | undefined;
             }
             /**
              * One cross-section for the methods that take nothing else, such as `crossSection.evaluate.area` or
@@ -3364,7 +3270,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                height: number;
+                height?: number | undefined;
                 /**
                  * How many extra copies of the outline are inserted along the way; more keeps a twist or taper
                  * smooth.
@@ -3373,7 +3279,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                nDivisions: number;
+                nDivisions?: number | undefined;
                 /**
                  * How far the top is turned against the bottom, in degrees.
                  * @default 0
@@ -3381,7 +3287,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                twistDegrees: number;
+                twistDegrees?: number | undefined;
                 /**
                  * How much the top is scaled along X; 1 keeps it, 0 with `scaleTopY` at 0 makes a cone.
                  * @default 1
@@ -3389,7 +3295,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                scaleTopX: number;
+                scaleTopX?: number | undefined;
                 /**
                  * How much the top is scaled along Y; 1 keeps it, 0 with `scaleTopX` at 0 makes a cone.
                  * @default 1
@@ -3397,12 +3303,12 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                scaleTopY: number;
+                scaleTopY?: number | undefined;
                 /**
                  * When true, the solid is centered on the XY plane; when false it stands on it.
                  * @default true
                  */
-                center: boolean;
+                center?: boolean | undefined;
             }
             /**
              * A cross-section and the turn settings for `crossSection.operations.revolve`, which spins it into
@@ -3418,16 +3324,17 @@ declare namespace Bit {
                  * How far to spin, in degrees; 360 gives a full turn.
                  * @default 360
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 1
                  */
-                revolveDegrees: number;
+                revolveDegrees?: number | undefined;
                 /**
                  * When true, the result is turned back to keep the profile's orientation; when false it stands
                  * along Z as the kernel makes it.
                  * @default true
                  */
-                matchProfile: boolean;
+                matchProfile?: boolean | undefined;
                 /**
                  * How many segments go around the turn; more is rounder.
                  * @default 32
@@ -3435,7 +3342,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                circularSegments: number;
+                circularSegments?: number | undefined;
             }
             /**
              * A cross-section and the offset settings for `crossSection.operations.offset`.
@@ -3454,12 +3361,12 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                delta: number;
+                delta?: number | undefined;
                 /**
                  * How corners are treated: `round`, `square`, `miter` or `bevel`.
                  * @default round
                  */
-                joinType: manifoldJoinTypeEnum;
+                joinType?: manifoldJoinTypeEnum | undefined;
                 /**
                  * For `miter` joins, how far a corner may reach as a multiple of `delta` before it is squared
                  * off; 2 is the smallest allowed.
@@ -3468,7 +3375,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                miterLimit: number;
+                miterLimit?: number | undefined;
                 /**
                  * For `round` joins, how many segments a full circle of rounding gets.
                  * @default 32
@@ -3476,7 +3383,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                circularSegments: number;
+                circularSegments?: number | undefined;
             }
             /**
              * A cross-section and a distance for `crossSection.operations.simplify`.
@@ -3494,7 +3401,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1e-7
                  */
-                epsilon: number;
+                epsilon?: number | undefined;
             }
             /**
              * Cross-sections or polygons for `crossSection.operations.compose`, which packs them into one
@@ -3520,7 +3427,7 @@ declare namespace Bit {
                  * The normal of the mirror line through the origin; `[1, 0]` mirrors left to right.
                  * @default [1,0]
                  */
-                normal: Base.Vector2;
+                normal?: Base.Vector2 | undefined;
             }
             /**
              * A cross-section and two factors for `crossSection.transforms.scale2D`.
@@ -3535,7 +3442,7 @@ declare namespace Bit {
                  * The factors along X and Y, about the origin; 1 keeps an axis as it is.
                  * @default [2,2]
                  */
-                vector: Base.Vector2;
+                vector?: Base.Vector2 | undefined;
             }
             /**
              * A cross-section and a vector for `crossSection.transforms.translate`.
@@ -3568,7 +3475,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                degrees: number;
+                degrees?: number | undefined;
             }
             /**
              * A cross-section and a factor for `crossSection.transforms.scale`.
@@ -3583,7 +3490,7 @@ declare namespace Bit {
                  * The uniform scale about the origin; 2 doubles every size.
                  * @default 2
                  */
-                factor: number;
+                factor?: number | undefined;
             }
             /**
              * A cross-section and two distances for `crossSection.transforms.translateXY`.
@@ -3601,7 +3508,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                x: number;
+                x?: number | undefined;
                 /**
                  * How far to move along Y, in model units.
                  * @default 0
@@ -3609,7 +3516,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                y: number;
+                y?: number | undefined;
             }
             /**
              * A cross-section and a 3x3 matrix for `crossSection.transforms.transform`.
@@ -3654,7 +3561,7 @@ declare namespace Bit {
                  * The normal of the mirror plane through the origin; a zero vector gives an empty solid.
                  * @default [1,0,0]
                  */
-                normal: Base.Vector3;
+                normal?: Base.Vector3 | undefined;
             }
             /**
              * A solid and three factors for `manifold.transforms.scale3D` and `manifold.transforms.scale`.
@@ -3669,7 +3576,7 @@ declare namespace Bit {
                  * The factors along X, Y and Z, about the origin; 1 keeps an axis as it is, 2 doubles it.
                  * @default [2,2,2]
                  */
-                vector: Base.Vector3;
+                vector?: Base.Vector3 | undefined;
             }
             /**
              * A solid and a vector for `manifold.transforms.translate`.
@@ -3733,7 +3640,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                x: number;
+                x?: number | undefined;
                 /**
                  * The rotation about the Y axis in degrees, applied second.
                  * @default 0
@@ -3741,7 +3648,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                y: number;
+                y?: number | undefined;
                 /**
                  * The rotation about the Z axis in degrees, applied last.
                  * @default 0
@@ -3749,7 +3656,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                z: number;
+                z?: number | undefined;
             }
             /**
              * A solid and a factor for uniform scaling; currently unused by the library, which scales through
@@ -3765,7 +3672,7 @@ declare namespace Bit {
                  * The uniform scale about the origin; 2 doubles every size.
                  * @default 2
                  */
-                factor: number;
+                factor?: number | undefined;
             }
             /**
              * A solid and three distances for `manifold.transforms.translateXYZ`.
@@ -3783,7 +3690,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                x: number;
+                x?: number | undefined;
                 /**
                  * How far to move along Y, in model units.
                  * @default 0
@@ -3791,7 +3698,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                y: number;
+                y?: number | undefined;
                 /**
                  * How far to move along Z, in model units.
                  * @default 0
@@ -3799,7 +3706,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                z: number;
+                z?: number | undefined;
             }
             /**
              * A solid and a 4x4 matrix for `manifold.transforms.transform`.
@@ -3903,7 +3810,7 @@ declare namespace Bit {
                  * does not matter.
                  * @default [1,0,0]
                  */
-                normal: Base.Vector3;
+                normal?: Base.Vector3 | undefined;
                 /**
                  * How far the plane sits from the origin along the normal, in model units.
                  * @default 0
@@ -3911,7 +3818,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                originOffset: number;
+                originOffset?: number | undefined;
             }
             /**
              * A solid and a plane for `manifold.booleans.splitByPlane`, which keeps both pieces.
@@ -3927,7 +3834,7 @@ declare namespace Bit {
                  * length does not matter.
                  * @default [1,0,0]
                  */
-                normal: Base.Vector3;
+                normal?: Base.Vector3 | undefined;
                 /**
                  * How far the plane sits from the origin along the normal, in model units.
                  * @default 0
@@ -3935,7 +3842,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                originOffset: number;
+                originOffset?: number | undefined;
             }
             /**
              * A solid, a plane normal and several distances for `manifold.booleans.splitByPlaneOnOffsets`,
@@ -3951,13 +3858,13 @@ declare namespace Bit {
                  * The normal shared by every cutting plane; its length does not matter.
                  * @default [1,0,0]
                  */
-                normal: Base.Vector3;
+                normal?: Base.Vector3 | undefined;
                 /**
                  * How far each plane sits from the origin along the normal, in model units, in increasing
                  * order.
                  * @default [0]
                  */
-                originOffsets: number[];
+                originOffsets?: number[] | undefined;
             }
             /**
              * Several solids for the methods that take a list, such as `manifold.booleans.union` or
@@ -4464,6 +4371,104 @@ declare namespace Bit {
                 planarOnly = "planarOnly"
             }
             /**
+             * How a union or a difference goes through its shapes. oneAfterAnother takes one shape per step:
+             * right for any shapes, and the edge and face numbering results have always had. inGroups puts shapes
+             * whose boxes do not meet into one step: faster, numbered differently. allAtOnce takes every shape in
+             * one step: fast, but wrong without an error where shapes touch each other at a single point.
+             */
+            enum booleanStrategyEnum {
+                oneAfterAnother = "oneAfterAnother",
+                inGroups = "inGroups",
+                allAtOnce = "allAtOnce"
+            }
+            /**
+             * The kind of surface a face lies on: the analytic ones (plane, cylinder, cone, sphere, torus), Bezier
+             * and B-spline patches, surfaces of revolution and extrusion, offsets of another surface, and other.
+             */
+            enum surfaceTypeEnum {
+                plane = "plane",
+                cylinder = "cylinder",
+                cone = "cone",
+                sphere = "sphere",
+                torus = "torus",
+                bezier = "bezier",
+                bspline = "bspline",
+                revolution = "revolution",
+                extrusion = "extrusion",
+                offset = "offset",
+                other = "other"
+            }
+            /**
+             * The kind of curve an edge runs along: line, circle, ellipse, hyperbola, parabola, Bezier and
+             * B-spline curves, offsets of another curve, and other.
+             */
+            enum curveTypeEnum {
+                line = "line",
+                circle = "circle",
+                ellipse = "ellipse",
+                hyperbola = "hyperbola",
+                parabola = "parabola",
+                bezier = "bezier",
+                bspline = "bspline",
+                offset = "offset",
+                other = "other"
+            }
+            /**
+             * How a frame follows a curve. frenet lies in the plane the curve bends in, its direction along the
+             * tangent, and has no normal where the curve runs straight. perpendicular stands across the curve,
+             * level with an up vector. rotationMinimizing stands across the curve and is carried along it from
+             * the start without twisting, the way a swept profile rides.
+             */
+            enum curveFrameEnum {
+                frenet = "frenet",
+                perpendicular = "perpendicular",
+                rotationMinimizing = "rotationMinimizing"
+            }
+            /**
+             * What a surface analysis shows at each point of a face. none leaves the faces as they are; gaussian
+             * and mean are the Gaussian and mean curvature, maxCurvature and minCurvature the two principal
+             * curvatures, positive where the face bulges out; minRadius is 1 over the larger principal curvature,
+             * infinite where the face is flat; draftAngle is the angle in degrees between the face and a pull
+             * direction, positive where the face looks along the pull.
+             */
+            enum surfaceAnalysisEnum {
+                none = "none",
+                gaussian = "gaussian",
+                mean = "mean",
+                maxCurvature = "maxCurvature",
+                minCurvature = "minCurvature",
+                minRadius = "minRadius",
+                draftAngle = "draftAngle"
+            }
+            /**
+             * How a filled patch meets one of its boundary edges. position only passes through the edge; tangent
+             * also meets the face beside the edge without a crease; curvature also bends as that face does there.
+             */
+            enum continuityEnum {
+                position = "position",
+                tangent = "tangent",
+                curvature = "curvature"
+            }
+            /**
+             * How a patch fills between its boundary edges. With three or four edges, coons blends the edges,
+             * stretch is flatter and curved rounder. With two edges, stretch and coons join them as opposite
+             * sides, while curved sweeps one along the other, so the two must share a corner.
+             */
+            enum fillingStyleEnum {
+                stretch = "stretch",
+                coons = "coons",
+                curved = "curved"
+            }
+            /**
+             * How far a boss or a pocket runs from its sketch face. length stops after the given length,
+             * untilFace stops at a chosen face of the base, and throughAll runs through the whole base.
+             */
+            enum featureExtentEnum {
+                length = "length",
+                untilFace = "untilFace",
+                throughAll = "throughAll"
+            }
+            /**
              * The triangle mesh of a shape as `shapeToMesh` returns it: one entry per face with its triangles,
              * one per edge with its points, and the vertex points, ready for drawing.
              */
@@ -4489,6 +4494,30 @@ declare namespace Bit {
                 colorGroups?: {
                     [color: string]: number[];
                 } | undefined;
+                /**
+                 * The faces' iso curves as polylines, face by face with u curves before v curves; a curve crossing
+                 * a hole comes in pieces. Present only when asked for.
+                 * @optional true
+                 */
+                isoCurveList?: Base.Point3[][] | undefined;
+            }
+            /**
+             * An indexed triangle mesh as `shapeToManifoldMesh` returns it, in the form
+             * `manifold.shapes.manifoldFromMesh` takes: the vertex positions and the triangles that index them.
+             */
+            class DecomposedManifoldMeshDto {
+                /**
+                 * How many numbers each vertex carries in `vertProperties`: 3, its position.
+                 */
+                numProp: number;
+                /**
+                 * The x, y and z of every vertex, one vertex after another.
+                 */
+                vertProperties: Float32Array;
+                /**
+                 * The triangles as vertex indexes, three per triangle, wound so that they face out of the shape.
+                 */
+                triVerts: Uint32Array;
             }
             /**
              * The triangulation of one face inside a `DecomposedMeshDto`: flat coordinate lists the way
@@ -4565,6 +4594,12 @@ declare namespace Bit {
                  * @optional true
                  */
                 faceUid?: number | undefined;
+                /**
+                 * The surface analysis value at each vertex in `vertexCoord` order, such as a curvature or a draft
+                 * angle in degrees, NaN where undefined; present only with `surfaceAnalysis`.
+                 * @optional true
+                 */
+                analysisValues?: number[] | undefined;
             }
             /**
              * One edge inside a `DecomposedMeshDto`: the points that trace it for drawing, plus optional facts
@@ -4639,7 +4674,7 @@ declare namespace Bit {
                  * The position of the vertex, in model units.
                  * @default [0, 0, 0]
                  */
-                point: Base.Point3;
+                point?: Base.Point3 | undefined;
             }
             /**
              * Three coordinates for `shapes.vertex.vertexFromXYZ`, which turns them into a vertex shape.
@@ -4653,7 +4688,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                x: number;
+                x?: number | undefined;
                 /**
                  * The Y coordinate, in model units; Y is up.
                  * @default 0
@@ -4661,7 +4696,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                y: number;
+                y?: number | undefined;
                 /**
                  * The Z coordinate, in model units.
                  * @default 0
@@ -4669,7 +4704,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                z: number;
+                z?: number | undefined;
             }
             /**
              * A list of points for the methods that build shapes from them, such as
@@ -4707,18 +4742,18 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.00001
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
                 /**
                  * Which lines to keep: those on one side of the circle, the other side, or all of them.
                  * @default all
                  */
-                positionResult: positionResultEnum;
+                positionResult?: positionResultEnum | undefined;
                 /**
                  * Whether to add the piece of the circle between the touching points on one side or the other;
                  * `none` adds nothing.
                  * @default none
                  */
-                circleRemainder: circleInclusionEnum;
+                circleRemainder?: circleInclusionEnum | undefined;
             }
             /**
              * A circle, two points and the filtering options for
@@ -4749,18 +4784,18 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.00001
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
                 /**
                  * Which lines to keep: those on one side of the circle, the other side, or all of them.
                  * @default all
                  */
-                positionResult: positionResultEnum;
+                positionResult?: positionResultEnum | undefined;
                 /**
                  * Whether to add the piece of the circle between the touching points on one side or the other;
                  * `none` adds nothing.
                  * @default none
                  */
-                circleRemainder: circleInclusionEnum;
+                circleRemainder?: circleInclusionEnum | undefined;
             }
             /**
              * Two circles and the filtering options for `shapes.edge.constraintTanLinesOnTwoCircles` and
@@ -4785,18 +4820,18 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.00001
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
                 /**
                  * Which lines to keep: the outer pair, the crossing inner pair, or all of them.
                  * @default all
                  */
-                positionResult: positionResultEnum;
+                positionResult?: positionResultEnum | undefined;
                 /**
                  * Which pieces of the circles between the touching points to add: the outside arcs, the inside
                  * arcs, one of each, or `none`.
                  * @default none
                  */
-                circleRemainders: twoCircleInclusionEnum;
+                circleRemainders?: twoCircleInclusionEnum | undefined;
             }
             /**
              * Two circles and a radius for `shapes.edge.constraintTanCirclesOnTwoCircles`, which draws the
@@ -4821,7 +4856,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.00001
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
                 /**
                  * The radius of the circles to draw, in model units.
                  * @default 0.3
@@ -4829,7 +4864,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radius: number;
+                radius?: number | undefined;
             }
             /**
              * A circle, a point and a radius for `shapes.edge.constraintTanCirclesOnCircleAndPnt`, which draws
@@ -4854,7 +4889,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.00001
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
                 /**
                  * The radius of the circles to draw, in model units.
                  * @default 0.3
@@ -4862,7 +4897,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radius: number;
+                radius?: number | undefined;
             }
             /**
              * A 2D curve and a surface for `shapes.edge.makeEdgeFromGeom2dCurveAndSurface`, which lays the
@@ -4902,12 +4937,12 @@ declare namespace Bit {
                  * it.
                  * @default [0, 0, 0]
                  */
-                planeOrigin: Base.Point3;
+                planeOrigin?: Base.Point3 | undefined;
                 /**
                  * The normal of the plane the edges lie in.
                  * @default [0, 1, 0]
                  */
-                planeDirection: Base.Vector3;
+                planeDirection?: Base.Vector3 | undefined;
                 /**
                  * The radius of the rounding arc, in model units.
                  * @default 0.3
@@ -4915,17 +4950,17 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radius: number;
+                radius?: number | undefined;
                 /**
                  * Which arc to use when several fit, counted from 0; -1 takes the one nearest `planeOrigin`.
                  * @default -1
-                 * @optional true
                  */
                 solution?: number | undefined;
             }
             /**
-             * A shape and points for `operations.closestPointsOnShapeFromPoints` and
-             * `operations.distancesToShapeFromPoints`.
+             * A shape and points for `operations.closestPointsOnShapeFromPoints`,
+             * `operations.distancesToShapeFromPoints`, `analysis.curves.closestPoints` and
+             * `analysis.surfaces.closestPoints`.
              */
             class ClosestPointsOnShapeFromPointsDto<T> {
                 constructor(shape?: T, points?: Base.Point3[]);
@@ -5068,7 +5103,7 @@ declare namespace Bit {
                  * own direction decides.
                  * @default true
                  */
-                inside: boolean;
+                inside?: boolean | undefined;
             }
             /**
              * A flat wire and a face for `shapes.wire.placeWireOnFace`, which maps the wire onto the face's
@@ -5088,335 +5123,246 @@ declare namespace Bit {
                 face: U;
             }
             /**
+             * How a shape is drawn, shared by `DrawShapeDto` and `DrawShapesDto`: colors and opacity of faces,
+             * edges and vertices, what to show, iso curves and surface analysis, and how finely to mesh the shape.
+             */
+            abstract class DrawShapeSharedDto {
+                /**
+                 * How opaque the faces are, from 0 for invisible to 1 for solid.
+                 * @default 1
+                 * @minimum 0
+                 * @maximum 1
+                 * @step 0.1
+                 */
+                faceOpacity?: number | undefined;
+                /**
+                 * How opaque the edges are, from 0 for invisible to 1 for solid.
+                 * @default 1
+                 * @minimum 0
+                 * @maximum 1
+                 * @step 0.1
+                 */
+                edgeOpacity?: number | undefined;
+                /**
+                 * The color of the edges as a hex string such as `#ffffff`.
+                 * @default #ffffff
+                 */
+                edgeColour?: Base.Color | undefined;
+                /**
+                 * A material for the faces from the rendering engine; when given it replaces the face color.
+                 * @default undefined
+                 * @optional true
+                 */
+                faceMaterial?: Base.Material | undefined;
+                /**
+                 * The color of the faces as a hex string such as `#ff0000`.
+                 * @default #ff0000
+                 */
+                faceColour?: Base.Color | undefined;
+                /**
+                 * How thick the edge lines are drawn.
+                 * @default 2
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                edgeWidth?: number | undefined;
+                /**
+                 * When false, the edges are not drawn.
+                 * @default true
+                 */
+                drawEdges?: boolean | undefined;
+                /**
+                 * When false, the faces are not drawn.
+                 * @default true
+                 */
+                drawFaces?: boolean | undefined;
+                /**
+                 * When true, the vertices are drawn as small markers.
+                 * @default false
+                 */
+                drawVertices?: boolean | undefined;
+                /**
+                 * The color of the vertex markers as a hex string.
+                 * @default #ff00ff
+                 */
+                vertexColour?: string | undefined;
+                /**
+                 * The size of the vertex markers, in model units.
+                 * @default 0.03
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.01
+                 */
+                vertexSize?: number | undefined;
+                /**
+                 * The meshing tolerance in model units; a smaller value follows curved surfaces more closely
+                 * with more triangles.
+                 * @default 0.01
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.01
+                 */
+                precision?: number | undefined;
+                /**
+                 * When true, each edge's index is written next to it, handy for picking edges to fillet.
+                 * @default false
+                 */
+                drawEdgeIndexes?: boolean | undefined;
+                /**
+                 * The height of the edge index labels, in model units.
+                 * @default 0.06
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.01
+                 */
+                edgeIndexHeight?: number | undefined;
+                /**
+                 * The color of the edge index labels as a hex string.
+                 * @default #ff00ff
+                 */
+                edgeIndexColour?: Base.Color | undefined;
+                /**
+                 * When true, each face's index is written on it, handy for picking faces.
+                 * @default false
+                 */
+                drawFaceIndexes?: boolean | undefined;
+                /**
+                 * The height of the face index labels, in model units.
+                 * @default 0.06
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.01
+                 */
+                faceIndexHeight?: number | undefined;
+                /**
+                 * The color of the face index labels as a hex string.
+                 * @default #0000ff
+                 */
+                faceIndexColour?: Base.Color | undefined;
+                /**
+                 * When true, the back of each face is drawn in its own color, which shows which way faces
+                 * point.
+                 * @default true
+                 */
+                drawTwoSided?: boolean | undefined;
+                /**
+                 * The color of the back of the faces as a hex string; used only with `drawTwoSided`.
+                 * @default #0000ff
+                 */
+                backFaceColour?: Base.Color | undefined;
+                /**
+                 * How opaque the back of the faces is, from 0 to 1; used only with `drawTwoSided`.
+                 * @default 1
+                 * @minimum 0
+                 * @maximum 1
+                 * @step 0.1
+                 */
+                backFaceOpacity?: number | undefined;
+                /**
+                 * When true, the triangulation stays cached on each shape after drawing; when false it is
+                 * cleared so memory does not grow across draws.
+                 * @default false
+                 */
+                keepMeshData?: boolean | undefined;
+                /**
+                 * When true, a shape already meshed more finely may be remeshed at the coarser precision asked
+                 * for.
+                 * @default true
+                 */
+                allowQualityDecrease?: boolean | undefined;
+                /**
+                 * When true, every face is remeshed at the requested precision even when a triangulation is
+                 * cached.
+                 * @default false
+                 */
+                forceFaceDeflection?: boolean | undefined;
+                /**
+                 * When true, each face's iso curves are drawn with the shape, as its edges are: at `edgeWidth`
+                 * and `edgeOpacity`, in `isoCurvesColour`.
+                 * @default false
+                 */
+                drawIsoCurves?: boolean | undefined;
+                /**
+                 * How many iso curves of constant u each face gets with `drawIsoCurves`, at values spread evenly
+                 * inside its u range and trimmed to the face.
+                 * @default 5
+                 * @minimum 0
+                 * @maximum 1000
+                 * @step 1
+                 */
+                isoCurvesU?: number | undefined;
+                /**
+                 * How many iso curves of constant v each face gets with `drawIsoCurves`, at values spread evenly
+                 * inside its v range and trimmed to the face.
+                 * @default 5
+                 * @minimum 0
+                 * @maximum 1000
+                 * @step 1
+                 */
+                isoCurvesV?: number | undefined;
+                /**
+                 * The color of the iso curves as a hex string.
+                 * @default #808080
+                 */
+                isoCurvesColour?: Base.Color | undefined;
+                /**
+                 * The surface analysis coloring the faces instead of `faceColour` and `faceMaterial`, from blue at
+                 * `analysisMin` through green to red at `analysisMax`; vertices without a value keep `faceColour`.
+                 * @default none
+                 */
+                surfaceAnalysis?: surfaceAnalysisEnum | undefined;
+                /**
+                 * The pull direction the draft angles are measured against; read only by `draftAngle`.
+                 * @default [0, 1, 0]
+                 */
+                draftDirection?: Base.Vector3 | undefined;
+                /**
+                 * The analysis value drawn blue, and anything below it; left out, the lowest finite value
+                 * found.
+                 * @default undefined
+                 * @optional true
+                 */
+                analysisMin?: number | undefined;
+                /**
+                 * The analysis value drawn red, and anything above it; left out, the highest finite value
+                 * found.
+                 * @default undefined
+                 * @optional true
+                 */
+                analysisMax?: number | undefined;
+            }
+            /**
              * A shape and how to draw it, for the renderer packages' shape drawing: colors and opacity of
              * faces, edges and vertices, what to show, and how finely to mesh the shape.
              */
-            class DrawShapeDto<T> {
+            class DrawShapeDto<T> extends DrawShapeSharedDto {
                 /**
                  * Provide options without default values
                  */
-                constructor(shape?: T, faceOpacity?: number, edgeOpacity?: number, edgeColour?: Base.Color, faceMaterial?: Base.Material, faceColour?: Base.Color, edgeWidth?: number, drawEdges?: boolean, drawFaces?: boolean, drawVertices?: boolean, vertexColour?: Base.Color, vertexSize?: number, precision?: number, drawEdgeIndexes?: boolean, edgeIndexHeight?: number, edgeIndexColour?: Base.Color, drawFaceIndexes?: boolean, faceIndexHeight?: number, faceIndexColour?: Base.Color, drawTwoSided?: boolean, backFaceColour?: Base.Color, backFaceOpacity?: number, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean);
+                constructor(shape?: T, faceOpacity?: number, edgeOpacity?: number, edgeColour?: Base.Color, faceMaterial?: Base.Material, faceColour?: Base.Color, edgeWidth?: number, drawEdges?: boolean, drawFaces?: boolean, drawVertices?: boolean, vertexColour?: Base.Color, vertexSize?: number, precision?: number, drawEdgeIndexes?: boolean, edgeIndexHeight?: number, edgeIndexColour?: Base.Color, drawFaceIndexes?: boolean, faceIndexHeight?: number, faceIndexColour?: Base.Color, drawTwoSided?: boolean, backFaceColour?: Base.Color, backFaceOpacity?: number, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, drawIsoCurves?: boolean, isoCurvesU?: number, isoCurvesV?: number, isoCurvesColour?: Base.Color, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3, analysisMin?: number, analysisMax?: number);
                 /**
                  * The shape to draw; it is meshed at `precision` first.
                  * @default undefined
                  * @optional true
                  */
                 shape?: T | undefined;
-                /**
-                 * How opaque the faces are, from 0 for invisible to 1 for solid.
-                 * @default 1
-                 * @minimum 0
-                 * @maximum 1
-                 * @step 0.1
-                 */
-                faceOpacity: number;
-                /**
-                 * How opaque the edges are, from 0 for invisible to 1 for solid.
-                 * @default 1
-                 * @minimum 0
-                 * @maximum 1
-                 * @step 0.1
-                 */
-                edgeOpacity: number;
-                /**
-                 * The color of the edges as a hex string such as `#ffffff`.
-                 * @default #ffffff
-                 */
-                edgeColour: Base.Color;
-                /**
-                 * A material for the faces from the rendering engine; when given it replaces the face color.
-                 * @default undefined
-                 * @optional true
-                 */
-                faceMaterial?: Base.Material | undefined;
-                /**
-                 * The color of the faces as a hex string such as `#ff0000`.
-                 * @default #ff0000
-                 */
-                faceColour: Base.Color;
-                /**
-                 * How thick the edge lines are drawn.
-                 * @default 2
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 0.1
-                 */
-                edgeWidth: number;
-                /**
-                 * When false, the edges are not drawn.
-                 * @default true
-                 */
-                drawEdges: boolean;
-                /**
-                 * When false, the faces are not drawn.
-                 * @default true
-                 */
-                drawFaces: boolean;
-                /**
-                 * When true, the vertices are drawn as small markers.
-                 * @default false
-                 */
-                drawVertices: boolean;
-                /**
-                 * The color of the vertex markers as a hex string.
-                 * @default #ff00ff
-                 */
-                vertexColour: string;
-                /**
-                 * The size of the vertex markers, in model units.
-                 * @default 0.03
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 0.01
-                 */
-                vertexSize: number;
-                /**
-                 * The meshing tolerance in model units; a smaller value follows curved surfaces more closely
-                 * with more triangles.
-                 * @default 0.01
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 0.01
-                 */
-                precision: number;
-                /**
-                 * When true, each edge's index is written next to it, handy for picking edges to fillet.
-                 * @default false
-                 */
-                drawEdgeIndexes: boolean;
-                /**
-                 * The height of the edge index labels, in model units.
-                 * @default 0.06
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 0.01
-                 */
-                edgeIndexHeight: number;
-                /**
-                 * The color of the edge index labels as a hex string.
-                 * @default #ff00ff
-                 */
-                edgeIndexColour: Base.Color;
-                /**
-                 * When true, each face's index is written on it, handy for picking faces.
-                 * @default false
-                 */
-                drawFaceIndexes: boolean;
-                /**
-                 * The height of the face index labels, in model units.
-                 * @default 0.06
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 0.01
-                 */
-                faceIndexHeight: number;
-                /**
-                 * The color of the face index labels as a hex string.
-                 * @default #0000ff
-                 */
-                faceIndexColour: Base.Color;
-                /**
-                 * When true, the back of each face is drawn in its own color, which shows which way faces
-                 * point.
-                 * @default true
-                 */
-                drawTwoSided: boolean;
-                /**
-                 * The color of the back of the faces as a hex string; used only with `drawTwoSided`.
-                 * @default #0000ff
-                 */
-                backFaceColour: Base.Color;
-                /**
-                 * How opaque the back of the faces is, from 0 to 1; used only with `drawTwoSided`.
-                 * @default 1
-                 * @minimum 0
-                 * @maximum 1
-                 * @step 0.1
-                 */
-                backFaceOpacity: number;
-                /**
-                 * When true, the triangulation stays cached on the shape after drawing; when false it is
-                 * cleared so memory does not grow across draws.
-                 * @default false
-                 */
-                keepMeshData: boolean;
-                /**
-                 * When true, a shape already meshed more finely may be remeshed at the coarser precision asked
-                 * for.
-                 * @default true
-                 */
-                allowQualityDecrease: boolean;
-                /**
-                 * When true, every face is remeshed at the requested precision even when a triangulation is
-                 * cached.
-                 * @default false
-                 */
-                forceFaceDeflection: boolean;
             }
             /**
              * Shapes and how to draw them, for the renderer packages' shape drawing: the same options as
              * `DrawShapeDto`, applied to every shape in the list.
              */
-            class DrawShapesDto<T> {
+            class DrawShapesDto<T> extends DrawShapeSharedDto {
                 /**
                  * Provide options without default values
                  */
-                constructor(shapes?: T[], faceOpacity?: number, edgeOpacity?: number, edgeColour?: Base.Color, faceMaterial?: Base.Material, faceColour?: Base.Color, edgeWidth?: number, drawEdges?: boolean, drawFaces?: boolean, drawVertices?: boolean, vertexColour?: Base.Color, vertexSize?: number, precision?: number, drawEdgeIndexes?: boolean, edgeIndexHeight?: number, edgeIndexColour?: Base.Color, drawFaceIndexes?: boolean, faceIndexHeight?: number, faceIndexColour?: Base.Color, drawTwoSided?: boolean, backFaceColour?: Base.Color, backFaceOpacity?: number, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean);
+                constructor(shapes?: T[], faceOpacity?: number, edgeOpacity?: number, edgeColour?: Base.Color, faceMaterial?: Base.Material, faceColour?: Base.Color, edgeWidth?: number, drawEdges?: boolean, drawFaces?: boolean, drawVertices?: boolean, vertexColour?: Base.Color, vertexSize?: number, precision?: number, drawEdgeIndexes?: boolean, edgeIndexHeight?: number, edgeIndexColour?: Base.Color, drawFaceIndexes?: boolean, faceIndexHeight?: number, faceIndexColour?: Base.Color, drawTwoSided?: boolean, backFaceColour?: Base.Color, backFaceOpacity?: number, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, drawIsoCurves?: boolean, isoCurvesU?: number, isoCurvesV?: number, isoCurvesColour?: Base.Color, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3, analysisMin?: number, analysisMax?: number);
                 /**
                  * The shapes to draw with the same options.
                  * @default undefined
                  */
                 shapes: T[];
-                /**
-                 * How opaque the faces are, from 0 for invisible to 1 for solid.
-                 * @default 1
-                 * @minimum 0
-                 * @maximum 1
-                 * @step 0.1
-                 */
-                faceOpacity: number;
-                /**
-                 * How opaque the edges are, from 0 for invisible to 1 for solid.
-                 * @default 1
-                 * @minimum 0
-                 * @maximum 1
-                 * @step 0.1
-                 */
-                edgeOpacity: number;
-                /**
-                 * The color of the edges as a hex string such as `#ffffff`.
-                 * @default #ffffff
-                 */
-                edgeColour: Base.Color;
-                /**
-                 * A material for the faces from the rendering engine; when given it replaces the face color.
-                 * @default undefined
-                 * @optional true
-                 */
-                faceMaterial?: Base.Material | undefined;
-                /**
-                 * The color of the faces as a hex string such as `#ff0000`.
-                 * @default #ff0000
-                 */
-                faceColour: Base.Color;
-                /**
-                 * How thick the edge lines are drawn.
-                 * @default 2
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 0.1
-                 */
-                edgeWidth: number;
-                /**
-                 * When false, the edges are not drawn.
-                 * @default true
-                 */
-                drawEdges: boolean;
-                /**
-                 * When false, the faces are not drawn.
-                 * @default true
-                 */
-                drawFaces: boolean;
-                /**
-                 * When true, the vertices are drawn as small markers.
-                 * @default false
-                 */
-                drawVertices: boolean;
-                /**
-                 * The color of the vertex markers as a hex string.
-                 * @default #ff00ff
-                 */
-                vertexColour: string;
-                /**
-                 * The size of the vertex markers, in model units.
-                 * @default 0.03
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 0.01
-                 */
-                vertexSize: number;
-                /**
-                 * The meshing tolerance in model units; a smaller value follows curved surfaces more closely
-                 * with more triangles.
-                 * @default 0.01
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 0.01
-                 */
-                precision: number;
-                /**
-                 * When true, each edge's index is written next to it, handy for picking edges to fillet.
-                 * @default false
-                 */
-                drawEdgeIndexes: boolean;
-                /**
-                 * The height of the edge index labels, in model units.
-                 * @default 0.06
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 0.01
-                 */
-                edgeIndexHeight: number;
-                /**
-                 * The color of the edge index labels as a hex string.
-                 * @default #ff00ff
-                 */
-                edgeIndexColour: Base.Color;
-                /**
-                 * When true, each face's index is written on it, handy for picking faces.
-                 * @default false
-                 */
-                drawFaceIndexes: boolean;
-                /**
-                 * The height of the face index labels, in model units.
-                 * @default 0.06
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 0.01
-                 */
-                faceIndexHeight: number;
-                /**
-                 * The color of the face index labels as a hex string.
-                 * @default #0000ff
-                 */
-                faceIndexColour: Base.Color;
-                /**
-                 * When true, the back of each face is drawn in its own color, which shows which way faces
-                 * point.
-                 * @default true
-                 */
-                drawTwoSided: boolean;
-                /**
-                 * The color of the back of the faces as a hex string; used only with `drawTwoSided`.
-                 * @default #0000ff
-                 */
-                backFaceColour: Base.Color;
-                /**
-                 * How opaque the back of the faces is, from 0 to 1; used only with `drawTwoSided`.
-                 * @default 1
-                 * @minimum 0
-                 * @maximum 1
-                 * @step 0.1
-                 */
-                backFaceOpacity: number;
-                /**
-                 * When true, the triangulation stays cached on each shape after drawing; when false it is
-                 * cleared so memory does not grow across draws.
-                 * @default false
-                 */
-                keepMeshData: boolean;
-                /**
-                 * When true, a shape already meshed more finely may be remeshed at the coarser precision asked
-                 * for.
-                 * @default true
-                 */
-                allowQualityDecrease: boolean;
-                /**
-                 * When true, every face is remeshed at the requested precision even when a triangulation is
-                 * cached.
-                 * @default false
-                 */
-                forceFaceDeflection: boolean;
             }
             /**
              * A face and a grid of divisions for `shapes.face.subdivideToPoints`, `subdivideToNormals` and
@@ -5439,7 +5385,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                nrDivisionsU: number;
+                nrDivisionsU?: number | undefined;
                 /**
                  * How many points along each row across the V range, edge to edge.
                  * @default 10
@@ -5447,39 +5393,39 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                nrDivisionsV: number;
+                nrDivisionsV?: number | undefined;
                 /**
                  * When true, every point moves half a step in U; on a closed face such as a cylinder this keeps
                  * points off the seam.
                  * @default false
                  */
-                shiftHalfStepU: boolean;
+                shiftHalfStepU?: boolean | undefined;
                 /**
                  * When true, the row at the start of the U range is left out.
                  * @default false
                  */
-                removeStartEdgeU: boolean;
+                removeStartEdgeU?: boolean | undefined;
                 /**
                  * When true, the row at the end of the U range is left out.
                  * @default false
                  */
-                removeEndEdgeU: boolean;
+                removeEndEdgeU?: boolean | undefined;
                 /**
                  * When true, every point moves half a step in V; on a closed face such as a cylinder this keeps
                  * points off the seam.
                  * @default false
                  */
-                shiftHalfStepV: boolean;
+                shiftHalfStepV?: boolean | undefined;
                 /**
                  * When true, the points at the start of the V range are left out of every row.
                  * @default false
                  */
-                removeStartEdgeV: boolean;
+                removeStartEdgeV?: boolean | undefined;
                 /**
                  * When true, the points at the end of the V range are left out of every row.
                  * @default false
                  */
-                removeEndEdgeV: boolean;
+                removeEndEdgeV?: boolean | undefined;
             }
             /**
              * A face and a number of divisions for `shapes.face.subdivideToWires`, which draws evenly spaced
@@ -5503,27 +5449,27 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                nrDivisions: number;
+                nrDivisions?: number | undefined;
                 /**
                  * When true each wire sits at a fixed U and runs across the V range; when false the roles swap.
                  * @default true
                  */
-                isU: boolean;
+                isU?: boolean | undefined;
                 /**
                  * When true, every wire moves half a step along the divided direction.
                  * @default false
                  */
-                shiftHalfStep: boolean;
+                shiftHalfStep?: boolean | undefined;
                 /**
                  * When true, the wire on the start boundary is left out.
                  * @default false
                  */
-                removeStart: boolean;
+                removeStart?: boolean | undefined;
                 /**
                  * When true, the wire on the end boundary is left out.
                  * @default false
                  */
-                removeEnd: boolean;
+                removeEnd?: boolean | undefined;
             }
             /**
              * A face, a grid of cells and optional patterns for `shapes.face.subdivideToRectangleWires`, which
@@ -5547,7 +5493,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                nrRectanglesU: number;
+                nrRectanglesU?: number | undefined;
                 /**
                  * How many cells across the V range.
                  * @default 10
@@ -5555,7 +5501,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                nrRectanglesV: number;
+                nrRectanglesV?: number | undefined;
                 /**
                  * Sizes of the rectangles along U as fractions of their cell, from 0 to 1, applied in turn; 1
                  * fills the cell, and leaving the list out means no scaling.
@@ -5591,7 +5537,7 @@ declare namespace Bit {
                  * @maximum 0.5
                  * @step 0.01
                  */
-                offsetFromBorderU: number;
+                offsetFromBorderU?: number | undefined;
                 /**
                  * A fraction of the V range trimmed at each end before dividing into cells, so the pattern
                  * keeps clear of the border; keep it below 0.5.
@@ -5600,7 +5546,7 @@ declare namespace Bit {
                  * @maximum 0.5
                  * @step 0.01
                  */
-                offsetFromBorderV: number;
+                offsetFromBorderV?: number | undefined;
             }
             /**
              * A face, hexagon counts and optional patterns for `shapes.face.subdivideToHexagonWires`, which
@@ -5636,8 +5582,9 @@ declare namespace Bit {
                 /**
                  * When true, the hexagons turn a flat side toward the U direction; when false a corner points
                  * that way.
+                 * @default false
                  */
-                flatU: boolean;
+                flatU?: boolean | undefined;
                 /**
                  * Sizes of the hexagons along U as fractions of their full size, applied in turn about each
                  * hexagon's center; 1 or no list means no scaling.
@@ -5742,8 +5689,9 @@ declare namespace Bit {
                 /**
                  * When true, the hexagons turn a flat side toward the U direction; when false a corner points
                  * that way.
+                 * @default false
                  */
-                flatU: boolean;
+                flatU?: boolean | undefined;
                 /**
                  * When true, the result also carries one face per hole after the perforated face.
                  * @default false
@@ -5818,7 +5766,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                nrRectanglesU: number;
+                nrRectanglesU?: number | undefined;
                 /**
                  * How many cells across the V range.
                  * @default 10
@@ -5826,7 +5774,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                nrRectanglesV: number;
+                nrRectanglesV?: number | undefined;
                 /**
                  * Sizes of the holes along U as fractions of their cell, applied in turn; leaving the list out
                  * uses 0.5.
@@ -5858,7 +5806,7 @@ declare namespace Bit {
                  * When true, the result also carries one face per hole after the perforated face.
                  * @default false
                  */
-                holesToFaces: boolean;
+                holesToFaces?: boolean | undefined;
                 /**
                  * A fraction of the U range trimmed at each end before dividing into cells, so the holes keep
                  * clear of the border; keep it below 0.5.
@@ -5867,7 +5815,7 @@ declare namespace Bit {
                  * @maximum 0.5
                  * @step 0.01
                  */
-                offsetFromBorderU: number;
+                offsetFromBorderU?: number | undefined;
                 /**
                  * A fraction of the V range trimmed at each end before dividing into cells, so the holes keep
                  * clear of the border; keep it below 0.5.
@@ -5876,7 +5824,7 @@ declare namespace Bit {
                  * @maximum 0.5
                  * @step 0.01
                  */
-                offsetFromBorderV: number;
+                offsetFromBorderV?: number | undefined;
             }
             /**
              * A face, a grid of divisions and nth-row rules for `shapes.face.subdivideToPointsControlled`,
@@ -5900,7 +5848,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                nrDivisionsU: number;
+                nrDivisionsU?: number | undefined;
                 /**
                  * How many points along each row across the V range, edge to edge.
                  * @default 10
@@ -5908,7 +5856,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                nrDivisionsV: number;
+                nrDivisionsV?: number | undefined;
                 /**
                  * Every how-manyth V row is pushed half a step in U; 0 shifts none.
                  * @default 0
@@ -5916,7 +5864,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                shiftHalfStepNthU: number;
+                shiftHalfStepNthU?: number | undefined;
                 /**
                  * Which V row the counting for the U shift starts at.
                  * @default 0
@@ -5924,7 +5872,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                shiftHalfStepUOffsetN: number;
+                shiftHalfStepUOffsetN?: number | undefined;
                 /**
                  * Every how-manyth point is dropped from the first U row; 0 keeps them all.
                  * @default 0
@@ -5932,7 +5880,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                removeStartEdgeNthU: number;
+                removeStartEdgeNthU?: number | undefined;
                 /**
                  * Which point the counting for the first U row removal starts at.
                  * @default 0
@@ -5940,7 +5888,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                removeStartEdgeUOffsetN: number;
+                removeStartEdgeUOffsetN?: number | undefined;
                 /**
                  * Every how-manyth point is dropped from the last U row; 0 keeps them all.
                  * @default 0
@@ -5948,7 +5896,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                removeEndEdgeNthU: number;
+                removeEndEdgeNthU?: number | undefined;
                 /**
                  * Which point the counting for the last U row removal starts at.
                  * @default 0
@@ -5956,7 +5904,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                removeEndEdgeUOffsetN: number;
+                removeEndEdgeUOffsetN?: number | undefined;
                 /**
                  * Every how-manyth U row is pushed half a step in V; 0 shifts none.
                  * @default 0
@@ -5964,7 +5912,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                shiftHalfStepNthV: number;
+                shiftHalfStepNthV?: number | undefined;
                 /**
                  * Which U row the counting for the V shift starts at.
                  * @default 0
@@ -5972,7 +5920,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                shiftHalfStepVOffsetN: number;
+                shiftHalfStepVOffsetN?: number | undefined;
                 /**
                  * Every how-manyth point is dropped from the first V row; 0 keeps them all.
                  * @default 0
@@ -5980,7 +5928,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                removeStartEdgeNthV: number;
+                removeStartEdgeNthV?: number | undefined;
                 /**
                  * Which point the counting for the first V row removal starts at.
                  * @default 0
@@ -5988,7 +5936,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                removeStartEdgeVOffsetN: number;
+                removeStartEdgeVOffsetN?: number | undefined;
                 /**
                  * Every how-manyth point is dropped from the last V row; 0 keeps them all.
                  * @default 0
@@ -5996,7 +5944,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                removeEndEdgeNthV: number;
+                removeEndEdgeNthV?: number | undefined;
                 /**
                  * Which point the counting for the last V row removal starts at.
                  * @default 0
@@ -6004,7 +5952,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                removeEndEdgeVOffsetN: number;
+                removeEndEdgeVOffsetN?: number | undefined;
             }
             /**
              * A face and one line across its UV range for `shapes.face.subdivideToPointsOnParam` and
@@ -6026,7 +5974,7 @@ declare namespace Bit {
                  * roles swap.
                  * @default true
                  */
-                isU: boolean;
+                isU?: boolean | undefined;
                 /**
                  * Where the line sits, as a fraction from 0 to 1 of the fixed direction's range.
                  * @default 0.5
@@ -6034,7 +5982,7 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                param: number;
+                param?: number | undefined;
                 /**
                  * How many points along the line, edge to edge.
                  * @default 10
@@ -6042,23 +5990,23 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                nrPoints: number;
+                nrPoints?: number | undefined;
                 /**
                  * When true, every point moves half a step along the line; on a closed face this keeps points
                  * off the seam.
                  * @default false
                  */
-                shiftHalfStep: boolean;
+                shiftHalfStep?: boolean | undefined;
                 /**
                  * When true, the first point is left out.
                  * @default false
                  */
-                removeStartPoint: boolean;
+                removeStartPoint?: boolean | undefined;
                 /**
                  * When true, the last point is left out.
                  * @default false
                  */
-                removeEndPoint: boolean;
+                removeEndPoint?: boolean | undefined;
             }
             /**
              * A face, a direction and a fraction for `shapes.face.wireAlongParam`, which draws a wire across
@@ -6078,7 +6026,7 @@ declare namespace Bit {
                  * When true the wire sits at a fixed U and runs across the V range; when false the roles swap.
                  * @default true
                  */
-                isU: boolean;
+                isU?: boolean | undefined;
                 /**
                  * Where the wire sits, as a fraction from 0 to 1 of the fixed direction's range.
                  * @default 0.5
@@ -6086,7 +6034,7 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                param: number;
+                param?: number | undefined;
             }
             /**
              * A face, a direction and several fractions for `shapes.face.wiresAlongParams`, which draws one
@@ -6106,7 +6054,7 @@ declare namespace Bit {
                  * When true each wire sits at a fixed U and runs across the V range; when false the roles swap.
                  * @default true
                  */
-                isU: boolean;
+                isU?: boolean | undefined;
                 /**
                  * Where the wires sit, as fractions from 0 to 1 of the fixed direction's range, one wire each.
                  * @default undefined
@@ -6133,7 +6081,7 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                paramU: number;
+                paramU?: number | undefined;
                 /**
                  * The V position as a fraction from 0 to 1 of the face's V range.
                  * @default 0.5
@@ -6141,7 +6089,7 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                paramV: number;
+                paramV?: number | undefined;
             }
             /**
              * A face and several UV positions for `shapes.face.pointsOnUVs` and `normalsOnUVs`.
@@ -6164,10 +6112,10 @@ declare namespace Bit {
                  * each.
                  * @default [[0.5, 0.5]]
                  */
-                paramsUV: [
+                paramsUV?: [
                     number,
                     number
-                ][];
+                ][] | undefined;
             }
             /**
              * Corner points for `shapes.wire.createPolygonWire`, `shapes.face.createPolygonFace` and
@@ -6194,8 +6142,9 @@ declare namespace Bit {
                 polygons: PolygonDto[];
                 /**
                  * When true, the wires are packed into one compound instead of a list.
+                 * @default false
                  */
-                returnCompound: boolean;
+                returnCompound?: boolean | undefined;
             }
             /**
              * Points for `shapes.wire.createPolylineWire`, an open chain of straight edges through them.
@@ -6314,8 +6263,9 @@ declare namespace Bit {
                 polylines: PolylineDto[];
                 /**
                  * When true, the wires are packed into one compound instead of a list.
+                 * @default false
                  */
-                returnCompound: boolean;
+                returnCompound?: boolean | undefined;
             }
             /**
              * A side length and a placement for `shapes.wire.createSquareWire` and
@@ -6327,20 +6277,21 @@ declare namespace Bit {
                  * The length of each side, in model units.
                  * @default 1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 1
                  */
-                size: number;
+                size?: number | undefined;
                 /**
                  * The point the square is centered on.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
                 /**
                  * The normal of the plane the square lies in; the default lays it flat on the ground.
                  * @default [0, 1, 0]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
             }
             /**
              * A width, a length and a placement for `shapes.wire.createRectangleWire` and
@@ -6353,29 +6304,31 @@ declare namespace Bit {
                  * `direction`.
                  * @default 1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 1
                  */
-                width: number;
+                width?: number | undefined;
                 /**
                  * The side along Z on the ground plane, in model units, before the rectangle is turned to face
                  * `direction`.
                  * @default 2
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 1
                  */
-                length: number;
+                length?: number | undefined;
                 /**
                  * The point the rectangle is centered on.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
                 /**
                  * The normal of the plane the rectangle lies in; the default lays it flat on the ground.
                  * @default [0, 1, 0]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
             }
             /**
              * The two legs of an L shape and its placement for `shapes.wire.createLPolygonWire` and
@@ -6387,58 +6340,62 @@ declare namespace Bit {
                  * The thickness of the first leg, in model units.
                  * @default 1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                widthFirst: number;
+                widthFirst?: number | undefined;
                 /**
                  * The length of the first leg, in model units.
                  * @default 2
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                lengthFirst: number;
+                lengthFirst?: number | undefined;
                 /**
                  * The thickness of the second leg, in model units.
                  * @default 0.5
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                widthSecond: number;
+                widthSecond?: number | undefined;
                 /**
                  * The length of the second leg, in model units.
                  * @default 2
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                lengthSecond: number;
+                lengthSecond?: number | undefined;
                 /**
                  * Where the corner of the L sits relative to the legs: on their outside, their inside or their
                  * middle.
                  * @default outside
                  */
-                align: directionEnum;
+                align?: directionEnum | undefined;
                 /**
                  * How far the shape is turned in its plane, in degrees.
                  * @default 0
-                 * @minimum 0
+                 * @minimum -Infinity
                  * @maximum Infinity
                  * @step 15
                  */
-                rotation: number;
+                rotation?: number | undefined;
                 /**
                  * The point the shape is placed at.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
                 /**
                  * The normal of the plane the shape lies in; the default lays it flat on the ground.
                  * @default [0, 1, 0]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
             }
             /**
              * The cross-section of an I-beam, two horizontal flanges joined by a vertical web, for
@@ -6450,10 +6407,11 @@ declare namespace Bit {
                  * The width of the flanges, in model units.
                  * @default 2
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                width: number;
+                width?: number | undefined;
                 /**
                  * The total height of the profile, in model units.
                  * @default 3
@@ -6461,7 +6419,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                height: number;
+                height?: number | undefined;
                 /**
                  * The thickness of the vertical web, in model units.
                  * @default 0.2
@@ -6469,39 +6427,40 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.01
                  */
-                webThickness: number;
+                webThickness?: number | undefined;
                 /**
                  * The thickness of each horizontal flange, in model units.
                  * @default 0.3
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.01
                  */
-                flangeThickness: number;
+                flangeThickness?: number | undefined;
                 /**
                  * Which point of the profile's bounding box sits on `center`, such as its middle or its top
                  * left corner.
                  * @default midMid
                  */
-                alignment: Base.basicAlignmentEnum;
+                alignment?: Base.basicAlignmentEnum | undefined;
                 /**
                  * How far the profile is turned in its plane, in degrees.
                  * @default 0
-                 * @minimum 0
+                 * @minimum -Infinity
                  * @maximum Infinity
                  * @step 15
                  */
-                rotation: number;
+                rotation?: number | undefined;
                 /**
                  * The point the profile is placed at.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
                 /**
                  * The normal of the plane the profile lies in; the default lays it flat on the ground.
                  * @default [0, 1, 0]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
             }
             /**
              * The cross-section of an H-beam, two vertical flanges joined by a horizontal web, for
@@ -6516,15 +6475,16 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                width: number;
+                width?: number | undefined;
                 /**
                  * The height of the flanges, in model units.
                  * @default 3
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                height: number;
+                height?: number | undefined;
                 /**
                  * The thickness of the horizontal web, in model units.
                  * @default 0.2
@@ -6532,39 +6492,40 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.01
                  */
-                webThickness: number;
+                webThickness?: number | undefined;
                 /**
                  * The thickness of each vertical flange, in model units.
                  * @default 0.3
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.01
                  */
-                flangeThickness: number;
+                flangeThickness?: number | undefined;
                 /**
                  * Which point of the profile's bounding box sits on `center`, such as its middle or its top
                  * left corner.
                  * @default midMid
                  */
-                alignment: Base.basicAlignmentEnum;
+                alignment?: Base.basicAlignmentEnum | undefined;
                 /**
                  * How far the profile is turned in its plane, in degrees.
                  * @default 0
-                 * @minimum 0
+                 * @minimum -Infinity
                  * @maximum Infinity
                  * @step 15
                  */
-                rotation: number;
+                rotation?: number | undefined;
                 /**
                  * The point the profile is placed at.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
                 /**
                  * The normal of the plane the profile lies in; the default lays it flat on the ground.
                  * @default [0, 1, 0]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
             }
             /**
              * The cross-section of a T-beam, a horizontal flange with a vertical web hanging from its middle,
@@ -6576,10 +6537,11 @@ declare namespace Bit {
                  * The width of the flange, in model units.
                  * @default 2
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                width: number;
+                width?: number | undefined;
                 /**
                  * The total height of the profile, in model units.
                  * @default 2
@@ -6587,47 +6549,49 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                height: number;
+                height?: number | undefined;
                 /**
                  * The thickness of the vertical web, in model units.
                  * @default 0.2
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.01
                  */
-                webThickness: number;
+                webThickness?: number | undefined;
                 /**
                  * The thickness of the flange, in model units.
                  * @default 0.3
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.01
                  */
-                flangeThickness: number;
+                flangeThickness?: number | undefined;
                 /**
                  * Which point of the profile's bounding box sits on `center`, such as its middle or its top
                  * left corner.
                  * @default midMid
                  */
-                alignment: Base.basicAlignmentEnum;
+                alignment?: Base.basicAlignmentEnum | undefined;
                 /**
                  * How far the profile is turned in its plane, in degrees.
                  * @default 0
-                 * @minimum 0
+                 * @minimum -Infinity
                  * @maximum Infinity
                  * @step 15
                  */
-                rotation: number;
+                rotation?: number | undefined;
                 /**
                  * The point the profile is placed at.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
                 /**
                  * The normal of the plane the profile lies in; the default lays it flat on the ground.
                  * @default [0, 1, 0]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
             }
             /**
              * The cross-section of a U-beam, a channel with two flanges standing up from a web, for
@@ -6639,34 +6603,38 @@ declare namespace Bit {
                  * The total width of the profile, in model units.
                  * @default 2
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                width: number;
+                width?: number | undefined;
                 /**
                  * The total height of the profile, in model units.
                  * @default 3
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                height: number;
+                height?: number | undefined;
                 /**
                  * The thickness of the web at the back of the channel, in model units.
                  * @default 0.2
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.01
                  */
-                webThickness: number;
+                webThickness?: number | undefined;
                 /**
                  * The thickness of each flange, in model units.
                  * @default 0.3
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.01
                  */
-                flangeThickness: number;
+                flangeThickness?: number | undefined;
                 /**
                  * How far each flange reaches inward from the side of the channel, in model units.
                  * @default 0.5
@@ -6674,31 +6642,31 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                flangeWidth: number;
+                flangeWidth?: number | undefined;
                 /**
                  * Which point of the profile's bounding box sits on `center`, such as its middle or its top
                  * left corner.
                  * @default midMid
                  */
-                alignment: Base.basicAlignmentEnum;
+                alignment?: Base.basicAlignmentEnum | undefined;
                 /**
                  * How far the profile is turned in its plane, in degrees.
                  * @default 0
-                 * @minimum 0
+                 * @minimum -Infinity
                  * @maximum Infinity
                  * @step 15
                  */
-                rotation: number;
+                rotation?: number | undefined;
                 /**
                  * The point the profile is placed at.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
                 /**
                  * The normal of the plane the profile lies in; the default lays it flat on the ground.
                  * @default [0, 1, 0]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
             }
             /**
              * How far a flat profile is extruded each way along its normal, the part the beam profile solid
@@ -6746,7 +6714,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                extrusionLengthFront: number;
+                extrusionLengthFront?: number | undefined;
                 /**
                  * How far the profile grows against its normal, in model units.
                  * @default 0
@@ -6754,7 +6722,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                extrusionLengthBack: number;
+                extrusionLengthBack?: number | undefined;
             }
             /**
              * An H-beam profile and the extrusion lengths for `shapes.solid.createHBeamProfileSolid`; at least
@@ -6769,7 +6737,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                extrusionLengthFront: number;
+                extrusionLengthFront?: number | undefined;
                 /**
                  * How far the profile grows against its normal, in model units.
                  * @default 0
@@ -6777,7 +6745,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                extrusionLengthBack: number;
+                extrusionLengthBack?: number | undefined;
             }
             /**
              * A T-beam profile and the extrusion lengths for `shapes.solid.createTBeamProfileSolid`; at least
@@ -6792,7 +6760,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                extrusionLengthFront: number;
+                extrusionLengthFront?: number | undefined;
                 /**
                  * How far the profile grows against its normal, in model units.
                  * @default 0
@@ -6800,7 +6768,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                extrusionLengthBack: number;
+                extrusionLengthBack?: number | undefined;
             }
             /**
              * A U-beam profile and the extrusion lengths for `shapes.solid.createUBeamProfileSolid`; at least
@@ -6815,7 +6783,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                extrusionLengthFront: number;
+                extrusionLengthFront?: number | undefined;
                 /**
                  * How far the profile grows against its normal, in model units.
                  * @default 0
@@ -6823,7 +6791,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                extrusionLengthBack: number;
+                extrusionLengthBack?: number | undefined;
             }
             /**
              * The three sides of a box and where it sits, for `shapes.solid.createBox`; `width` runs along X,
@@ -6835,31 +6803,34 @@ declare namespace Bit {
                  * The side along X, in model units.
                  * @default 1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                width: number;
+                width?: number | undefined;
                 /**
                  * The side along Z, in model units.
                  * @default 2
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                length: number;
+                length?: number | undefined;
                 /**
                  * The side along Y, which is up, in model units.
                  * @default 3
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                height: number;
+                height?: number | undefined;
                 /**
                  * The point the box is centered on, or stands on when `originOnCenter` is false.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
                 /**
                  * When true, the box is centered on `center`; when false it stands on it, so `center` is the
                  * middle of the bottom face.
@@ -6876,15 +6847,16 @@ declare namespace Bit {
                  * The length of every side, in model units.
                  * @default 1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                size: number;
+                size?: number | undefined;
                 /**
                  * The point the cube is centered on, or stands on when `originOnCenter` is false.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
                 /**
                  * When true, the cube is centered on `center`; when false it stands on it, so `center` is the
                  * middle of the bottom face.
@@ -6902,31 +6874,34 @@ declare namespace Bit {
                  * The side along X, in model units.
                  * @default 1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                width: number;
+                width?: number | undefined;
                 /**
                  * The side along Z, in model units.
                  * @default 2
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                length: number;
+                length?: number | undefined;
                 /**
                  * The side along Y, which is up, in model units.
                  * @default 3
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                height: number;
+                height?: number | undefined;
                 /**
                  * The corner with the smallest X, Y and Z; the box extends from it along the positive axes.
                  * @default [0, 0, 0]
                  */
-                corner: Base.Point3;
+                corner?: Base.Point3 | undefined;
             }
             /**
              * A radius and a center for `shapes.solid.createSphere`.
@@ -6937,15 +6912,16 @@ declare namespace Bit {
                  * The distance from the center to the surface, in model units.
                  * @default 1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radius: number;
+                radius?: number | undefined;
                 /**
                  * The point the sphere is centered on.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
             }
             /**
              * The two radii, height and placement of a cone or truncated cone for `shapes.solid.createCone`.
@@ -6959,7 +6935,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radius1: number;
+                radius1?: number | undefined;
                 /**
                  * The radius at the top, in model units; 0 makes a pointed cone.
                  * @default 1
@@ -6967,33 +6943,35 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radius2: number;
+                radius2?: number | undefined;
                 /**
                  * The distance from the base to the top along `direction`, in model units.
                  * @default 2
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                height: number;
+                height?: number | undefined;
                 /**
                  * How much of the full round to build, in degrees; less than 360 cuts a wedge out.
                  * @default 360
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum 360
                  * @step 1
                  */
-                angle: number;
+                angle?: number | undefined;
                 /**
                  * The center of the base.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
                 /**
                  * The direction from the base to the top.
                  * @default [0, 1, 0]
                  */
-                direction: Base.Point3;
+                direction?: Base.Point3 | undefined;
             }
             /**
              * The two radii and placement of a ring for `shapes.solid.createTorus`.
@@ -7004,32 +6982,36 @@ declare namespace Bit {
                  * The distance from the center of the ring to the middle of its tube, in model units.
                  * @default 2
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                majorRadius: number;
+                majorRadius?: number | undefined;
                 /**
-                 * The radius of the tube itself, in model units.
+                 * The radius of the tube itself, in model units; at most `majorRadius`, where the hole in the
+                 * middle closes to a point.
                  * @default 0.5
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                minorRadius: number;
+                minorRadius?: number | undefined;
                 /**
                  * The point the ring is centered on.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
                 /**
                  * The axis the ring goes around; the default lays it flat on the ground.
                  * @default [0, 1, 0]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
                 /**
                  * How much of the full ring to build, in degrees; less than 360 gives a partial ring.
                  * @default 360
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum 360
                  * @step 1
                  */
@@ -7045,12 +7027,12 @@ declare namespace Bit {
                  * The point the line starts at.
                  * @default [0, 0, 0]
                  */
-                start: Base.Point3;
+                start?: Base.Point3 | undefined;
                 /**
                  * The point the line ends at.
                  * @default [0, 1, 0]
                  */
-                end: Base.Point3;
+                end?: Base.Point3 | undefined;
             }
             /**
              * Two points and how far to lengthen the line past each for
@@ -7062,12 +7044,12 @@ declare namespace Bit {
                  * The point the line starts at, before the extension.
                  * @default [0, 0, 0]
                  */
-                start: Base.Point3;
+                start?: Base.Point3 | undefined;
                 /**
                  * The point the line ends at, before the extension.
                  * @default [0, 1, 0]
                  */
-                end: Base.Point3;
+                end?: Base.Point3 | undefined;
                 /**
                  * How far the line is lengthened past its start, in model units.
                  * @default 0.1
@@ -7075,7 +7057,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                extensionStart: number;
+                extensionStart?: number | undefined;
                 /**
                  * How far the line is lengthened past its end, in model units.
                  * @default 0.1
@@ -7083,7 +7065,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                extensionEnd: number;
+                extensionEnd?: number | undefined;
             }
             /**
              * Several line definitions for `shapes.wire.createLines`, which builds one wire per line.
@@ -7097,8 +7079,9 @@ declare namespace Bit {
                 lines: LineDto[];
                 /**
                  * When true, the wires are packed into one compound instead of a list.
+                 * @default false
                  */
-                returnCompound: boolean;
+                returnCompound?: boolean | undefined;
             }
             /**
              * Two points and a starting direction for `shapes.edge.arcThroughTwoPointsAndTangent`, a circular
@@ -7110,17 +7093,17 @@ declare namespace Bit {
                  * The point the arc begins at, where the tangent applies.
                  * @default [0, 0, 0]
                  */
-                start: Base.Point3;
+                start?: Base.Point3 | undefined;
                 /**
                  * The direction the arc leaves the start point in; it fixes the plane and radius of the arc.
                  * @default [0, 1, 0]
                  */
-                tangentVec: Base.Vector3;
+                tangentVec?: Base.Vector3 | undefined;
                 /**
                  * The point the arc finishes at.
                  * @default [0, 0, 1]
                  */
-                end: Base.Point3;
+                end?: Base.Point3 | undefined;
             }
             /**
              * A circle edge and two points on it for `shapes.edge.arcFromCircleAndTwoPoints`, which cuts the
@@ -7137,18 +7120,18 @@ declare namespace Bit {
                  * The point on the circle where the arc starts.
                  * @default [0, 0, 0]
                  */
-                start: Base.Point3;
+                start?: Base.Point3 | undefined;
                 /**
                  * The point on the circle where the arc ends.
                  * @default [0, 0, 1]
                  */
-                end: Base.Point3;
+                end?: Base.Point3 | undefined;
                 /**
                  * Which way round the circle the arc runs from start to end: true follows the circle's own
                  * direction, false goes the other way.
                  * @default true
                  */
-                sense: boolean;
+                sense?: boolean | undefined;
             }
             /**
              * A circle edge and two angles for `shapes.edge.arcFromCircleAndTwoAngles`, which cuts the arc
@@ -7168,7 +7151,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                alphaAngle1: number;
+                alphaAngle1?: number | undefined;
                 /**
                  * The angle where the arc ends, in degrees around the circle from its own start.
                  * @default 90
@@ -7176,13 +7159,13 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                alphaAngle2: number;
+                alphaAngle2?: number | undefined;
                 /**
                  * Which way round the circle the arc runs from the first angle to the second: true follows the
                  * circle's own direction, false goes the other way.
                  * @default true
                  */
-                sense: boolean;
+                sense?: boolean | undefined;
             }
             /**
              * A circle edge, a point on it and an angle for `shapes.edge.arcFromCirclePointAndAngle`, which
@@ -7207,13 +7190,13 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                alphaAngle: number;
+                alphaAngle?: number | undefined;
                 /**
                  * Which way round the circle the arc runs: true follows the circle's own direction, false goes
                  * the other way.
                  * @default true
                  */
-                sense: boolean;
+                sense?: boolean | undefined;
             }
             /**
              * Three points for `shapes.edge.arcThroughThreePoints`, the circular arc that passes through all
@@ -7225,17 +7208,17 @@ declare namespace Bit {
                  * The point the arc begins at.
                  * @default [0, 0, 0]
                  */
-                start: Base.Point3;
+                start?: Base.Point3 | undefined;
                 /**
                  * A point the arc passes through on its way; it fixes the plane and radius.
                  * @default [0, 1, 0]
                  */
-                middle: Base.Point3;
+                middle?: Base.Point3 | undefined;
                 /**
                  * The point the arc finishes at.
                  * @default [0, 0, 1]
                  */
-                end: Base.Point3;
+                end?: Base.Point3 | undefined;
             }
             /**
              * The size and placement of a cylinder for `shapes.solid.createCylinder`, which stands it on a
@@ -7247,23 +7230,25 @@ declare namespace Bit {
                  * The radius of the round base, in model units.
                  * @default 1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radius: number;
+                radius?: number | undefined;
                 /**
                  * How far the cylinder grows from its base along `direction`, in model units.
                  * @default 2
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                height: number;
+                height?: number | undefined;
                 /**
                  * The center of the base, or the middle of the cylinder when `originOnCenter` is true.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
                 /**
                  * The direction the cylinder grows in; the default stands it up along Y.
                  * @default [0, 1, 0]
@@ -7274,7 +7259,8 @@ declare namespace Bit {
                  * of cake.
                  * @default 360
                  * @minimum 0
-                 * @maximum Infinity
+                 * @exclusiveMinimum true
+                 * @maximum 360
                  * @step 1
                  */
                 angle?: number | undefined;
@@ -7294,10 +7280,11 @@ declare namespace Bit {
                  * The radius shared by every cylinder, in model units.
                  * @default 1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radius: number;
+                radius?: number | undefined;
                 /**
                  * The lines the cylinders follow, each from its start to its end.
                  * @default undefined
@@ -7306,7 +7293,8 @@ declare namespace Bit {
             }
             /**
              * A shape, a radius and optional edge or corner indexes for `fillets.filletEdges` and
-             * `fillets.fillet2d`; `radiusList` pairs with `indexes` when both are given.
+             * `fillets.fillet2d`; `radiusList` gives the listed edges or corners their radii in the order the
+             * shape holds them.
              */
             class FilletDto<T> {
                 constructor(shape?: T, radius?: number, radiusList?: number[], indexes?: number[]);
@@ -7320,13 +7308,14 @@ declare namespace Bit {
                  * given.
                  * @default 0.1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
-                 * @optional true
                  */
                 radius?: number | undefined;
                 /**
-                 * One radius per entry of `indexes`, in the same order; needs `indexes`.
+                 * One radius per entry of `indexes`, given to the listed edges or corners in the shape's own
+                 * order, not in `indexes` order; list `indexes` ascending. Needs `indexes`.
                  * @default undefined
                  * @optional true
                  */
@@ -7355,13 +7344,14 @@ declare namespace Bit {
                  * given.
                  * @default 0.1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
-                 * @optional true
                  */
                 radius?: number | undefined;
                 /**
-                 * One radius per entry of `indexes`, in the same order; needs `indexes`.
+                 * One radius per entry of `indexes`, given to the listed corners in their order along each
+                 * outline, not in `indexes` order; list `indexes` ascending. Needs `indexes`.
                  * @default undefined
                  * @optional true
                  */
@@ -7414,10 +7404,11 @@ declare namespace Bit {
                  * The rounding radius for every edge, in model units.
                  * @default 0.1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radius: number;
+                radius?: number | undefined;
             }
             /**
              * A shape, one of its edges and a radius profile for `fillets.filletEdgeVariableRadius`;
@@ -7503,88 +7494,69 @@ declare namespace Bit {
                 paramsU: number[];
             }
             /**
-             * Wires, a radius, optional corner indexes and an extrusion direction for `fillets.fillet3DWires`,
-             * which rounds the corners of wires that do not lie in a plane.
+             * How the corners of a 3D wire are rounded, shared by `Fillet3DWireDto` and `Fillet3DWiresDto`: the
+             * radius or radii, and which corners.
              */
-            class Fillet3DWiresDto<T> {
+            abstract class Fillet3DWireSharedDto {
+                /**
+                 * The rounding radius in model units, used for every selected corner unless `radiusList` is
+                 * given.
+                 * @default 0.1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                radius?: number | undefined;
+                /**
+                 * One radius per entry of `indexes`, in the same order; needs `indexes`.
+                 * @default undefined
+                 * @optional true
+                 */
+                radiusList?: number[] | undefined;
+                /**
+                 * Corners to round, counted from 0: corner `i` joins edge `i` to the next; a closed wire's last
+                 * corner joins its last edge to its first. Omit for all.
+                 * @default undefined
+                 * @optional true
+                 */
+                indexes?: number[] | undefined;
+                /**
+                 * Not used: each corner is rounded in the plane of the two edges that meet there. It is kept
+                 * so that scripts which set it keep working.
+                 * @default [0, 1, 0]
+                 * @deprecated Has no effect and will be removed in the next major version, with the constructors'
+                 * `direction` parameter; leave it out.
+                 */
+                direction?: Base.Vector3 | undefined;
+            }
+            /**
+             * Wires, a radius and optional corner indexes for `fillets.fillet3DWires`, which rounds the corners
+             * of wires whether or not they lie in a plane.
+             */
+            class Fillet3DWiresDto<T> extends Fillet3DWireSharedDto {
                 constructor(shapes?: T[], radius?: number, direction?: Base.Vector3, radiusList?: number[], indexes?: number[]);
                 /**
                  * The wires whose corners are rounded.
                  * @default undefined
                  */
                 shapes: T[];
-                /**
-                 * The rounding radius in model units, used for every selected corner unless `radiusList` is
-                 * given.
-                 * @default 0.1
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 0.1
-                 * @optional true
-                 */
-                radius?: number | undefined;
-                /**
-                 * One radius per entry of `indexes`, in the same order; needs `indexes`.
-                 * @default undefined
-                 * @optional true
-                 */
-                radiusList?: number[] | undefined;
-                /**
-                 * Which corners to round, counted from 0 along each wire; leave it out to round them all.
-                 * @default undefined
-                 * @optional true
-                 */
-                indexes?: number[] | undefined;
-                /**
-                 * The direction each wire is extruded along to build the fillets; it must not be parallel to
-                 * the wire and must leave room for the radius.
-                 * @default [0, 1, 0]
-                 */
-                direction: Base.Vector3;
             }
             /**
-             * A wire, a radius, optional corner indexes and an extrusion direction for `fillets.fillet3DWire`,
-             * which rounds the corners of a wire that does not lie in a plane.
+             * A wire, a radius and optional corner indexes for `fillets.fillet3DWire`, which rounds the corners
+             * of a wire whether or not it lies in a plane.
              */
-            class Fillet3DWireDto<T> {
+            class Fillet3DWireDto<T> extends Fillet3DWireSharedDto {
                 constructor(shape?: T, radius?: number, direction?: Base.Vector3, radiusList?: number[], indexes?: number[]);
                 /**
                  * The wire whose corners are rounded.
                  * @default undefined
                  */
                 shape: T;
-                /**
-                 * The rounding radius in model units, used for every selected corner unless `radiusList` is
-                 * given.
-                 * @default 0.1
-                 * @minimum 0
-                 * @maximum Infinity
-                 * @step 0.1
-                 * @optional true
-                 */
-                radius?: number | undefined;
-                /**
-                 * One radius per entry of `indexes`, in the same order; needs `indexes`.
-                 * @default undefined
-                 * @optional true
-                 */
-                radiusList?: number[] | undefined;
-                /**
-                 * Which corners to round, counted from 0 along the wire; leave it out to round them all.
-                 * @default undefined
-                 * @optional true
-                 */
-                indexes?: number[] | undefined;
-                /**
-                 * The direction the wire is extruded along to build the fillets; it must not be parallel to the
-                 * wire and must leave room for the radius.
-                 * @default [0, 1, 0]
-                 */
-                direction: Base.Vector3;
             }
             /**
-             * A shape, a distance and optional edge indexes for `fillets.chamferEdges`; `distanceList` pairs
-             * with `indexes` when both are given.
+             * A shape, a distance and optional edge indexes for `fillets.chamferEdges`; `distanceList` gives the
+             * listed edges their distances in the order `shapes.edge.getEdges` lists them.
              */
             class ChamferDto<T> {
                 constructor(shape?: T, distance?: number, distanceList?: number[], indexes?: number[]);
@@ -7598,13 +7570,14 @@ declare namespace Bit {
                  * `distanceList` is given.
                  * @default 0.1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
-                 * @optional true
                  * @step 0.1
                  */
                 distance?: number | undefined;
                 /**
-                 * One distance per entry of `indexes`, in the same order; needs `indexes`.
+                 * One distance per entry of `indexes`, given to the listed edges in the order `shapes.edge.getEdges`
+                 * lists them, not in `indexes` order; list `indexes` ascending. Needs `indexes`.
                  * @default undefined
                  * @optional true
                  */
@@ -7665,18 +7638,21 @@ declare namespace Bit {
                  * How far from the edge the bevel starts on the face, in model units.
                  * @default 0.1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.01
                  */
-                distance: number;
+                distance?: number | undefined;
                 /**
                  * The slope of the bevel away from the face, in degrees; 45 gives an even chamfer.
                  * @default 45
                  * @minimum 0
-                 * @maximum Infinity
+                 * @exclusiveMinimum true
+                 * @maximum 90
+                 * @exclusiveMaximum true
                  * @step 1
                  */
-                angle: number;
+                angle?: number | undefined;
             }
             /**
              * A shape, one of its edges, a face at that edge and two distances for
@@ -7703,18 +7679,20 @@ declare namespace Bit {
                  * How far the bevel reaches from the edge on `face`, in model units.
                  * @default 0.1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.01
                  */
-                distance1: number;
+                distance1?: number | undefined;
                 /**
                  * How far the bevel reaches from the edge on the other face, in model units.
                  * @default 0.2
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.01
                  */
-                distance2: number;
+                distance2?: number | undefined;
             }
             /**
              * A shape, some of its edges, one face per edge and two distances per edge for
@@ -7773,18 +7751,20 @@ declare namespace Bit {
                  * How far the bevel reaches from each edge on its paired face, in model units.
                  * @default 0.1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.01
                  */
-                distance1: number;
+                distance1?: number | undefined;
                 /**
                  * How far the bevel reaches from each edge on the other face, in model units.
                  * @default 0.2
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.01
                  */
-                distance2: number;
+                distance2?: number | undefined;
             }
             /**
              * A shape, some of its edges, one face, distance and angle per edge for
@@ -7843,18 +7823,21 @@ declare namespace Bit {
                  * How far from each edge the bevel starts on its paired face, in model units.
                  * @default 0.1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.01
                  */
-                distance: number;
+                distance?: number | undefined;
                 /**
                  * The slope of the bevels away from the paired faces, in degrees; 45 gives an even chamfer.
                  * @default 45
                  * @minimum 0
-                 * @maximum Infinity
+                 * @exclusiveMinimum true
+                 * @maximum 90
+                 * @exclusiveMaximum true
                  * @step 1
                  */
-                angle: number;
+                angle?: number | undefined;
             }
             /**
              * Points and a closing flag for `shapes.wire.createBSpline`, which fits a smooth curve close to the
@@ -7871,7 +7854,7 @@ declare namespace Bit {
                  * When true, the first point is appended again so the ends meet.
                  * @default false
                  */
-                closed: boolean;
+                closed?: boolean | undefined;
             }
             /**
              * Several B-spline definitions for `shapes.wire.createBSplines`, which builds one wire per
@@ -7886,8 +7869,9 @@ declare namespace Bit {
                 bSplines: BSplineDto[];
                 /**
                  * When true, the wires are packed into one compound instead of a list.
+                 * @default false
                  */
-                returnCompound: boolean;
+                returnCompound?: boolean | undefined;
             }
             /**
              * Two circles in one plane and which pieces to keep for `shapes.wire.createWireFromTwoCirclesTan`,
@@ -7910,12 +7894,12 @@ declare namespace Bit {
                  * `inside` the crossing lines.
                  * @default outside
                  */
-                keepLines: twoSidesStrictEnum;
+                keepLines?: twoSidesStrictEnum | undefined;
                 /**
                  * Which arc of each circle stays in the outline: both outside, both inside, or one of each.
                  * @default outside
                  */
-                circleRemainders: fourSidesStrictEnum;
+                circleRemainders?: fourSidesStrictEnum | undefined;
                 /**
                  * How close a line must come to a circle to count as touching it, in model units.
                  * @default 1e-7
@@ -7923,7 +7907,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.00001
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
             }
             /**
              * Circles in one plane and how to pair them for `shapes.face.createFaceFromMultipleCircleTanWires`,
@@ -7941,13 +7925,13 @@ declare namespace Bit {
                  * the list, `inOrderClosed` also the last with the first.
                  * @default allWithAll
                  */
-                combination: combinationCirclesForFaceEnum;
+                combination?: combinationCirclesForFaceEnum | undefined;
                 /**
                  * When true, the belt faces are fused into one shape; when false they come back as a compound,
                  * which is faster.
                  * @default true
                  */
-                unify: boolean;
+                unify?: boolean | undefined;
                 /**
                  * How close a line must come to a circle to count as touching it, in model units.
                  * @default 1e-7
@@ -7955,7 +7939,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.00001
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
             }
             /**
              * Lists of circles and how to pair them for
@@ -7974,13 +7958,13 @@ declare namespace Bit {
                  * `inOrder` circles at the same position, `inOrderClosed` also closes each list.
                  * @default allWithAll
                  */
-                combination: combinationCirclesForFaceEnum;
+                combination?: combinationCirclesForFaceEnum | undefined;
                 /**
                  * When true, the belt faces are fused into one shape; when false they come back as a compound,
                  * which is faster.
                  * @default true
                  */
-                unify: boolean;
+                unify?: boolean | undefined;
                 /**
                  * How close a line must come to a circle to count as touching it, in model units.
                  * @default 1e-7
@@ -7988,7 +7972,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.00001
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
             }
             /**
              * Two wires and a bounce count for `shapes.wire.createZigZagBetweenTwoWires`, which draws a
@@ -8014,24 +7998,24 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                nrZigZags: number;
+                nrZigZags?: number | undefined;
                 /**
                  * When true, the zig-zag starts on the second wire instead of the first.
                  * @default false
                  */
-                inverse: boolean;
+                inverse?: boolean | undefined;
                 /**
                  * When true, the bounce points are spaced by length along the wires; when false they follow the
                  * curves' parameters, which can be uneven.
                  * @default false
                  */
-                divideByEqualDistance: boolean;
+                divideByEqualDistance?: boolean | undefined;
                 /**
                  * When true, each edge of the wires gets `nrZigZags` bounces and the wires need matching edge
                  * counts; when false the count covers the whole wire.
                  * @default true
                  */
-                zigZagsPerEdge: boolean;
+                zigZagsPerEdge?: boolean | undefined;
             }
             /**
              * Wires or edges and wire options for
@@ -8136,7 +8120,7 @@ declare namespace Bit {
                  * When true, the curve closes into a loop that is smooth across the seam.
                  * @default false
                  */
-                periodic: boolean;
+                periodic?: boolean | undefined;
                 /**
                  * How far the curve may stray from the points, in model units.
                  * @default 1e-7
@@ -8144,7 +8128,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.00001
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
                 /**
                  * How the curve is spaced between points: chord length by default, `centripetal` to resist
                  * cusps and overshoot with uneven points, or `uniform`.
@@ -8190,7 +8174,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.00001
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
             }
             /**
              * Several interpolation definitions for `shapes.wire.interpolateWires`, which builds one wire per
@@ -8205,8 +8189,9 @@ declare namespace Bit {
                 interpolations: InterpolationDto[];
                 /**
                  * When true, the wires are packed into one compound instead of a list.
+                 * @default false
                  */
-                returnCompound: boolean;
+                returnCompound?: boolean | undefined;
             }
             /**
              * Control points and shape options for `shapes.wire.createBezier`, a smooth curve pulled toward its
@@ -8224,7 +8209,7 @@ declare namespace Bit {
                  * When true, the first point is appended again so the ends meet, with a corner at the seam.
                  * @default false
                  */
-                closed: boolean;
+                closed?: boolean | undefined;
                 /**
                  * How many neighboring control points shape each part of the curve; leave it out for a classic
                  * Bezier, capped at 25 and bounded automatically above 26 points.
@@ -8239,7 +8224,6 @@ declare namespace Bit {
                  * When true, the curve closes into a loop that is smooth across the seam, using `degree` or a
                  * default; it overrides `closed`.
                  * @default false
-                 * @optional true
                  */
                 periodic?: boolean | undefined;
             }
@@ -8265,12 +8249,11 @@ declare namespace Bit {
                  * When true, the first point is appended again so the ends meet, with a corner at the seam.
                  * @default false
                  */
-                closed: boolean;
+                closed?: boolean | undefined;
                 /**
                  * When true, the curve closes into a loop that is smooth across the seam and needs exactly one
                  * weight per point; it overrides `closed`.
                  * @default false
-                 * @optional true
                  */
                 periodic?: boolean | undefined;
                 /**
@@ -8302,7 +8285,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                degree: number;
+                degree?: number | undefined;
                 /**
                  * How far the rebuilt curve may stray from the old one when the degree is lowered, in model
                  * units.
@@ -8311,7 +8294,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.0001
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
             }
             /**
              * A closed periodic wire or edge and a parameter for `moveWireSeamByParameter` and
@@ -8329,7 +8312,7 @@ declare namespace Bit {
                  * @default 0
                  * @step 0.1
                  */
-                parameter: number;
+                parameter?: number | undefined;
             }
             /**
              * A closed periodic wire or edge and a distance for `moveWireSeamByLength` and
@@ -8347,7 +8330,7 @@ declare namespace Bit {
                  * @default 0
                  * @step 0.1
                  */
-                length: number;
+                length?: number | undefined;
             }
             /**
              * A face, target degrees and a tolerance for `shapes.face.rebuildFaceDegree`.
@@ -8367,7 +8350,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                uDegree: number;
+                uDegree?: number | undefined;
                 /**
                  * The degree to rebuild to in V, with the same rules as `uDegree`.
                  * @default 3
@@ -8375,7 +8358,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                vDegree: number;
+                vDegree?: number | undefined;
                 /**
                  * How far the rebuilt surface may stray from the old one when a degree is lowered, in model
                  * units.
@@ -8384,13 +8367,13 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.0001
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
                 /**
                  * When true, the face keeps its boundary wires, which is reliable when raising; when false it
                  * covers the whole rebuilt surface.
                  * @default false
                  */
-                keepTrim: boolean;
+                keepTrim?: boolean | undefined;
             }
             /**
              * A face and which flips to apply for `shapes.face.flipFaceUV`.
@@ -8406,17 +8389,17 @@ declare namespace Bit {
                  * When true, U and V change places.
                  * @default false
                  */
-                swapUV: boolean;
+                swapUV?: boolean | undefined;
                 /**
                  * When true, U runs the other way.
                  * @default false
                  */
-                reverseU: boolean;
+                reverseU?: boolean | undefined;
                 /**
                  * When true, V runs the other way.
                  * @default false
                  */
-                reverseV: boolean;
+                reverseV?: boolean | undefined;
             }
             /**
              * A face and fitting options for `shapes.face.normalizeFaceParametrization`, which makes equal
@@ -8433,12 +8416,12 @@ declare namespace Bit {
                  * When true, the U parameter is evened out by distance.
                  * @default true
                  */
-                normalizeU: boolean;
+                normalizeU?: boolean | undefined;
                 /**
                  * When true, the V parameter is evened out by distance.
                  * @default true
                  */
-                normalizeV: boolean;
+                normalizeV?: boolean | undefined;
                 /**
                  * How many points per direction the surface is resampled at; more is closer to the original and
                  * slower.
@@ -8447,7 +8430,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                samples: number;
+                samples?: number | undefined;
                 /**
                  * How far the refitted surface may stray from the original, in model units.
                  * @default 0.0001
@@ -8455,7 +8438,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.0001
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
             }
             /**
              * Several Bezier definitions for `shapes.wire.createBezierWires`, which builds one wire per
@@ -8470,22 +8453,17 @@ declare namespace Bit {
                 bezierWires: BezierDto[];
                 /**
                  * When true, the wires are packed into one compound instead of a list.
+                 * @default false
                  */
-                returnCompound: boolean;
+                returnCompound?: boolean | undefined;
             }
             /**
-             * A wire or edge and a division count for `divideWireByParamsToPoints`,
-             * `divideEdgeByEqualDistanceToPoints` and their siblings in `shapes.wire` and `shapes.edge`.
+             * How a curve is divided into points, shared by `DivideDto` and `DivideShapesDto`: the number of
+             * steps and whether the end points are kept.
              */
-            class DivideDto<T> {
-                constructor(shape?: T, nrOfDivisions?: number, removeStartPoint?: boolean, removeEndPoint?: boolean);
+            abstract class DivideSharedDto {
                 /**
-                 * The wire or edge to place points along.
-                 * @default undefined
-                 */
-                shape: T;
-                /**
-                 * How many steps to divide the curve into; one more point than that is placed, the ends
+                 * How many steps to divide each curve into; one more point than that is placed, the ends
                  * included.
                  * @default 10
                  * @minimum 1
@@ -8494,37 +8472,55 @@ declare namespace Bit {
                  */
                 nrOfDivisions?: number | undefined;
                 /**
-                 * When true, the point at the start is left out.
+                 * When true, the point at the start of each curve is left out.
                  * @default false
                  */
                 removeStartPoint?: boolean | undefined;
                 /**
-                 * When true, the point at the end is left out.
+                 * When true, the point at the end of each curve is left out.
                  * @default false
                  */
                 removeEndPoint?: boolean | undefined;
             }
             /**
+             * A wire or edge and a division count for `divideWireByParamsToPoints`,
+             * `divideEdgeByEqualDistanceToPoints` and their siblings in `shapes.wire` and `shapes.edge`.
+             */
+            class DivideDto<T> extends DivideSharedDto {
+                constructor(shape?: T, nrOfDivisions?: number, removeStartPoint?: boolean, removeEndPoint?: boolean);
+                /**
+                 * The wire or edge to place points along.
+                 * @default undefined
+                 */
+                shape: T;
+            }
+            /**
+             * Where a wire is projected, shared by `ProjectWireDto` and `ProjectWiresDto`: the shape it lands
+             * on and the direction it is cast along.
+             */
+            abstract class ProjectWireSharedDto<U> {
+                /**
+                 * The shape each wire lands on.
+                 * @default undefined
+                 */
+                shape: U;
+                /**
+                 * The direction each wire is cast along; only its direction matters.
+                 * @default [0, 1, 0]
+                 */
+                direction?: Base.Vector3 | undefined;
+            }
+            /**
              * A wire, a shape and a direction for `shapes.wire.project`, which casts the wire onto the shape
              * along the direction.
              */
-            class ProjectWireDto<T, U> {
+            class ProjectWireDto<T, U> extends ProjectWireSharedDto<U> {
                 constructor(wire?: T, shape?: U, direction?: Base.Vector3);
                 /**
                  * The wire to cast onto the shape.
                  * @default undefined
                  */
                 wire: T;
-                /**
-                 * The shape the wire lands on.
-                 * @default undefined
-                 */
-                shape: U;
-                /**
-                 * The direction the wire is cast along; only its direction matters.
-                 * @default [0, 1, 0]
-                 */
-                direction: Base.Vector3;
             }
             /**
              * Points, a shape and a direction for `shapes.vertex.projectPoints`, which casts each point onto
@@ -8547,13 +8543,13 @@ declare namespace Bit {
                  * length are not found.
                  * @default [0, 10, 0]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
                 /**
                  * Which hits to keep when a point crosses the shape more than once: all of them, the closest,
                  * the farthest, or both of those.
                  * @default all
                  */
-                projectionType: pointProjectionTypeEnum;
+                projectionType?: pointProjectionTypeEnum | undefined;
             }
             /**
              * A shape and deflection settings for `shapes.wire.wiresToPoints`, which traces every wire of the
@@ -8574,7 +8570,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.01
                  */
-                angularDeflection: number;
+                angularDeflection?: number | undefined;
                 /**
                  * The largest distance, in model units, the polyline may stray from the curve; smaller follows
                  * it more closely.
@@ -8583,7 +8579,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.001
                  */
-                curvatureDeflection: number;
+                curvatureDeflection?: number | undefined;
                 /**
                  * The fewest points any edge is traced with, however straight.
                  * @default 2
@@ -8591,7 +8587,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                minimumOfPoints: number;
+                minimumOfPoints?: number | undefined;
                 /**
                  * How close two parameter values must be to count as the same point.
                  * @default 1.0e-9
@@ -8599,7 +8595,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1.0e-9
                  */
-                uTolerance: number;
+                uTolerance?: number | undefined;
                 /**
                  * Edges shorter than this, in model units, are traced with the minimum number of points.
                  * @default 1.0e-7
@@ -8607,7 +8603,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1.0e-7
                  */
-                minimumLength: number;
+                minimumLength?: number | undefined;
             }
             /**
              * A shape and deflection settings for `shapes.edge.edgesToPoints`, which traces every edge of the
@@ -8628,7 +8624,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.01
                  */
-                angularDeflection: number;
+                angularDeflection?: number | undefined;
                 /**
                  * The largest distance, in model units, the polyline may stray from the curve; smaller follows
                  * it more closely.
@@ -8637,7 +8633,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.001
                  */
-                curvatureDeflection: number;
+                curvatureDeflection?: number | undefined;
                 /**
                  * The fewest points any edge is traced with, however straight.
                  * @default 2
@@ -8645,7 +8641,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                minimumOfPoints: number;
+                minimumOfPoints?: number | undefined;
                 /**
                  * How close two parameter values must be to count as the same point.
                  * @default 1.0e-9
@@ -8653,7 +8649,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1.0e-9
                  */
-                uTolerance: number;
+                uTolerance?: number | undefined;
                 /**
                  * Edges shorter than this, in model units, are traced with the minimum number of points.
                  * @default 1.0e-7
@@ -8661,67 +8657,38 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1.0e-7
                  */
-                minimumLength: number;
+                minimumLength?: number | undefined;
             }
             /**
              * Wires, a shape and a direction for `shapes.wire.projectWires`, which casts each wire onto the
              * shape along the direction.
              */
-            class ProjectWiresDto<T, U> {
+            class ProjectWiresDto<T, U> extends ProjectWireSharedDto<U> {
                 constructor(wires?: T[], shape?: U, direction?: Base.Vector3);
                 /**
                  * The wires to cast onto the shape, one result per wire.
                  * @default undefined
                  */
                 wires: T[];
-                /**
-                 * The shape the wires land on.
-                 * @default undefined
-                 */
-                shape: U;
-                /**
-                 * The direction the wires are cast along; only its direction matters.
-                 * @default [0, 1, 0]
-                 */
-                direction: Base.Vector3;
             }
             /**
              * Wires or edges and a division count for `divideWiresByParamsToPoints`,
              * `divideEdgesByEqualDistanceToPoints` and their siblings.
              */
-            class DivideShapesDto<T> {
-                constructor(shapes: T[], nrOfDivisions?: number, removeStartPoint?: boolean, removeEndPoint?: boolean);
+            class DivideShapesDto<T> extends DivideSharedDto {
+                constructor(shapes?: T[], nrOfDivisions?: number, removeStartPoint?: boolean, removeEndPoint?: boolean);
                 /**
                  * The wires or edges to place points along, one list of points per shape.
                  * @default undefined
                  */
                 shapes: T[];
-                /**
-                 * How many steps to divide each curve into; one more point than that is placed, the ends
-                 * included.
-                 * @default 10
-                 * @minimum 1
-                 * @maximum Infinity
-                 * @step 1
-                 */
-                nrOfDivisions: number;
-                /**
-                 * When true, the point at the start of each curve is left out.
-                 * @default false
-                 */
-                removeStartPoint: boolean;
-                /**
-                 * When true, the point at the end of each curve is left out.
-                 * @default false
-                 */
-                removeEndPoint: boolean;
             }
             /**
              * A wire, edge or 2D curve and a parameter for the `...AtParam` methods, such as
              * `shapes.wire.pointOnWireAtParam` and `shapes.edge.tangentOnEdgeAtParam`.
              */
             class DataOnGeometryAtParamDto<T> {
-                constructor(shape: T, param?: number);
+                constructor(shape?: T, param?: number);
                 /**
                  * The wire, edge or curve to evaluate.
                  * @default undefined
@@ -8731,18 +8698,18 @@ declare namespace Bit {
                  * Where to evaluate, as a fraction from 0 at the start to 1 at the end; for a raw 2D curve it
                  * is the curve's own parameter.
                  * @default 0.5
-                 * @minimum 0
-                 * @maximum 1
+                 * @minimum -Infinity
+                 * @maximum Infinity
                  * @step 0.1
                  */
-                param: number;
+                param?: number | undefined;
             }
             /**
              * Several edges and one parameter for `shapes.edge.pointsOnEdgesAtParam` and
              * `tangentsOnEdgesAtParam`.
              */
             class DataOnGeometryesAtParamDto<T> {
-                constructor(shapes: T[], param?: number);
+                constructor(shapes?: T[], param?: number);
                 /**
                  * The edges to evaluate, one result per edge.
                  * @default undefined
@@ -8755,14 +8722,14 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                param: number;
+                param?: number | undefined;
             }
             /**
              * A wire and a spacing for `shapes.wire.pointsOnWireAtEqualLength`, which places points every
              * `length` units from the start.
              */
             class PointsOnWireAtEqualLengthDto<T> {
-                constructor(shape: T, length?: number, tryNext?: boolean, includeFirst?: boolean, includeLast?: boolean);
+                constructor(shape?: T, length?: number, tryNext?: boolean, includeFirst?: boolean, includeLast?: boolean);
                 /**
                  * The wire to place points along.
                  * @default undefined
@@ -8771,32 +8738,33 @@ declare namespace Bit {
                 /**
                  * The distance between points along the wire, in model units.
                  * @default 0.5
-                 * @minimum -Infinity
+                 * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                length: number;
+                length?: number | undefined;
                 /**
                  * When true, one more point is asked for a step beyond the last one that fit.
                  * @default false
                  */
-                tryNext: boolean;
+                tryNext?: boolean | undefined;
                 /**
                  * When true, the point at the start of the wire is kept.
                  * @default false
                  */
-                includeFirst: boolean;
+                includeFirst?: boolean | undefined;
                 /**
                  * When true, the end point of the wire is appended whatever the spacing.
                  * @default false
                  */
-                includeLast: boolean;
+                includeLast?: boolean | undefined;
             }
             /**
              * A wire and a repeating pattern of gaps for `shapes.wire.pointsOnWireAtPatternOfLengths`.
              */
             class PointsOnWireAtPatternOfLengthsDto<T> {
-                constructor(shape: T, lengths?: number[], tryNext?: boolean, includeFirst?: boolean, includeLast?: boolean);
+                constructor(shape?: T, lengths?: number[], tryNext?: boolean, includeFirst?: boolean, includeLast?: boolean);
                 /**
                  * The wire to place points along.
                  * @default undefined
@@ -8804,7 +8772,7 @@ declare namespace Bit {
                 shape: T;
                 /**
                  * The gaps between points in model units, applied in turn from the start and repeated until the
-                 * wire runs out.
+                 * wire runs out; they must add up to more than 0.
                  * @default undefined
                  */
                 lengths: number[];
@@ -8812,24 +8780,24 @@ declare namespace Bit {
                  * When true, one more point is asked for at the next gap beyond the last one that fit.
                  * @default false
                  */
-                tryNext: boolean;
+                tryNext?: boolean | undefined;
                 /**
                  * When true, the point at the start of the wire is kept.
                  * @default false
                  */
-                includeFirst: boolean;
+                includeFirst?: boolean | undefined;
                 /**
                  * When true, the end point of the wire is appended whatever the pattern.
                  * @default false
                  */
-                includeLast: boolean;
+                includeLast?: boolean | undefined;
             }
             /**
              * A wire or edge and a distance for the `...AtLength` methods, such as
              * `shapes.wire.pointOnWireAtLength` and `shapes.edge.tangentOnEdgeAtLength`.
              */
             class DataOnGeometryAtLengthDto<T> {
-                constructor(shape: T, length?: number);
+                constructor(shape?: T, length?: number);
                 /**
                  * The wire or edge to evaluate.
                  * @default undefined
@@ -8838,18 +8806,18 @@ declare namespace Bit {
                 /**
                  * The distance from the start along the curve, in model units.
                  * @default 0.5
-                 * @minimum -Infinity
+                 * @minimum 0
                  * @maximum Infinity
                  * @step 0.1
                  */
-                length: number;
+                length?: number | undefined;
             }
             /**
              * Several edges and one distance for `shapes.edge.pointsOnEdgesAtLength` and
              * `tangentsOnEdgesAtLength`.
              */
             class DataOnGeometryesAtLengthDto<T> {
-                constructor(shapes: T[], length?: number);
+                constructor(shapes?: T[], length?: number);
                 /**
                  * The edges to evaluate, one result per edge.
                  * @default undefined
@@ -8858,19 +8826,21 @@ declare namespace Bit {
                 /**
                  * The distance from the start of each edge along its curve, in model units.
                  * @default 0.5
-                 * @minimum -Infinity
+                 * @minimum 0
                  * @maximum Infinity
                  * @step 0.1
                  */
-                length: number;
+                length?: number | undefined;
             }
             /**
-             * A wire and several distances for `shapes.wire.pointsOnWireAtLengths`.
+             * A curve and several distances along it, for `shapes.wire.pointsOnWireAtLengths`,
+             * `analysis.curves.curvaturesAtLengths`, `shapes.edge.splitEdgeAtLengths` and
+             * `shapes.wire.splitWireAtLengths`.
              */
             class DataOnGeometryAtLengthsDto<T> {
-                constructor(shape: T, lengths?: number[]);
+                constructor(shape?: T, lengths?: number[]);
                 /**
-                 * The wire to evaluate.
+                 * The edge or wire to evaluate; each method says which it takes.
                  * @default undefined
                  */
                 shape: T;
@@ -8893,17 +8863,17 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radius: number;
+                radius?: number | undefined;
                 /**
                  * The point the circle is centered on.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
                 /**
                  * The normal of the plane the circle lies in; the default lays it flat on the ground.
                  * @default [0, 1, 0]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
             }
             /**
              * A rectangle, hexagon counts and optional patterns for `shapes.wire.hexagonsInGrid` and
@@ -9017,7 +8987,7 @@ declare namespace Bit {
                  * When true, the loft is capped into a solid; the sections must be closed for that.
                  * @default false
                  */
-                makeSolid: boolean;
+                makeSolid?: boolean | undefined;
             }
             /**
              * Section wires and fitting options for `operations.loftAdvanced`: ruled or smooth patches, a
@@ -9034,24 +9004,24 @@ declare namespace Bit {
                  * When true, the loft is capped into a solid; the sections must be closed for that.
                  * @default false
                  */
-                makeSolid: boolean;
+                makeSolid?: boolean | undefined;
                 /**
                  * When true, the surface loops from the last section back to the first.
                  * @default false
                  */
-                closed: boolean;
+                closed?: boolean | undefined;
                 /**
                  * When true, the closed loop is made smooth across the seam by resampling the sections; needs
                  * `closed`.
                  * @default false
                  */
-                periodic: boolean;
+                periodic?: boolean | undefined;
                 /**
                  * When true, the patches between sections are ruled surfaces with straight lines instead of a
                  * smooth blend.
                  * @default false
                  */
-                straight: boolean;
+                straight?: boolean | undefined;
                 /**
                  * How many points each section is resampled into for a periodic loft.
                  * @default 10
@@ -9059,17 +9029,17 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                nrPeriodicSections: number;
+                nrPeriodicSections?: number | undefined;
                 /**
                  * When true, the kernel smooths the fitted surface.
                  * @default false
                  */
-                useSmoothing: boolean;
+                useSmoothing?: boolean | undefined;
                 /**
                  * The highest polynomial degree the surface may use across the sections.
                  * @default 3
                  */
-                maxUDegree: number;
+                maxUDegree?: number | undefined;
                 /**
                  * How far the fitted surface may stray from the sections, in model units.
                  * @default 1.0e-7
@@ -9077,13 +9047,13 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.000001
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
                 /**
                  * How the sections are parametrized before fitting: by chord length, centripetal, or
                  * isoparametric; centripetal handles uneven sections best.
                  * @default approxCentripetal
                  */
-                parType: approxParametrizationTypeEnum;
+                parType?: approxParametrizationTypeEnum | undefined;
                 /**
                  * A point the loft closes to before the first section, making a pointed end; leave it out for
                  * an open end.
@@ -9125,7 +9095,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                distance: number;
+                distance?: number | undefined;
                 /**
                  * How close two points must be to count as the same when the offset is built, in model units.
                  * @default 0.1
@@ -9133,7 +9103,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.01
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
             }
             /**
              * A shape, a distance and corner options for `operations.offsetAdv`, which moves the shape's
@@ -9161,7 +9131,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                distance: number;
+                distance?: number | undefined;
                 /**
                  * How close two points must be to count as the same when the offset is built, in model units.
                  * @default 0.1
@@ -9169,18 +9139,18 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.01
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
                 /**
                  * How the offset pieces meet at corners: `arc` rounds them, `intersection` extends them to a
                  * sharp corner, `tangent` keeps them tangent.
                  * @default arc
                  */
-                joinType: joinTypeEnum;
+                joinType?: joinTypeEnum | undefined;
                 /**
                  * When true, the internal edges the offset can leave behind are removed from the result.
                  * @default false
                  */
-                removeIntEdges: boolean;
+                removeIntEdges?: boolean | undefined;
             }
             /**
              * A profile, an angle and an axis for `operations.revolve`, which spins the profile about the axis
@@ -9194,23 +9164,24 @@ declare namespace Bit {
                  */
                 shape: T;
                 /**
-                 * How far to spin, in degrees; 360 or more gives a full turn.
+                 * How far to spin, in degrees; a negative angle spins the other way, 360 or more either way
+                 * gives a full turn, and 0 is not allowed.
                  * @default 360
-                 * @minimum 0
-                 * @maximum 360
+                 * @minimum -Infinity
+                 * @maximum Infinity
                  * @step 1
                  */
-                angle: number;
+                angle?: number | undefined;
                 /**
                  * The direction of the axis, which passes through the origin.
                  * @default [0, 1, 0]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
                 /**
                  * When true, the profile's geometry is copied instead of shared with the result.
                  * @default false
                  */
-                copy: boolean;
+                copy?: boolean | undefined;
             }
             /**
              * A path wire and profile shapes for `operations.pipe`, and generally one shape with a list of
@@ -9261,26 +9232,27 @@ declare namespace Bit {
                  * The radius of the tubes, in model units.
                  * @default 0.1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 1
                  */
-                radius: number;
+                radius?: number | undefined;
                 /**
                  * When true, the tubes are solids; when false they are open shells.
                  * @default true
                  */
-                makeSolid: boolean;
+                makeSolid?: boolean | undefined;
                 /**
                  * How the profile turns as it follows the path; `isConstantNormal` keeps it steady, the Frenet
                  * modes follow the curve's bending.
                  * @default isConstantNormal
                  */
-                trihedronEnum: geomFillTrihedronEnum;
+                trihedronEnum?: geomFillTrihedronEnum | undefined;
                 /**
                  * When true, a swept surface that came out with kinks is refitted to be smooth.
                  * @default false
                  */
-                forceApproxC1: boolean;
+                forceApproxC1?: boolean | undefined;
             }
             /**
              * A path wire, a radius and sweep options for `operations.pipeWireCylindrical`, which makes a round
@@ -9297,26 +9269,27 @@ declare namespace Bit {
                  * The radius of the tube, in model units.
                  * @default 0.1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 1
                  */
-                radius: number;
+                radius?: number | undefined;
                 /**
                  * When true, the tube is a solid; when false it is an open shell.
                  * @default true
                  */
-                makeSolid: boolean;
+                makeSolid?: boolean | undefined;
                 /**
                  * How the profile turns as it follows the path; `isConstantNormal` keeps it steady, the Frenet
                  * modes follow the curve's bending.
                  * @default isConstantNormal
                  */
-                trihedronEnum: geomFillTrihedronEnum;
+                trihedronEnum?: geomFillTrihedronEnum | undefined;
                 /**
                  * When true, a swept surface that came out with kinks is refitted to be smooth.
                  * @default false
                  */
-                forceApproxC1: boolean;
+                forceApproxC1?: boolean | undefined;
             }
             /**
              * A path wire, a polygon size and sweep options for `operations.pipePolylineWireNGon`, which makes
@@ -9333,10 +9306,11 @@ declare namespace Bit {
                  * The distance from the path to each corner of the polygon, in model units.
                  * @default 0.1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 1
                  */
-                radius: number;
+                radius?: number | undefined;
                 /**
                  * How many corners, and so flat sides, the tube has.
                  * @default 6
@@ -9344,23 +9318,23 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                nrCorners: number;
+                nrCorners?: number | undefined;
                 /**
                  * When true, the tube is a solid; when false it is an open shell.
                  * @default true
                  */
-                makeSolid: boolean;
+                makeSolid?: boolean | undefined;
                 /**
                  * How the profile turns as it follows the path; `isConstantNormal` keeps it steady, the Frenet
                  * modes follow the curve's bending.
                  * @default isConstantNormal
                  */
-                trihedronEnum: geomFillTrihedronEnum;
+                trihedronEnum?: geomFillTrihedronEnum | undefined;
                 /**
                  * When true, a swept surface that came out with kinks is refitted to be smooth.
                  * @default false
                  */
-                forceApproxC1: boolean;
+                forceApproxC1?: boolean | undefined;
             }
             /**
              * A shape and a vector for `operations.extrude`, which sweeps the shape in a straight line.
@@ -9376,7 +9350,7 @@ declare namespace Bit {
                  * The direction and distance of the sweep as one vector, in model units.
                  * @default [0, 1, 0]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
             }
             /**
              * Shapes and a vector for `operations.extrudeShapes`, which sweeps every shape in the same straight
@@ -9393,7 +9367,7 @@ declare namespace Bit {
                  * The direction and distance of the sweep as one vector, in model units.
                  * @default [0, 1, 0]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
             }
             /**
              * A shape and the shapes to cut it with for `operations.splitShapeWithShapes`.
@@ -9418,21 +9392,21 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.000001
                  */
-                localFuzzyTolerance: number;
+                localFuzzyTolerance?: number | undefined;
                 /**
                  * When true, the inputs stay untouched and the result holds the pieces of every shape involved;
                  * when false only the pieces of `shape` come back.
                  * @default true
                  */
-                nonDestructive: boolean;
+                nonDestructive?: boolean | undefined;
             }
             /**
              * Shapes and an edge flag for `booleans.union`, which fuses them into one.
              */
             class UnionDto<T> {
-                constructor(shapes?: T[], keepEdges?: boolean);
+                constructor(shapes?: T[], keepEdges?: boolean, strategy?: booleanStrategyEnum);
                 /**
-                 * The shapes to fuse, joined one after another in this order.
+                 * The shapes to fuse, in order; the pieces of a compound are fused as separate shapes.
                  * @default undefined
                  */
                 shapes: T[];
@@ -9441,20 +9415,27 @@ declare namespace Bit {
                  * every edge of the inputs stays.
                  * @default false
                  */
-                keepEdges: boolean;
+                keepEdges?: boolean | undefined;
+                /**
+                 * One shape per step suits any; in groups is faster for shapes apart but numbers faces
+                 * differently; all at once is fastest but wrong where shapes touch at a point.
+                 * @default oneAfterAnother
+                 */
+                strategy?: booleanStrategyEnum | undefined;
             }
             /**
              * A main shape and the shapes to cut away from it for `booleans.difference`.
              */
             class DifferenceDto<T> {
-                constructor(shape?: T, shapes?: T[], keepEdges?: boolean);
+                constructor(shape?: T, shapes?: T[], keepEdges?: boolean, strategy?: booleanStrategyEnum);
                 /**
                  * The shape material is removed from.
                  * @default undefined
                  */
                 shape: T;
                 /**
-                 * The shapes whose volume is cut away, one after another.
+                 * The shapes whose volume is cut away, in order; the pieces of a compound are cut away as
+                 * separate shapes.
                  * @default undefined
                  */
                 shapes: T[];
@@ -9463,7 +9444,13 @@ declare namespace Bit {
                  * edge stays.
                  * @default false
                  */
-                keepEdges: boolean;
+                keepEdges?: boolean | undefined;
+                /**
+                 * One shape per step suits any; in groups is faster for shapes apart but numbers faces
+                 * differently; all at once is fastest but wrong where shapes touch at a point.
+                 * @default oneAfterAnother
+                 */
+                strategy?: booleanStrategyEnum | undefined;
             }
             /**
              * Shapes and an edge flag for `booleans.intersection`, which keeps what the first shape shares with
@@ -9481,11 +9468,11 @@ declare namespace Bit {
                  * stays.
                  * @default false
                  */
-                keepEdges: boolean;
+                keepEdges?: boolean | undefined;
             }
             /**
-             * One shape for the many methods that take nothing else, such as `shapes.shape.isValid`,
-             * `shapes.face.getFaceArea` or `operations.boundingBoxOfShape`.
+             * One shape for the many methods that take nothing else, such as `shapeFix.isValid`,
+             * `shapes.face.getFaceArea` or `analysis.measure.tightBoundingBox`.
              */
             class ShapeDto<T> {
                 constructor(shape?: T);
@@ -9511,6 +9498,7 @@ declare namespace Bit {
                  * and costs more triangles.
                  * @default 0.01
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.01
                  */
@@ -9525,6 +9513,7 @@ declare namespace Bit {
                  * and costs more triangles.
                  * @default 0.01
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.01
                  */
@@ -9546,6 +9535,7 @@ declare namespace Bit {
                  * and costs more triangles.
                  * @default 0.01
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.01
                  */
@@ -9593,7 +9583,7 @@ declare namespace Bit {
                  * gaps.
                  * @default false
                  */
-                lockvtx: boolean;
+                lockvtx?: boolean | undefined;
                 /**
                  * Edges shorter than this, in model units, are removed; 0 uses the wire's own tolerance.
                  * @default 0
@@ -9601,7 +9591,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.0000000001
                  */
-                precsmall: number;
+                precsmall?: number | undefined;
             }
             /**
              * A shape and tolerance bounds for `shapeFix.basicShapeRepair`, the kernel's general repair.
@@ -9620,7 +9610,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.0000000001
                  */
-                precision: number;
+                precision?: number | undefined;
                 /**
                  * The largest tolerance the repair may give a part of the shape while closing gaps, in model
                  * units; a gap needing more stays open.
@@ -9629,7 +9619,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.0000000001
                  */
-                maxTolerance: number;
+                maxTolerance?: number | undefined;
                 /**
                  * The smallest tolerance the repair may use, in model units; edges shorter than this are
                  * removed.
@@ -9638,7 +9628,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.0000000001
                  */
-                minTolerance: number;
+                minTolerance?: number | undefined;
             }
             /**
              * A shape and a tolerance for `shapes.face.faceFromSurface`, `shapes.shell.sewFaces` and the other
@@ -9658,7 +9648,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.000001
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
             }
             /**
              * A shape and a position for `shapes.face.getFace`, `shapes.wire.getWire`, `shapes.solid.getSolid`
@@ -9679,7 +9669,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                index: number;
+                index?: number | undefined;
             }
             /**
              * A shape and a position for `shapes.edge.getEdge`.
@@ -9699,7 +9689,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                index: number;
+                index?: number | undefined;
             }
             /**
              * A flat profile, a height and a twist for `operations.rotatedExtrude`, which extrudes the profile
@@ -9719,20 +9709,20 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                height: number;
+                height?: number | undefined;
                 /**
                  * How far the profile turns about the Y axis over the height, in degrees.
                  * @default 360
-                 * @minimum 0
-                 * @maximum 360
+                 * @minimum -Infinity
+                 * @maximum Infinity
                  * @step 1
                  */
-                angle: number;
+                angle?: number | undefined;
                 /**
                  * When true, a face profile gives a closed solid; when false the result is a shell.
                  * @default true
                  */
-                makeSolid: boolean;
+                makeSolid?: boolean | undefined;
             }
             /**
              * A solid, the faces to remove and a wall thickness for `operations.makeThickSolidByJoin`, which
@@ -9753,11 +9743,11 @@ declare namespace Bit {
                 /**
                  * The wall thickness in model units; negative grows the wall inward.
                  * @default 1
-                 * @minimum 0
+                 * @minimum -Infinity
                  * @maximum Infinity
                  * @step 0.1
                  */
-                offset: number;
+                offset?: number | undefined;
                 /**
                  * How close two points must be to count as the same when the offset walls are joined, in model
                  * units.
@@ -9766,30 +9756,30 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.000001
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
                 /**
                  * When true, the offset faces are intersected with each other rather than joined by their
                  * parallels; the kernel's default is false.
                  * @default false
                  */
-                intersection: boolean;
+                intersection?: boolean | undefined;
                 /**
                  * Whether the kernel should look for self-intersections in the result; not implemented by the
                  * kernel, so leave it false.
                  * @default false
                  */
-                selfIntersection: boolean;
+                selfIntersection?: boolean | undefined;
                 /**
                  * How the offset walls meet at corners: `arc` rounds them, `intersection` extends them to a
                  * sharp corner, `tangent` keeps them tangent.
                  * @default arc
                  */
-                joinType: joinTypeEnum;
+                joinType?: joinTypeEnum | undefined;
                 /**
                  * When true, the internal edges the offset can leave on the walls are removed from the result.
                  * @default false
                  */
-                removeIntEdges: boolean;
+                removeIntEdges?: boolean | undefined;
             }
             /**
              * A shape and a scale, rotation and translation for `transforms.transform`, applied in that order
@@ -9806,28 +9796,29 @@ declare namespace Bit {
                  * The vector the shape moves by, in model units, applied last.
                  * @default [0,0,0]
                  */
-                translation: Base.Vector3;
+                translation?: Base.Vector3 | undefined;
                 /**
                  * The direction of the rotation axis, which passes through the origin.
                  * @default [0,1,0]
                  */
-                rotationAxis: Base.Vector3;
+                rotationAxis?: Base.Vector3 | undefined;
                 /**
                  * The rotation about the axis, in degrees, applied after the scale.
                  * @default 0
-                 * @minimum 0
-                 * @maximum 360
+                 * @minimum -Infinity
+                 * @maximum Infinity
                  * @step 1
                  */
-                rotationAngle: number;
+                rotationAngle?: number | undefined;
                 /**
-                 * The uniform scale about the origin, applied first; 1 keeps the size.
+                 * The uniform scale about the origin, applied first; 1 keeps the size, and a negative factor
+                 * also mirrors the shape through the origin. It must not be 0.
                  * @default 1
-                 * @minimum 0
+                 * @minimum -Infinity
                  * @maximum Infinity
                  * @step 0.1
                  */
-                scaleFactor: number;
+                scaleFactor?: number | undefined;
             }
             /**
              * Shapes and one scale, rotation and translation each for `transforms.transformShapes`; all the
@@ -9845,22 +9836,22 @@ declare namespace Bit {
                  * One translation vector per shape, in model units.
                  * @default [[0,0,0]]
                  */
-                translations: Base.Vector3[];
+                translations?: Base.Vector3[] | undefined;
                 /**
                  * One rotation axis direction per shape, each through the origin.
                  * @default [[0,1,0]]
                  */
-                rotationAxes: Base.Vector3[];
+                rotationAxes?: Base.Vector3[] | undefined;
                 /**
                  * One rotation angle per shape, in degrees.
                  * @default [0]
                  */
-                rotationAngles: number[];
+                rotationAngles?: number[] | undefined;
                 /**
-                 * One uniform scale factor per shape, about the origin.
+                 * One uniform scale factor per shape, about the origin; none may be 0.
                  * @default [1]
                  */
-                scaleFactors: number[];
+                scaleFactors?: number[] | undefined;
             }
             /**
              * A shape and a vector for `transforms.translate`.
@@ -9876,7 +9867,7 @@ declare namespace Bit {
                  * The vector the shape moves by, in model units.
                  * @default [0, 0, 0]
                  */
-                translation: Base.Vector3;
+                translation?: Base.Vector3 | undefined;
             }
             /**
              * Shapes and one vector each for `transforms.translateShapes`; the two lists must have the same
@@ -9893,7 +9884,7 @@ declare namespace Bit {
                  * One vector per shape, in model units.
                  * @default [[0, 0, 0]]
                  */
-                translations: Base.Vector3[];
+                translations?: Base.Vector3[] | undefined;
             }
             /**
              * A shape and two full frames for `transforms.alignNormAndAxis`: the point, normal and axis the
@@ -9910,33 +9901,33 @@ declare namespace Bit {
                  * The point on the shape that is carried onto `toOrigin`.
                  * @default [0, 0, 0]
                  */
-                fromOrigin: Base.Point3;
+                fromOrigin?: Base.Point3 | undefined;
                 /**
                  * The normal direction at the shape's frame, carried onto `toNorm`.
                  * @default [1, 0, 0]
                  */
-                fromNorm: Base.Vector3;
+                fromNorm?: Base.Vector3 | undefined;
                 /**
                  * An axis direction in the plane of the normal at the shape's frame, carried onto `toAx`; it
                  * fixes the spin about the normal.
                  * @default [0, 0, 1]
                  */
-                fromAx: Base.Vector3;
+                fromAx?: Base.Vector3 | undefined;
                 /**
                  * The point `fromOrigin` lands on.
                  * @default [0, 1, 0]
                  */
-                toOrigin: Base.Point3;
+                toOrigin?: Base.Point3 | undefined;
                 /**
                  * The direction `fromNorm` lands on.
                  * @default [0, 1, 0]
                  */
-                toNorm: Base.Vector3;
+                toNorm?: Base.Vector3 | undefined;
                 /**
                  * The direction `fromAx` lands on.
                  * @default [0, 0, 1]
                  */
-                toAx: Base.Vector3;
+                toAx?: Base.Vector3 | undefined;
             }
             /**
              * A shape, a point and direction on it, and the point and direction to land on, for
@@ -9953,22 +9944,22 @@ declare namespace Bit {
                  * The point on the shape that is carried onto `toOrigin`.
                  * @default [0, 0, 0]
                  */
-                fromOrigin: Base.Point3;
+                fromOrigin?: Base.Point3 | undefined;
                 /**
                  * The direction at the shape's frame that is carried onto `toDirection`.
                  * @default [0, 0, 1]
                  */
-                fromDirection: Base.Vector3;
+                fromDirection?: Base.Vector3 | undefined;
                 /**
                  * The point `fromOrigin` lands on.
                  * @default [0, 1, 0]
                  */
-                toOrigin: Base.Point3;
+                toOrigin?: Base.Point3 | undefined;
                 /**
                  * The direction `fromDirection` lands on.
                  * @default [0, 1, 0]
                  */
-                toDirection: Base.Vector3;
+                toDirection?: Base.Vector3 | undefined;
             }
             /**
              * Shapes and one from and to frame each for `transforms.alignShapes`; all the lists must have the
@@ -9985,22 +9976,22 @@ declare namespace Bit {
                  * One point per shape that is carried onto the matching `toOrigins` entry.
                  * @default [[0, 0, 0]]
                  */
-                fromOrigins: Base.Point3[];
+                fromOrigins?: Base.Point3[] | undefined;
                 /**
                  * One direction per shape that is carried onto the matching `toDirections` entry.
                  * @default [[0, 0, 1]]
                  */
-                fromDirections: Base.Vector3[];
+                fromDirections?: Base.Vector3[] | undefined;
                 /**
                  * One point per shape for its `fromOrigins` entry to land on.
                  * @default [[0, 1, 0]]
                  */
-                toOrigins: Base.Point3[];
+                toOrigins?: Base.Point3[] | undefined;
                 /**
                  * One direction per shape for its `fromDirections` entry to land on.
                  * @default [[0, 1, 0]]
                  */
-                toDirections: Base.Vector3[];
+                toDirections?: Base.Vector3[] | undefined;
             }
             /**
              * A shape and an axis for `transforms.mirror`, which mirrors the shape across the line through
@@ -10017,12 +10008,12 @@ declare namespace Bit {
                  * A point on the mirror axis.
                  * @default [0, 0, 0]
                  */
-                origin: Base.Point3;
+                origin?: Base.Point3 | undefined;
                 /**
                  * The direction of the mirror axis.
                  * @default [0, 0, 1]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
             }
             /**
              * Shapes and one mirror axis each for `transforms.mirrorShapes`; all the lists must have the same
@@ -10039,12 +10030,12 @@ declare namespace Bit {
                  * One point per shape on its mirror axis.
                  * @default [[0, 0, 0]]
                  */
-                origins: Base.Point3[];
+                origins?: Base.Point3[] | undefined;
                 /**
                  * One mirror axis direction per shape.
                  * @default [[0, 0, 1]]
                  */
-                directions: Base.Vector3[];
+                directions?: Base.Vector3[] | undefined;
             }
             /**
              * A shape and a plane for `transforms.mirrorAlongNormal`, which mirrors the shape across the plane
@@ -10061,12 +10052,12 @@ declare namespace Bit {
                  * A point on the mirror plane.
                  * @default [0, 0, 0]
                  */
-                origin: Base.Point3;
+                origin?: Base.Point3 | undefined;
                 /**
                  * The normal of the mirror plane.
                  * @default [0, 0, 1]
                  */
-                normal: Base.Vector3;
+                normal?: Base.Vector3 | undefined;
             }
             /**
              * Shapes and one mirror plane each for `transforms.mirrorAlongNormalShapes`; all the lists must
@@ -10083,12 +10074,12 @@ declare namespace Bit {
                  * One point per shape on its mirror plane.
                  * @default [[0, 0, 0]]
                  */
-                origins: Base.Point3[];
+                origins?: Base.Point3[] | undefined;
                 /**
                  * One mirror plane normal per shape.
                  * @default [[0, 0, 1]]
                  */
-                normals: Base.Vector3[];
+                normals?: Base.Vector3[] | undefined;
             }
             /**
              * A shape, a direction for its Y axis and a point to move it to, for
@@ -10105,11 +10096,12 @@ declare namespace Bit {
                  * The direction the shape's Y axis should point along after placing.
                  * @default [0, 1, 0]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
                 /**
                  * The point the shape's origin is moved to, in model units.
+                 * @default [0, 0, 0]
                  */
-                center: Base.Vector3;
+                center?: Base.Vector3 | undefined;
             }
             /**
              * A shape and what to merge for `shapes.shape.unifySameDomain`, which joins faces and edges that
@@ -10126,17 +10118,17 @@ declare namespace Bit {
                  * When true, edges that continue each other on one curve are merged into one.
                  * @default true
                  */
-                unifyEdges: boolean;
+                unifyEdges?: boolean | undefined;
                 /**
                  * When true, faces that lie on one surface are merged into one.
                  * @default true
                  */
-                unifyFaces: boolean;
+                unifyFaces?: boolean | undefined;
                 /**
                  * When true, neighboring B-spline edges are joined into a single B-spline where possible.
                  * @default true
                  */
-                concatBSplines: boolean;
+                concatBSplines?: boolean | undefined;
             }
             /**
              * Faces, points and which groups to keep for `shapes.face.filterFacesPoints`, which sorts each
@@ -10161,13 +10153,13 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.000001
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
                 /**
                  * When true, a point outside the face's bounding box, grown by `gapTolerance`, counts as
                  * outside without the exact test; a quick reject for many points far from the face.
                  * @default false
                  */
-                useBndBox: boolean;
+                useBndBox?: boolean | undefined;
                 /**
                  * How far beyond the bounding box a point may lie and still get the exact test when
                  * `useBndBox` is on, in model units.
@@ -10176,33 +10168,33 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.01
                  */
-                gapTolerance: number;
+                gapTolerance?: number | undefined;
                 /**
                  * When true, points inside a face are kept.
                  * @default true
                  */
-                keepIn: boolean;
+                keepIn?: boolean | undefined;
                 /**
                  * When true, points on the boundary of a face are kept.
                  * @default true
                  */
-                keepOn: boolean;
+                keepOn?: boolean | undefined;
                 /**
                  * When true, points outside a face are kept.
                  * @default false
                  */
-                keepOut: boolean;
+                keepOut?: boolean | undefined;
                 /**
                  * When true, points the kernel cannot place inside, on or outside a face are kept.
                  * @default false
                  */
-                keepUnknown: boolean;
+                keepUnknown?: boolean | undefined;
                 /**
                  * When true, the kept points of all faces come back in one list; when false, one list per face
                  * in the order given.
                  * @default true
                  */
-                flatPointsArray: boolean;
+                flatPointsArray?: boolean | undefined;
             }
             /**
              * A face, points and which groups to keep for `shapes.face.filterFacePoints`, which sorts each
@@ -10227,13 +10219,13 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.000001
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
                 /**
                  * When true, a point outside the face's bounding box, grown by `gapTolerance`, counts as
                  * outside without the exact test; a quick reject for many points far from the face.
                  * @default false
                  */
-                useBndBox: boolean;
+                useBndBox?: boolean | undefined;
                 /**
                  * How far beyond the bounding box a point may lie and still get the exact test when
                  * `useBndBox` is on, in model units.
@@ -10242,27 +10234,27 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.01
                  */
-                gapTolerance: number;
+                gapTolerance?: number | undefined;
                 /**
                  * When true, points inside the face are kept.
                  * @default true
                  */
-                keepIn: boolean;
+                keepIn?: boolean | undefined;
                 /**
                  * When true, points on the boundary of the face are kept.
                  * @default true
                  */
-                keepOn: boolean;
+                keepOn?: boolean | undefined;
                 /**
                  * When true, points outside the face are kept.
                  * @default false
                  */
-                keepOut: boolean;
+                keepOut?: boolean | undefined;
                 /**
                  * When true, points the kernel cannot place inside, on or outside the face are kept.
                  * @default false
                  */
-                keepUnknown: boolean;
+                keepUnknown?: boolean | undefined;
             }
             /**
              * A solid, points and which groups to keep for `shapes.solid.filterSolidPoints`, which sorts each
@@ -10287,27 +10279,27 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.000001
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
                 /**
                  * When true, points inside the solid are kept.
                  * @default true
                  */
-                keepIn: boolean;
+                keepIn?: boolean | undefined;
                 /**
                  * When true, points on the surface of the solid are kept.
                  * @default true
                  */
-                keepOn: boolean;
+                keepOn?: boolean | undefined;
                 /**
                  * When true, points outside the solid are kept.
                  * @default false
                  */
-                keepOut: boolean;
+                keepOut?: boolean | undefined;
                 /**
                  * When true, points the kernel could not classify are kept.
                  * @default false
                  */
-                keepUnknown: boolean;
+                keepUnknown?: boolean | undefined;
             }
             /**
              * Shapes and one direction and point each for `transforms.alignAndTranslateShapes`; all the lists
@@ -10324,11 +10316,12 @@ declare namespace Bit {
                  * One direction per shape for its Y axis to point along.
                  * @default [[0, 1, 0]]
                  */
-                directions: Base.Vector3[];
+                directions?: Base.Vector3[] | undefined;
                 /**
                  * One point per shape for its origin to move to, in model units.
+                 * @default [[0, 0, 0]]
                  */
-                centers: Base.Vector3[];
+                centers?: Base.Vector3[] | undefined;
             }
             /**
              * A shape, an axis through the origin and an angle for `transforms.rotate`.
@@ -10344,15 +10337,15 @@ declare namespace Bit {
                  * The direction of the rotation axis, which passes through the origin.
                  * @default [0, 0, 1]
                  */
-                axis: Base.Vector3;
+                axis?: Base.Vector3 | undefined;
                 /**
                  * The rotation in degrees, following the right-hand rule about the axis.
                  * @default 0
-                 * @minimum 0
-                 * @maximum 360
+                 * @minimum -Infinity
+                 * @maximum Infinity
                  * @step 1
                  */
-                angle: number;
+                angle?: number | undefined;
             }
             /**
              * A shape, an angle, a center and an axis for `transforms.rotateAroundCenter`, which rotates about
@@ -10369,17 +10362,17 @@ declare namespace Bit {
                  * The rotation in degrees, following the right-hand rule about the axis.
                  * @default 0
                  */
-                angle: number;
+                angle?: number | undefined;
                 /**
                  * The point the rotation axis passes through.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
                 /**
                  * The direction of the rotation axis.
                  * @default [0, 0, 1]
                  */
-                axis: Base.Vector3;
+                axis?: Base.Vector3 | undefined;
             }
             /**
              * Shapes and one axis and angle each for `transforms.rotateShapes`; all the lists must have the
@@ -10396,12 +10389,12 @@ declare namespace Bit {
                  * One rotation axis direction per shape, each through the origin.
                  * @default [[0, 0, 1]]
                  */
-                axes: Base.Vector3[];
+                axes?: Base.Vector3[] | undefined;
                 /**
                  * One rotation angle per shape, in degrees.
                  * @default [0]
                  */
-                angles: number[];
+                angles?: number[] | undefined;
             }
             /**
              * Shapes and one angle, center and axis each for `transforms.rotateAroundCenterShapes`; all the
@@ -10418,17 +10411,17 @@ declare namespace Bit {
                  * One rotation angle per shape, in degrees.
                  * @default [0]
                  */
-                angles: number[];
+                angles?: number[] | undefined;
                 /**
                  * One point per shape for its rotation axis to pass through.
                  * @default [[0, 0, 0]]
                  */
-                centers: Base.Point3[];
+                centers?: Base.Point3[] | undefined;
                 /**
                  * One rotation axis direction per shape.
                  * @default [[0, 0, 1]]
                  */
-                axes: Base.Vector3[];
+                axes?: Base.Vector3[] | undefined;
             }
             /**
              * A shape and a factor for `transforms.scale`, which scales uniformly about the origin.
@@ -10441,13 +10434,14 @@ declare namespace Bit {
                  */
                 shape: T;
                 /**
-                 * The uniform scale factor; 2 doubles every size, 0.5 halves it.
+                 * The uniform scale factor; 2 doubles every size, 0.5 halves it, and a negative factor also
+                 * mirrors the shape through the origin. It must not be 0.
                  * @default 1
-                 * @minimum 0
+                 * @minimum -Infinity
                  * @maximum Infinity
                  * @step 0.1
                  */
-                factor: number;
+                factor?: number | undefined;
             }
             /**
              * Shapes and one factor each for `transforms.scaleShapes`; the two lists must have the same length.
@@ -10460,10 +10454,10 @@ declare namespace Bit {
                  */
                 shapes: T[];
                 /**
-                 * One uniform scale factor per shape, about the origin.
+                 * One uniform scale factor per shape, about the origin; none may be 0.
                  * @default [1]
                  */
-                factors: number[];
+                factors?: number[] | undefined;
             }
             /**
              * A shape, three factors and a center for `transforms.scale3d`, which scales each axis on its own
@@ -10477,15 +10471,15 @@ declare namespace Bit {
                  */
                 shape: T;
                 /**
-                 * The factors along X, Y and Z; unequal factors stretch the shape.
+                 * The factors along X, Y and Z; unequal factors stretch the shape, and none may be 0.
                  * @default [1, 1, 1]
                  */
-                scale: Base.Vector3;
+                scale?: Base.Vector3 | undefined;
                 /**
                  * The point that stays in place while everything else scales away from or toward it.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
             }
             /**
              * Shapes and one factor triple and center each for `transforms.scale3dShapes`; all the lists must
@@ -10499,15 +10493,15 @@ declare namespace Bit {
                  */
                 shapes: T[];
                 /**
-                 * One set of X, Y and Z factors per shape.
+                 * One set of X, Y and Z factors per shape, none of them 0.
                  * @default [[1, 1, 1]]
                  */
-                scales: Base.Vector3[];
+                scales?: Base.Vector3[] | undefined;
                 /**
                  * One point per shape that stays in place while it scales.
                  * @default [[0, 0, 0]]
                  */
-                centers: Base.Point3[];
+                centers?: Base.Point3[] | undefined;
             }
             /**
              * A shape and a matrix, or a list of matrices, for `transforms.transformByMatrix`.
@@ -10567,16 +10561,17 @@ declare namespace Bit {
                  */
                 shape: T;
                 /**
-                 * The uniform scale factor; 2 doubles every size, 0.5 halves it.
+                 * The uniform scale factor; 2 doubles every size, 0.5 halves it, and a negative factor also
+                 * mirrors the shape through the center. It must not be 0.
                  * @default 1
                  * @step 0.1
                  */
-                factor: number;
+                factor?: number | undefined;
                 /**
                  * The point that stays in place while everything else scales away from or toward it.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
             }
             /**
              * A shape and a point for `transforms.mirrorAboutPoint`, which mirrors the shape through the point.
@@ -10592,7 +10587,7 @@ declare namespace Bit {
                  * The point every part of the shape is mirrored through.
                  * @default [0, 0, 0]
                  */
-                point: Base.Point3;
+                point?: Base.Point3 | undefined;
             }
             /**
              * A shape and a quaternion for `transforms.rotateByQuaternion`, which rotates the shape about the
@@ -10615,12 +10610,12 @@ declare namespace Bit {
                  * rotation.
                  * @default [0, 0, 0, 1]
                  */
-                quaternion: [
+                quaternion?: [
                     number,
                     number,
                     number,
                     number
-                ];
+                ] | undefined;
             }
             /**
              * A translation, Euler rotation and uniform scale for `transforms.composeTransform`, combined into
@@ -10632,19 +10627,19 @@ declare namespace Bit {
                  * The move as `[x, y, z]`, in model units, applied last.
                  * @default [0, 0, 0]
                  */
-                translation: Base.Vector3;
+                translation?: Base.Vector3 | undefined;
                 /**
                  * Euler angles `[rx, ry, rz]` in degrees about the X, Y and Z axes; the Z turn is applied
                  * first, then Y, then X.
                  * @default [0, 0, 0]
                  */
-                rotation: Base.Vector3;
+                rotation?: Base.Vector3 | undefined;
                 /**
                  * The uniform scale about the origin, applied first; 1 keeps the size.
                  * @default 1
                  * @step 0.1
                  */
-                scale: number;
+                scale?: number | undefined;
             }
             /**
              * A matrix, or a list of matrices, for `transforms.multiplyTransforms`, which folds them into one.
@@ -10678,7 +10673,7 @@ declare namespace Bit {
                  * The move as `[x, y, z]`, in model units.
                  * @default [0, 0, 0]
                  */
-                translation: Base.Vector3;
+                translation?: Base.Vector3 | undefined;
             }
             /**
              * An axis, an angle and an optional center for `transforms.rotationAxisAngleToMatrix`.
@@ -10689,18 +10684,18 @@ declare namespace Bit {
                  * The direction of the rotation axis.
                  * @default [0, 0, 1]
                  */
-                axis: Base.Vector3;
+                axis?: Base.Vector3 | undefined;
                 /**
                  * The rotation in degrees, following the right-hand rule about the axis.
                  * @default 0
                  * @step 1
                  */
-                angle: number;
+                angle?: number | undefined;
                 /**
                  * The point the axis passes through; the origin when left at its default.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
             }
             /**
              * A factor and an optional center for `transforms.scaleUniformToMatrix`.
@@ -10712,13 +10707,13 @@ declare namespace Bit {
                  * @default 1
                  * @step 0.1
                  */
-                factor: number;
+                factor?: number | undefined;
                 /**
                  * The point that stays in place while everything else scales; the origin when left at its
                  * default.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
             }
             /**
              * A point for `transforms.mirrorPointToMatrix`, the matrix of a mirror through that point.
@@ -10729,7 +10724,7 @@ declare namespace Bit {
                  * The point every part of a shape is mirrored through.
                  * @default [0, 0, 0]
                  */
-                point: Base.Point3;
+                point?: Base.Point3 | undefined;
             }
             /**
              * An axis for `transforms.mirrorAxisToMatrix`, the matrix of a mirror across the line through
@@ -10741,12 +10736,12 @@ declare namespace Bit {
                  * A point on the mirror axis.
                  * @default [0, 0, 0]
                  */
-                origin: Base.Point3;
+                origin?: Base.Point3 | undefined;
                 /**
                  * The direction of the mirror axis; any length will do, but not a zero vector.
                  * @default [1, 0, 0]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
             }
             /**
              * A plane for `transforms.mirrorPlaneToMatrix`, the matrix of a mirror across the plane through
@@ -10758,12 +10753,12 @@ declare namespace Bit {
                  * A point on the mirror plane.
                  * @default [0, 0, 0]
                  */
-                origin: Base.Point3;
+                origin?: Base.Point3 | undefined;
                 /**
                  * The normal of the mirror plane; any length will do, but not a zero vector.
                  * @default [0, 0, 1]
                  */
-                normal: Base.Vector3;
+                normal?: Base.Vector3 | undefined;
             }
             /**
              * A quaternion for `transforms.quaternionToMatrix`, which builds the matrix of that rotation.
@@ -10780,12 +10775,12 @@ declare namespace Bit {
                  * rotation.
                  * @default [0, 0, 0, 1]
                  */
-                quaternion: [
+                quaternion?: [
                     number,
                     number,
                     number,
                     number
-                ];
+                ] | undefined;
             }
             /**
              * Decomposed placement transform of a shape or label.
@@ -10832,14 +10827,14 @@ declare namespace Bit {
                  * What kind of part the node is: solid, shell, face, wire, edge, vertex, compound or compsolid.
                  * @default solid
                  */
-                kind: brepGraphNodeKindEnum;
+                kind?: brepGraphNodeKindEnum | undefined;
                 /**
                  * The position of the node among the parts of its kind, counting from 0, as the graph queries
                  * report it.
                  * @default 0
                  * @step 1
                  */
-                index: number;
+                index?: number | undefined;
             }
             /**
              * A shape and one of its sub-shapes for `brepGraph.nodeOfShape`, which finds the graph node
@@ -10873,13 +10868,13 @@ declare namespace Bit {
                  * Points near the corners to round; the vertex nearest each point is the one treated.
                  * @default []
                  */
-                points: Base.Point3[];
+                points?: Base.Point3[] | undefined;
                 /**
                  * The rounding radius, in model units.
                  * @default 1
                  * @step 0.1
                  */
-                radius: number;
+                radius?: number | undefined;
                 /**
                  * For 3D corners, how far the rounding reaches along the meeting edges: 0 for the tightest,
                  * almost spherical corner, 1 for the full reach.
@@ -10888,20 +10883,20 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                taperFactor: number;
+                taperFactor?: number | undefined;
                 /**
                  * How far a point may be from a vertex and still pick it, in model units; 0 or less accepts the
                  * nearest vertex whatever the distance.
                  * @default 0
                  * @step 0.1
                  */
-                snapTolerance: number;
+                snapTolerance?: number | undefined;
                 /**
                  * `auto` rounds planar corners in place and 3D corners with a taper; `planarOnly` skips 3D
                  * corners.
                  * @default auto
                  */
-                mode: cornerModeEnum;
+                mode?: cornerModeEnum | undefined;
             }
             /**
              * A shell or solid, points near its corners and bevel settings for `corners.chamferCornerByPoint`,
@@ -10918,32 +10913,32 @@ declare namespace Bit {
                  * Points near the corners to bevel; the vertex nearest each point is the one treated.
                  * @default []
                  */
-                points: Base.Point3[];
+                points?: Base.Point3[] | undefined;
                 /**
                  * How far the bevel reaches back from the corner along its edges, in model units.
                  * @default 1
                  * @step 0.1
                  */
-                distance: number;
+                distance?: number | undefined;
                 /**
                  * The slope of the bevel in degrees, used for planar corners.
                  * @default 45
                  * @step 1
                  */
-                angle: number;
+                angle?: number | undefined;
                 /**
                  * How far a point may be from a vertex and still pick it, in model units; 0 or less accepts the
                  * nearest vertex whatever the distance.
                  * @default 0
                  * @step 0.1
                  */
-                snapTolerance: number;
+                snapTolerance?: number | undefined;
                 /**
                  * `auto` bevels planar corners in place and 3D corners with a local plane cut; `planarOnly`
                  * skips 3D corners.
                  * @default auto
                  */
-                mode: cornerModeEnum;
+                mode?: cornerModeEnum | undefined;
             }
             /**
              * A shell or solid and points near its corners for `corners.classifyCornerByPoint`, which reports
@@ -10960,14 +10955,14 @@ declare namespace Bit {
                  * Points near the corners to classify; the vertex nearest each point is the one reported.
                  * @default []
                  */
-                points: Base.Point3[];
+                points?: Base.Point3[] | undefined;
                 /**
                  * How far a point may be from a vertex and still pick it, in model units; 0 or less accepts the
                  * nearest vertex whatever the distance.
                  * @default 0
                  * @step 0.1
                  */
-                snapTolerance: number;
+                snapTolerance?: number | undefined;
             }
             /**
              * A flat wire or face, a distance, an angle and optional corner indexes for
@@ -10983,15 +10978,18 @@ declare namespace Bit {
                 /**
                  * How far the bevel cuts back from each corner along one edge, in model units.
                  * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
                  * @step 0.1
                  */
-                distance: number;
+                distance?: number | undefined;
                 /**
                  * The angle of the bevel to that edge, in degrees; 45 gives an even chamfer.
                  * @default 45
                  * @step 1
                  */
-                angle: number;
+                angle?: number | undefined;
                 /**
                  * Which corners to bevel, counted from 1 along the outline; leave it out to bevel them all.
                  * @default undefined
@@ -11019,29 +11017,29 @@ declare namespace Bit {
                  * The pull direction, the way the part leaves the mold; the taper is measured against it.
                  * @default [0, 1, 0]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
                 /**
                  * The draft angle, in degrees.
                  * @default 5
                  * @step 1
                  */
-                angle: number;
+                angle?: number | undefined;
                 /**
                  * A point on the neutral plane, the plane that stays where it is while the faces pivot about
                  * it.
                  * @default [0, 0, 0]
                  */
-                neutralPlaneOrigin: Base.Point3;
+                neutralPlaneOrigin?: Base.Point3 | undefined;
                 /**
                  * The normal of the neutral plane.
                  * @default [0, 0, 1]
                  */
-                neutralPlaneDirection: Base.Vector3;
+                neutralPlaneDirection?: Base.Vector3 | undefined;
                 /**
                  * When true, the faces taper on the standard side; false tapers them the other way.
                  * @default true
                  */
-                flag: boolean;
+                flag?: boolean | undefined;
             }
             /**
              * A wire or shape, a direction, an angle and a length for `draft.makeDraft`, which grows a tapered
@@ -11058,25 +11056,25 @@ declare namespace Bit {
                  * The direction the skirt grows along, the pull direction of the mold.
                  * @default [0, 1, 0]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
                 /**
                  * How far the skirt leans from the direction, in degrees.
                  * @default 5
                  * @step 1
                  */
-                angle: number;
+                angle?: number | undefined;
                 /**
                  * How long the skirt may grow, in model units, measured along the corner edges between its
                  * faces.
                  * @default 10
                  * @step 0.1
                  */
-                lengthMax: number;
+                lengthMax?: number | undefined;
                 /**
                  * When true, the skirt leans inward instead of outward.
                  * @default false
                  */
-                internal: boolean;
+                internal?: boolean | undefined;
             }
             /**
              * A wire or shape, a direction, an angle and a stop shape for `draft.makeDraftToShape`, which grows
@@ -11093,13 +11091,13 @@ declare namespace Bit {
                  * The direction the skirt grows along, the pull direction of the mold.
                  * @default [0, 1, 0]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
                 /**
                  * How far the skirt leans from the direction, in degrees.
                  * @default 5
                  * @step 1
                  */
-                angle: number;
+                angle?: number | undefined;
                 /**
                  * The shape the skirt grows up to and stops at.
                  * @default undefined
@@ -11109,18 +11107,19 @@ declare namespace Bit {
                  * When true, the part of the stop shape outside the skirt is kept in the result.
                  * @default false
                  */
-                keepOut: boolean;
+                keepOut?: boolean | undefined;
                 /**
                  * When true, the skirt leans inward instead of outward.
                  * @default false
                  */
-                internal: boolean;
+                internal?: boolean | undefined;
             }
             /**
-             * A shape and meshing settings for `shapeToMesh`, which triangulates the shape for drawing.
+             * A shape and meshing settings for `shapeToMesh`, which triangulates the shape for drawing, and can
+             * add each face's iso curves and a surface analysis value at every vertex.
              */
             class ShapeToMeshDto<T> {
-                constructor(shape?: T, precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean);
+                constructor(shape?: T, precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, isoCurvesU?: number, isoCurvesV?: number, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3);
                 /**
                  * The shape to triangulate.
                  * @default undefined
@@ -11131,16 +11130,17 @@ declare namespace Bit {
                  * with more triangles.
                  * @default 0.01
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.001
                  */
-                precision: number;
+                precision?: number | undefined;
                 /**
                  * When true, the mesh is turned so this library's Y-up becomes Z-up, for tools that treat Z as
                  * up.
                  * @default false
                  */
-                adjustYtoZ: boolean;
+                adjustYtoZ?: boolean | undefined;
                 /**
                  * When true, each face and edge entry also carries its area or length, center of mass, surface
                  * or curve type, tolerance and neighbors, at extra cost.
@@ -11165,6 +11165,35 @@ declare namespace Bit {
                  * @default false
                  */
                 forceFaceDeflection?: boolean | undefined;
+                /**
+                 * How many iso curves of constant u each face gets in `isoCurveList`, spread evenly inside its
+                 * u range and trimmed to the face; 0 gives none.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum 1000
+                 * @step 1
+                 */
+                isoCurvesU?: number | undefined;
+                /**
+                 * How many iso curves of constant v each face gets in `isoCurveList`, spread evenly inside its
+                 * v range and trimmed to the face; 0 gives none.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum 1000
+                 * @step 1
+                 */
+                isoCurvesV?: number | undefined;
+                /**
+                 * What each face's `analysisValues` hold, one value per vertex: a curvature, the smallest bending
+                 * radius, or the draft angle in degrees. `none` leaves them out.
+                 * @default none
+                 */
+                surfaceAnalysis?: surfaceAnalysisEnum | undefined;
+                /**
+                 * The pull direction the draft angles are measured against; read only by `draftAngle`.
+                 * @default [0, 1, 0]
+                 */
+                draftDirection?: Base.Vector3 | undefined;
             }
             /**
              * A shape and meshing settings for `shapeFacesToPolygonPoints`, which returns every triangle of the
@@ -11182,29 +11211,52 @@ declare namespace Bit {
                  * with more triangles.
                  * @default 0.01
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.001
                  */
-                precision: number;
+                precision?: number | undefined;
                 /**
                  * When true, the points are turned so this library's Y-up becomes Z-up, for tools that treat Z
                  * as up.
                  * @default false
                  */
-                adjustYtoZ: boolean;
+                adjustYtoZ?: boolean | undefined;
                 /**
                  * When true, the three points of each triangle come in the opposite order, for tools that wind
                  * triangles the other way.
                  * @default false
                  */
-                reversedPoints: boolean;
+                reversedPoints?: boolean | undefined;
+            }
+            /**
+             * A shape and a meshing precision for `shapeToManifoldMesh`, which meshes the shape into one indexed
+             * mesh for the Manifold kernel.
+             */
+            class ShapeToManifoldMeshDto<T> {
+                constructor(shape?: T, precision?: number);
+                /**
+                 * The shape to mesh; a closed solid gives a closed mesh.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The meshing tolerance in model units; a smaller value follows curved surfaces more closely
+                 * with more triangles.
+                 * @default 0.01
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.001
+                 */
+                precision?: number | undefined;
             }
             /**
              * Shapes and meshing settings for `shapesToMeshes`, which triangulates each shape with the same
-             * settings.
+             * settings, iso curves and surface analysis included.
              */
             class ShapesToMeshesDto<T> {
-                constructor(shapes?: T[], precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean);
+                constructor(shapes?: T[], precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, isoCurvesU?: number, isoCurvesV?: number, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3);
                 /**
                  * The shapes to triangulate, one mesh per shape.
                  * @default undefined
@@ -11215,16 +11267,17 @@ declare namespace Bit {
                  * with more triangles.
                  * @default 0.01
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.001
                  */
-                precision: number;
+                precision?: number | undefined;
                 /**
                  * When true, the meshes are turned so this library's Y-up becomes Z-up, for tools that treat Z
                  * as up.
                  * @default false
                  */
-                adjustYtoZ: boolean;
+                adjustYtoZ?: boolean | undefined;
                 /**
                  * When true, each face and edge entry also carries its area or length, center of mass, surface
                  * or curve type, tolerance and neighbors, at extra cost.
@@ -11249,6 +11302,35 @@ declare namespace Bit {
                  * @default false
                  */
                 forceFaceDeflection?: boolean | undefined;
+                /**
+                 * How many iso curves of constant u each face gets in `isoCurveList`, spread evenly inside its
+                 * u range and trimmed to the face; 0 gives none.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum 1000
+                 * @step 1
+                 */
+                isoCurvesU?: number | undefined;
+                /**
+                 * How many iso curves of constant v each face gets in `isoCurveList`, spread evenly inside its
+                 * v range and trimmed to the face; 0 gives none.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum 1000
+                 * @step 1
+                 */
+                isoCurvesV?: number | undefined;
+                /**
+                 * What each face's `analysisValues` hold, one value per vertex: a curvature, the smallest bending
+                 * radius, or the draft angle in degrees. `none` leaves them out.
+                 * @default none
+                 */
+                surfaceAnalysis?: surfaceAnalysisEnum | undefined;
+                /**
+                 * The pull direction the draft angles are measured against; read only by `draftAngle`.
+                 * @default [0, 1, 0]
+                 */
+                draftDirection?: Base.Vector3 | undefined;
             }
             /**
              * An assembly document and meshing settings for `docToMesh`, which triangulates its top-level
@@ -11267,16 +11349,17 @@ declare namespace Bit {
                  * with more triangles.
                  * @default 0.01
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.001
                  */
-                precision: number;
+                precision?: number | undefined;
                 /**
                  * When true, the mesh is turned so this library's Y-up becomes Z-up, for tools that treat Z as
                  * up.
                  * @default false
                  */
-                adjustYtoZ: boolean;
+                adjustYtoZ?: boolean | undefined;
                 /**
                  * When true, each face and edge entry also carries its area or length, center of mass, surface
                  * or curve type, tolerance, neighbors and ids, at extra cost.
@@ -11319,16 +11402,17 @@ declare namespace Bit {
                  * with more triangles.
                  * @default 0.01
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.001
                  */
-                precision: number;
+                precision?: number | undefined;
                 /**
                  * When true, the meshes are turned so this library's Y-up becomes Z-up, for tools that treat Z
                  * as up.
                  * @default false
                  */
-                adjustYtoZ: boolean;
+                adjustYtoZ?: boolean | undefined;
                 /**
                  * When true, each face and edge entry also carries its area or length, center of mass, surface
                  * or curve type, tolerance, neighbors and ids, at extra cost.
@@ -11369,12 +11453,12 @@ declare namespace Bit {
                  * The name the downloaded file gets; `.step` is appended when missing.
                  * @default shape.step
                  */
-                fileName: string;
+                fileName?: string | undefined;
                 /**
                  * When true, the shape is turned so this library's Y-up becomes STEP's Z-up.
                  * @default false
                  */
-                adjustYtoZ: boolean;
+                adjustYtoZ?: boolean | undefined;
                 /**
                  * When true, the axis swap skips its mirror step, for shapes that were built in a right-handed
                  * system.
@@ -11403,27 +11487,28 @@ declare namespace Bit {
                  * The name the downloaded file gets.
                  * @default shape.stl
                  */
-                fileName: string;
+                fileName?: string | undefined;
                 /**
                  * The meshing tolerance in model units; a smaller value follows curved surfaces more closely
                  * and makes a bigger file.
                  * @default 0.01
                  */
-                precision: number;
+                precision?: number | undefined;
                 /**
                  * When true, the shape is turned so this library's Y-up becomes Z-up.
                  * @default false
                  */
-                adjustYtoZ: boolean;
+                adjustYtoZ?: boolean | undefined;
                 /**
                  * When true, a browser download of the file is started where that is possible; the kernel
-                 * itself only returns the text.
+                 * itself only returns the text or the bytes.
                  * @default true
                  */
                 tryDownload?: boolean | undefined;
                 /**
-                 * When true, the STL is written in its binary form, which is much smaller than the text form.
-                 * @default true
+                 * When true, the STL is written in its binary form, which is much smaller than the text form, and
+                 * comes back as bytes; when false, as ASCII text.
+                 * @default false
                  */
                 binary?: boolean | undefined;
             }
@@ -11446,7 +11531,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.01
                  */
-                angularDeflection: number;
+                angularDeflection?: number | undefined;
                 /**
                  * The largest distance, in model units, the traced polyline may stray from the curve; smaller
                  * follows it more closely.
@@ -11455,7 +11540,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.001
                  */
-                curvatureDeflection: number;
+                curvatureDeflection?: number | undefined;
                 /**
                  * The fewest points any edge is traced with, however straight.
                  * @default 2
@@ -11463,7 +11548,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                minimumOfPoints: number;
+                minimumOfPoints?: number | undefined;
                 /**
                  * How close two parameter values must be to count as the same point.
                  * @default 1.0e-9
@@ -11471,7 +11556,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1.0e-9
                  */
-                uTolerance: number;
+                uTolerance?: number | undefined;
                 /**
                  * Edges shorter than this, in model units, are traced with the minimum number of points.
                  * @default 1.0e-7
@@ -11479,7 +11564,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1.0e-7
                  */
-                minimumLength: number;
+                minimumLength?: number | undefined;
             }
             /**
              * DXF paths, a layer and a color for `io.dxfPathsWithLayer`, which makes them one part of a DXF
@@ -11496,12 +11581,12 @@ declare namespace Bit {
                  * The name of the DXF layer the paths go on.
                  * @default Default
                  */
-                layer: string;
+                layer?: string | undefined;
                 /**
                  * The color of the paths as a hex string such as `#000000`.
                  * @default #000000
                  */
-                color: Base.Color;
+                color?: Base.Color | undefined;
             }
             /**
              * Layered DXF parts and file options for `io.dxfCreate`, which writes them into one DXF file.
@@ -11517,12 +11602,12 @@ declare namespace Bit {
                  * How colors are written: `aci` as AutoCAD's indexed colors, `truecolor` as RGB.
                  * @default aci
                  */
-                colorFormat: dxfColorFormatEnum;
+                colorFormat?: dxfColorFormatEnum | undefined;
                 /**
                  * The DXF version to write: `AC1009` is R12, the most widely readable, `AC1015` is 2000.
                  * @default AC1009
                  */
-                acadVersion: dxfAcadVersionEnum;
+                acadVersion?: dxfAcadVersionEnum | undefined;
                 /**
                  * The name the downloaded file gets.
                  * @default bitbybit-dev.dxf
@@ -11548,13 +11633,14 @@ declare namespace Bit {
                 text: string;
                 /**
                  * Whether the text is STEP or IGES.
+                 * @default step
                  */
-                fileType: fileTypeEnum;
+                fileType?: fileTypeEnum | undefined;
                 /**
                  * When true, the shape is turned so the file's Z-up becomes this library's Y-up.
                  * @default true
                  */
-                adjustZtoY: boolean;
+                adjustZtoY?: boolean | undefined;
             }
             /**
              * A STEP or IGES file for the core `occt.io.loadSTEPorIGES`, which reads it into a shape.
@@ -11570,7 +11656,7 @@ declare namespace Bit {
                  * When true, the shape is turned so the file's Z-up becomes this library's Y-up.
                  * @default true
                  */
-                adjustZtoY: boolean;
+                adjustZtoY?: boolean | undefined;
             }
             /**
              * File content, a file name and an axis option for `io.loadSTEPorIGES`, which reads STEP or IGES
@@ -11589,12 +11675,12 @@ declare namespace Bit {
                  * compressed.
                  * @default shape.step
                  */
-                fileName: string;
+                fileName?: string | undefined;
                 /**
                  * When true, the shape is turned so the file's Z-up becomes this library's Y-up.
                  * @default true
                  */
-                adjustZtoY: boolean;
+                adjustZtoY?: boolean | undefined;
             }
             /**
              * A STEP file for `io.parseStepToJson`, which reads its assembly structure without building
@@ -11626,37 +11712,37 @@ declare namespace Bit {
                  * edge's length, otherwise an absolute distance in model units.
                  * @default 0.005
                  * @minimum 0.0001
-                 * @maximum 10
+                 * @maximum Infinity
                  * @step 0.001
                  */
-                meshPrecision: number;
+                meshPrecision?: number | undefined;
                 /**
                  * The largest angle, in radians, between the normals of neighboring triangles; smaller gives
                  * smoother curves and more triangles.
                  * @default 0.5
                  * @minimum 0.01
-                 * @maximum 3.14159
+                 * @maximum 3.141592653589793
                  * @step 0.05
                  */
-                meshAngle: number;
+                meshAngle?: number | undefined;
                 /**
                  * When true, `meshPrecision` scales with each part's size, so small fasteners and large
                  * housings both mesh well; when false it is an absolute distance.
                  * @default true
                  */
-                meshRelative: boolean;
+                meshRelative?: boolean | undefined;
                 /**
                  * When true, extra vertices are added inside curved faces for a closer fit, at the cost of
                  * speed.
                  * @default false
                  */
-                internalVerticesMode: boolean;
+                internalVerticesMode?: boolean | undefined;
                 /**
                  * When true, an extra pass refines triangles that bulge beyond the precision, at the cost of
                  * speed.
                  * @default false
                  */
-                controlSurfaceDeflection: boolean;
+                controlSurfaceDeflection?: boolean | undefined;
             }
             /**
              * A STEP file, meshing settings and Draco settings for `io.convertStepToGltfWithDraco`, which
@@ -11668,7 +11754,7 @@ declare namespace Bit {
                  * When true, the geometry is compressed with Draco.
                  * @default true
                  */
-                useDraco: boolean;
+                useDraco?: boolean | undefined;
                 /**
                  * How hard Draco compresses, from 0 for fastest and largest to 10 for slowest and smallest.
                  * @default 7
@@ -11676,7 +11762,7 @@ declare namespace Bit {
                  * @maximum 10
                  * @step 1
                  */
-                dracoCompressionLevel: number;
+                dracoCompressionLevel?: number | undefined;
                 /**
                  * How many bits each vertex position keeps; fewer bits mean a smaller file and less precision.
                  * @default 14
@@ -11684,7 +11770,7 @@ declare namespace Bit {
                  * @maximum 31
                  * @step 1
                  */
-                dracoQuantizePositionBits: number;
+                dracoQuantizePositionBits?: number | undefined;
                 /**
                  * How many bits each normal keeps; fewer bits mean a smaller file and less precision.
                  * @default 10
@@ -11692,7 +11778,7 @@ declare namespace Bit {
                  * @maximum 31
                  * @step 1
                  */
-                dracoQuantizeNormalBits: number;
+                dracoQuantizeNormalBits?: number | undefined;
                 /**
                  * How many bits each texture coordinate keeps; fewer bits mean a smaller file and less
                  * precision.
@@ -11701,7 +11787,7 @@ declare namespace Bit {
                  * @maximum 31
                  * @step 1
                  */
-                dracoQuantizeTexcoordBits: number;
+                dracoQuantizeTexcoordBits?: number | undefined;
                 /**
                  * How many bits each vertex color keeps; fewer bits mean a smaller file and less precision.
                  * @default 8
@@ -11709,7 +11795,7 @@ declare namespace Bit {
                  * @maximum 31
                  * @step 1
                  */
-                dracoQuantizeColorBits: number;
+                dracoQuantizeColorBits?: number | undefined;
                 /**
                  * How many bits other vertex attributes keep; fewer bits mean a smaller file and less
                  * precision.
@@ -11718,12 +11804,12 @@ declare namespace Bit {
                  * @maximum 31
                  * @step 1
                  */
-                dracoQuantizeGenericBits: number;
+                dracoQuantizeGenericBits?: number | undefined;
                 /**
                  * When true, one quantization grid is used for every attribute instead of one per attribute.
                  * @default false
                  */
-                dracoUnifiedQuantization: boolean;
+                dracoUnifiedQuantization?: boolean | undefined;
             }
             /**
              * glTF node/mesh naming format options.
@@ -11773,124 +11859,124 @@ declare namespace Bit {
                  * When true, colors are read from the file; needed for a colored glTF.
                  * @default true
                  */
-                readColors: boolean;
+                readColors?: boolean | undefined;
                 /**
                  * When true, part names are read from the file; switch it off for faster parsing when names are
                  * not needed.
                  * @default true
                  */
-                readNames: boolean;
+                readNames?: boolean | undefined;
                 /**
                  * When true, materials are read from the file; needed for material properties in the glTF.
                  * @default true
                  */
-                readMaterials: boolean;
+                readMaterials?: boolean | undefined;
                 /**
                  * When true, layer information is read from the file; rarely needed for glTF.
                  * @default false
                  */
-                readLayers: boolean;
+                readLayers?: boolean | undefined;
                 /**
                  * When true, validation properties are read from the file; rarely needed for glTF.
                  * @default false
                  */
-                readProps: boolean;
+                readProps?: boolean | undefined;
                 /**
                  * How closely triangles follow curved surfaces: with `meshRelative` true a fraction of each
                  * edge's length, otherwise an absolute distance in model units.
                  * @default 0.005
                  * @minimum 0.0001
-                 * @maximum 10
+                 * @maximum Infinity
                  * @step 0.001
                  */
-                meshDeflection: number;
+                meshDeflection?: number | undefined;
                 /**
                  * The largest angle, in radians, between the normals of neighboring triangles; smaller gives
                  * smoother curves and more triangles.
                  * @default 0.5
                  * @minimum 0.01
-                 * @maximum 3.14159
+                 * @maximum 3.141592653589793
                  * @step 0.1
                  */
-                meshAngle: number;
+                meshAngle?: number | undefined;
                 /**
                  * When true, faces are meshed on several threads where the build allows it.
                  * @default true
                  */
-                meshParallel: boolean;
+                meshParallel?: boolean | undefined;
                 /**
                  * Above this many faces the assembly is meshed solid by solid to save memory; -1 meshes
                  * everything in one pass, which is fastest.
                  * @default -1
                  * @minimum -1
-                 * @maximum 500000
+                 * @maximum Infinity
                  * @step 10000
                  */
-                faceCountThreshold: number;
+                faceCountThreshold?: number | undefined;
                 /**
                  * When true, `meshDeflection` scales with each part's size, so small fasteners and large
                  * housings both mesh well; when false it is an absolute distance.
                  * @default true
                  */
-                meshRelative: boolean;
+                meshRelative?: boolean | undefined;
                 /**
                  * When true, extra vertices are added inside curved faces for a closer fit, at the cost of
                  * speed.
                  * @default false
                  */
-                internalVerticesMode: boolean;
+                internalVerticesMode?: boolean | undefined;
                 /**
                  * When true, an extra pass refines triangles that bulge beyond the precision, at the cost of
                  * speed.
                  * @default false
                  */
-                controlSurfaceDeflection: boolean;
+                controlSurfaceDeflection?: boolean | undefined;
                 /**
                  * When true, the faces of a part are joined into one mesh, which makes a smaller file.
                  * @default true
                  */
-                mergeFaces: boolean;
+                mergeFaces?: boolean | undefined;
                 /**
                  * When true, merged meshes use 16-bit indexes where they fit, which makes a smaller file.
                  * @default true
                  */
-                splitIndices16: boolean;
+                splitIndices16?: boolean | undefined;
                 /**
                  * When true, the glTF is written on several threads, which helps with large files.
                  * @default true
                  */
-                parallelWrite: boolean;
+                parallelWrite?: boolean | undefined;
                 /**
                  * When true, textures are embedded in the GLB instead of referenced as separate files.
                  * @default true
                  */
-                embedTextures: boolean;
+                embedTextures?: boolean | undefined;
                 /**
                  * When true, texture coordinates are written even for meshes without textures.
                  * @default false
                  */
-                forceUVExport: boolean;
+                forceUVExport?: boolean | undefined;
                 /**
                  * What the glTF nodes are named after: the instance, the product, a combination, or nothing.
                  * @default instance
                  */
-                nodeNameFormat: gltfNameFormatEnum;
+                nodeNameFormat?: gltfNameFormatEnum | undefined;
                 /**
                  * What the glTF meshes are named after: the instance, the product, a combination, or nothing.
                  * @default instance
                  */
-                meshNameFormat: gltfNameFormatEnum;
+                meshNameFormat?: gltfNameFormatEnum | undefined;
                 /**
                  * How node placements are written: `compact` as translation, rotation and scale where possible,
                  * `mat4` always as a matrix, `trs` always as the three parts.
                  * @default compact
                  */
-                transformFormat: gltfTransformFormatEnum;
+                transformFormat?: gltfTransformFormatEnum | undefined;
                 /**
                  * When true, the file's Z-up is turned into glTF's Y-up; false keeps Z up.
                  * @default true
                  */
-                adjustZtoY: boolean;
+                adjustZtoY?: boolean | undefined;
                 /**
                  * A factor applied to the whole model, such as 0.001 to turn millimeters into meters; 1 keeps
                  * the size.
@@ -11899,7 +11985,7 @@ declare namespace Bit {
                  * @maximum 1000000
                  * @step 0.001
                  */
-                scale: number;
+                scale?: number | undefined;
             }
             /**
              * A STEP file with every reading, meshing and writing option plus Draco settings for
@@ -11911,7 +11997,7 @@ declare namespace Bit {
                  * When true, the geometry is compressed with Draco.
                  * @default true
                  */
-                useDraco: boolean;
+                useDraco?: boolean | undefined;
                 /**
                  * How hard Draco compresses, from 0 for fastest and largest to 10 for slowest and smallest.
                  * @default 7
@@ -11919,7 +12005,7 @@ declare namespace Bit {
                  * @maximum 10
                  * @step 1
                  */
-                dracoCompressionLevel: number;
+                dracoCompressionLevel?: number | undefined;
                 /**
                  * How many bits each vertex position keeps; fewer bits mean a smaller file and less precision.
                  * @default 14
@@ -11927,7 +12013,7 @@ declare namespace Bit {
                  * @maximum 31
                  * @step 1
                  */
-                dracoQuantizePositionBits: number;
+                dracoQuantizePositionBits?: number | undefined;
                 /**
                  * How many bits each normal keeps; fewer bits mean a smaller file and less precision.
                  * @default 10
@@ -11935,7 +12021,7 @@ declare namespace Bit {
                  * @maximum 31
                  * @step 1
                  */
-                dracoQuantizeNormalBits: number;
+                dracoQuantizeNormalBits?: number | undefined;
                 /**
                  * How many bits each texture coordinate keeps; fewer bits mean a smaller file and less
                  * precision.
@@ -11944,7 +12030,7 @@ declare namespace Bit {
                  * @maximum 31
                  * @step 1
                  */
-                dracoQuantizeTexcoordBits: number;
+                dracoQuantizeTexcoordBits?: number | undefined;
                 /**
                  * How many bits each vertex color keeps; fewer bits mean a smaller file and less precision.
                  * @default 8
@@ -11952,7 +12038,7 @@ declare namespace Bit {
                  * @maximum 31
                  * @step 1
                  */
-                dracoQuantizeColorBits: number;
+                dracoQuantizeColorBits?: number | undefined;
                 /**
                  * How many bits other vertex attributes keep; fewer bits mean a smaller file and less
                  * precision.
@@ -11961,12 +12047,12 @@ declare namespace Bit {
                  * @maximum 31
                  * @step 1
                  */
-                dracoQuantizeGenericBits: number;
+                dracoQuantizeGenericBits?: number | undefined;
                 /**
                  * When true, one quantization grid is used for every attribute instead of one per attribute.
                  * @default false
                  */
-                dracoUnifiedQuantization: boolean;
+                dracoUnifiedQuantization?: boolean | undefined;
             }
             /**
              * A structure, an optional document to update and optional source documents for
@@ -12018,9 +12104,10 @@ declare namespace Bit {
                  */
                 name: string;
                 /**
-                 * The color of the part as `{ r, g, b, a }` with every channel from 0 to 1; leave it out for
-                 * the default gray.
-                 * @default {"r":0.5,"g":0.5,"b":0.5,"a":1}
+                 * The color of the part as `{ r, g, b, a }` from 0 to 1; left out, the part has no color of
+                 * its own.
+                 * @default undefined
+                 * @optional true
                  * @minimum 0
                  * @maximum 1
                  */
@@ -12163,12 +12250,12 @@ declare namespace Bit {
                  * The part definitions from `createPart`, the shapes that instances place.
                  * @default []
                  */
-                parts: Models.OCCT.AssemblyPartDef<T>[];
+                parts?: Models.OCCT.AssemblyPartDef<T>[] | undefined;
                 /**
                  * The assembly and instance node definitions that make up the tree.
                  * @default []
                  */
-                nodes: Models.OCCT.AssemblyNodeDef[];
+                nodes?: Models.OCCT.AssemblyNodeDef[] | undefined;
                 /**
                  * Labels of parts, instances or assemblies to remove from an existing document; ignored for a
                  * new one.
@@ -12212,7 +12299,7 @@ declare namespace Bit {
                  * 0.
                  * @default 0
                  */
-                sourceDocumentIndex: number;
+                sourceDocumentIndex?: number | undefined;
                 /**
                  * The label of the sub-tree to copy, such as `0:1:1:1`; leave it out to copy every top-level
                  * shape of the source document.
@@ -12256,7 +12343,7 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.01
                  */
-                r: number;
+                r?: number | undefined;
                 /**
                  * The green channel, from 0 to 1.
                  * @default 0.5
@@ -12264,7 +12351,7 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.01
                  */
-                g: number;
+                g?: number | undefined;
                 /**
                  * The blue channel, from 0 to 1.
                  * @default 0.5
@@ -12272,7 +12359,7 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.01
                  */
-                b: number;
+                b?: number | undefined;
                 /**
                  * The opacity, from 0 for transparent to 1 for opaque.
                  * @default 1.0
@@ -12280,7 +12367,7 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.01
                  */
-                a: number;
+                a?: number | undefined;
             }
             /**
              * A document, a label and a name for `assembly.manager.setDocLabelName`.
@@ -12301,7 +12388,7 @@ declare namespace Bit {
                  * The new name written to the label.
                  * @default Renamed
                  */
-                name: string;
+                name?: string | undefined;
             }
             /**
              * A document for the queries that read it whole, such as `assembly.query.getDocumentParts` and
@@ -12358,28 +12445,28 @@ declare namespace Bit {
                  * The file name written into the STEP header and used for the download.
                  * @default assembly.step
                  */
-                fileName: string;
+                fileName?: string | undefined;
                 /**
                  * The author written into the STEP header.
                  * @default Bitbybit user
                  */
-                author: string;
+                author?: string | undefined;
                 /**
                  * The organization written into the STEP header.
                  * @default Bitbybit
                  */
-                organization: string;
+                organization?: string | undefined;
                 /**
                  * When true, the file is written as gzip-compressed STEP-Z.
                  * @default false
                  */
-                compress: boolean;
+                compress?: boolean | undefined;
                 /**
                  * When true, a browser download of the file is started where that is possible; the kernel
                  * itself only returns the bytes.
                  * @default false
                  */
-                tryDownload: boolean;
+                tryDownload?: boolean | undefined;
             }
             /**
              * A document, meshing settings and file options for `assembly.manager.exportDocumentToGltf`.
@@ -12395,47 +12482,47 @@ declare namespace Bit {
                  * How closely triangles follow curved surfaces, in model units; smaller gives a finer mesh.
                  * @default 0.1
                  */
-                meshDeflection: number;
+                meshDeflection?: number | undefined;
                 /**
                  * The largest angle, in radians, between the normals of neighboring triangles; smaller gives
                  * smoother curves.
                  * @default 0.5
                  */
-                meshAngle: number;
+                meshAngle?: number | undefined;
                 /**
                  * When true, extra vertices are added inside curved faces for a closer fit, at the cost of
                  * speed.
                  * @default false
                  */
-                internalVerticesMode: boolean;
+                internalVerticesMode?: boolean | undefined;
                 /**
                  * When true, an extra pass refines triangles that bulge beyond the deflection, at the cost of
                  * speed.
                  * @default false
                  */
-                controlSurfaceDeflection: boolean;
+                controlSurfaceDeflection?: boolean | undefined;
                 /**
                  * When true, faces with the same material are joined into one mesh; false keeps every face
                  * separate.
                  * @default false
                  */
-                mergeFaces: boolean;
+                mergeFaces?: boolean | undefined;
                 /**
                  * When true, texture coordinates are written even for meshes without textures.
                  * @default false
                  */
-                forceUVExport: boolean;
+                forceUVExport?: boolean | undefined;
                 /**
                  * The name the downloaded file gets; it should end in `.glb`.
                  * @default assembly.glb
                  */
-                fileName: string;
+                fileName?: string | undefined;
                 /**
                  * When true, a browser download of the file is started where that is possible; the kernel
                  * itself only returns the bytes.
                  * @default false
                  */
-                tryDownload: boolean;
+                tryDownload?: boolean | undefined;
             }
             /**
              * A document, meshing settings and Draco settings for
@@ -12447,7 +12534,7 @@ declare namespace Bit {
                  * When true, the geometry is compressed with Draco.
                  * @default true
                  */
-                useDraco: boolean;
+                useDraco?: boolean | undefined;
                 /**
                  * How hard Draco compresses, from 0 for fastest and largest to 10 for slowest and smallest.
                  * @default 7
@@ -12455,7 +12542,7 @@ declare namespace Bit {
                  * @maximum 10
                  * @step 1
                  */
-                dracoCompressionLevel: number;
+                dracoCompressionLevel?: number | undefined;
                 /**
                  * How many bits each vertex position keeps; fewer bits mean a smaller file and less precision.
                  * @default 14
@@ -12463,7 +12550,7 @@ declare namespace Bit {
                  * @maximum 31
                  * @step 1
                  */
-                dracoQuantizePositionBits: number;
+                dracoQuantizePositionBits?: number | undefined;
                 /**
                  * How many bits each normal keeps; fewer bits mean a smaller file and less precision.
                  * @default 10
@@ -12471,7 +12558,7 @@ declare namespace Bit {
                  * @maximum 31
                  * @step 1
                  */
-                dracoQuantizeNormalBits: number;
+                dracoQuantizeNormalBits?: number | undefined;
                 /**
                  * How many bits each texture coordinate keeps; fewer bits mean a smaller file and less
                  * precision.
@@ -12480,7 +12567,7 @@ declare namespace Bit {
                  * @maximum 31
                  * @step 1
                  */
-                dracoQuantizeTexcoordBits: number;
+                dracoQuantizeTexcoordBits?: number | undefined;
                 /**
                  * How many bits each vertex color keeps; fewer bits mean a smaller file and less precision.
                  * @default 8
@@ -12488,7 +12575,7 @@ declare namespace Bit {
                  * @maximum 31
                  * @step 1
                  */
-                dracoQuantizeColorBits: number;
+                dracoQuantizeColorBits?: number | undefined;
                 /**
                  * How many bits other vertex attributes keep; fewer bits mean a smaller file and less
                  * precision.
@@ -12497,12 +12584,12 @@ declare namespace Bit {
                  * @maximum 31
                  * @step 1
                  */
-                dracoQuantizeGenericBits: number;
+                dracoQuantizeGenericBits?: number | undefined;
                 /**
                  * When true, one quantization grid is used for every attribute instead of one per attribute.
                  * @default false
                  */
-                dracoUnifiedQuantization: boolean;
+                dracoUnifiedQuantization?: boolean | undefined;
             }
             /**
              * Shapes for `shapes.compound.makeCompound`, which packs them into one compound without joining
@@ -12535,11 +12622,11 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                offset: number;
+                offset?: number | undefined;
             }
             /**
-             * A wire, an offset and an extrusion direction for `operations.offset3DWire`, which offsets a wire
-             * that does not lie in one plane.
+             * A wire, an offset and a direction for `operations.offset3DWire`, which offsets a wire that does
+             * not lie in one plane across that direction.
              */
             class Offset3DWireDto<T> {
                 constructor(shape?: T, offset?: number, direction?: Base.Vector3);
@@ -12549,19 +12636,20 @@ declare namespace Bit {
                  */
                 shape: T;
                 /**
-                 * The offset distance in model units.
+                 * How far every point moves, in model units. A positive offset moves a loop that runs
+                 * counterclockwise, seen from the tip of `direction`, inwards.
                  * @default 1
                  * @minimum -Infinity
                  * @maximum Infinity
                  * @step 0.1
                  */
-                offset: number;
+                offset?: number | undefined;
                 /**
-                 * The direction the wire is extruded along to build the offset; it must not be parallel to the
-                 * wire.
+                 * The direction the offset is taken across: every point moves at right angles to both it and the
+                 * wire. It must cross the wire everywhere, never running along it.
                  * @default [0, 1, 0]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
             }
             /**
              * A closed wire and a planar flag for `shapes.face.createFaceFromWire`.
@@ -12578,7 +12666,7 @@ declare namespace Bit {
                  * fitted through the wire's edges.
                  * @default false
                  */
-                planar: boolean;
+                planar?: boolean | undefined;
             }
             /**
              * A wire, a guiding face and a side for `shapes.face.createFaceFromWireOnFace`, which cuts a face
@@ -12601,7 +12689,7 @@ declare namespace Bit {
                  * own direction decides.
                  * @default true
                  */
-                inside: boolean;
+                inside?: boolean | undefined;
             }
             /**
              * Wires, a guiding face and a side for `shapes.face.createFacesFromWiresOnFace`, which cuts one
@@ -12624,7 +12712,7 @@ declare namespace Bit {
                  * own direction decides.
                  * @default true
                  */
-                inside: boolean;
+                inside?: boolean | undefined;
             }
             /**
              * Wires and a planar flag for `shapes.face.createFaceFromWires`, which makes one face with the
@@ -12641,7 +12729,7 @@ declare namespace Bit {
                  * When true the wires must lie in one plane and the face is flat.
                  * @default false
                  */
-                planar: boolean;
+                planar?: boolean | undefined;
             }
             /**
              * Wires and a planar flag for `shapes.face.createFacesFromWires`, which makes one face per wire.
@@ -12658,7 +12746,7 @@ declare namespace Bit {
                  * fitted through each.
                  * @default false
                  */
-                planar: boolean;
+                planar?: boolean | undefined;
             }
             /**
              * Wires, a guiding face and a side for `shapes.face.createFaceFromWiresOnFace`, which makes one
@@ -12682,7 +12770,7 @@ declare namespace Bit {
                  * false its own direction decides.
                  * @default true
                  */
-                inside: boolean;
+                inside?: boolean | undefined;
             }
             /**
              * Faces and a tolerance for `shapes.shell.sewFaces`, which stitches faces that share edges into one
@@ -12702,7 +12790,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.00001
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
             }
             /**
              * A center, a major axis direction and two radii for `geom.curves.geom2dEllipse`, a 2D construction
@@ -12714,12 +12802,12 @@ declare namespace Bit {
                  * The center of the ellipse as a 2D point.
                  * @default [0,0]
                  */
-                center: Base.Point2;
+                center?: Base.Point2 | undefined;
                 /**
                  * The direction of the major axis in the plane.
                  * @default [1,0]
                  */
-                direction: Base.Vector2;
+                direction?: Base.Vector2 | undefined;
                 /**
                  * The half-width across the ellipse's short axis; must not exceed `radiusMajor`.
                  * @default 1
@@ -12727,7 +12815,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radiusMinor: number;
+                radiusMinor?: number | undefined;
                 /**
                  * The half-width along the ellipse's long axis.
                  * @default 2
@@ -12735,12 +12823,12 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radiusMajor: number;
+                radiusMajor?: number | undefined;
                 /**
                  * When true, the curve runs the other way round.
                  * @default false
                  */
-                sense: boolean;
+                sense?: boolean | undefined;
             }
             /**
              * A center, a start direction and a radius for `geom.curves.geom2dCircle`, a 2D construction curve.
@@ -12751,12 +12839,12 @@ declare namespace Bit {
                  * The center of the circle as a 2D point.
                  * @default [0,0]
                  */
-                center: Base.Point2;
+                center?: Base.Point2 | undefined;
                 /**
                  * The direction in the plane where the curve's parameter starts.
                  * @default [1,0]
                  */
-                direction: Base.Vector2;
+                direction?: Base.Vector2 | undefined;
                 /**
                  * The distance from the center to the curve.
                  * @default 1
@@ -12764,12 +12852,12 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radius: number;
+                radius?: number | undefined;
                 /**
                  * When true, the curve runs the other way round.
                  * @default false
                  */
-                sense: boolean;
+                sense?: boolean | undefined;
             }
             /**
              * The proportions of a stylized Christmas tree for `shapes.wire.createChristmasTreeWire` and
@@ -12784,7 +12872,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                height: number;
+                height?: number | undefined;
                 /**
                  * How far the branches reach from the trunk line at the notches of the lowest skirt, in model
                  * units.
@@ -12793,7 +12881,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                innerDist: number;
+                innerDist?: number | undefined;
                 /**
                  * How far the branches reach from the trunk line at the tips of the lowest skirt, in model
                  * units.
@@ -12802,7 +12890,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                outerDist: number;
+                outerDist?: number | undefined;
                 /**
                  * How many layers of branches, the triangle-like skirts, the tree has.
                  * @default 5
@@ -12810,7 +12898,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                nrSkirts: number;
+                nrSkirts?: number | undefined;
                 /**
                  * The height of the trunk below the branches, in model units; 0 leaves the trunk out.
                  * @default 1
@@ -12818,7 +12906,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                trunkHeight: number;
+                trunkHeight?: number | undefined;
                 /**
                  * The width of the trunk, in model units; used only when the trunk height is above 0.
                  * @default 1
@@ -12826,30 +12914,30 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                trunkWidth: number;
+                trunkWidth?: number | undefined;
                 /**
                  * When true, only one side of the tree is built, as an open wire.
                  * @default false
                  */
-                half: boolean;
+                half?: boolean | undefined;
                 /**
                  * How far the tree is spun about its trunk-to-tip axis, in degrees.
                  * @default 0
-                 * @minimum 0
+                 * @minimum -Infinity
                  * @maximum Infinity
                  * @step 15
                  */
-                rotation: number;
+                rotation?: number | undefined;
                 /**
                  * The point at the base of the trunk.
                  * @default [0, 0, 0]
                  */
-                origin: Base.Point3;
+                origin?: Base.Point3 | undefined;
                 /**
                  * The direction from the trunk to the tip; the default stands the tree up along Y.
                  * @default [0, 1, 0]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
             }
             /**
              * The proportions of a star for `shapes.wire.createStarWire` and `shapes.face.createStarFace`,
@@ -12861,12 +12949,12 @@ declare namespace Bit {
                  * The point the star is centered on.
                  * @default [0,0,0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
                 /**
                  * The normal of the plane the star lies in; the default lays it flat on the ground.
                  * @default [0, 1, 0]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
                 /**
                  * How many points the star has.
                  * @default 7
@@ -12874,7 +12962,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                numRays: number;
+                numRays?: number | undefined;
                 /**
                  * The distance from the center to the tip of each ray, in model units.
                  * @default 2
@@ -12882,7 +12970,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                outerRadius: number;
+                outerRadius?: number | undefined;
                 /**
                  * The distance from the center to the notch between two rays, in model units.
                  * @default 1
@@ -12890,7 +12978,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                innerRadius: number;
+                innerRadius?: number | undefined;
                 /**
                  * Lifts the ray tips out of the plane along the normal, in model units, making a 3D star; keep
                  * it 0 for a face.
@@ -12904,7 +12992,7 @@ declare namespace Bit {
                  * When true, only the first half of the rays are built, as an open wire.
                  * @default false
                  */
-                half: boolean;
+                half?: boolean | undefined;
             }
             /**
              * The size, lean and placement of a parallelogram for `shapes.wire.createParallelogramWire` and
@@ -12916,34 +13004,36 @@ declare namespace Bit {
                  * The point the shape is centered on, or starts from when `aroundCenter` is false.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
                 /**
                  * The normal of the plane the shape lies in; the default lays it flat on the ground.
                  * @default [0, 1, 0]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
                 /**
                  * When true the shape is centered on `center`; when false it starts there and extends in the
                  * positive directions.
                  * @default true
                  */
-                aroundCenter: boolean;
+                aroundCenter?: boolean | undefined;
                 /**
                  * The width of the shape's bounding rectangle, in model units.
                  * @default 2
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                width: number;
+                width?: number | undefined;
                 /**
                  * The height of the shape's bounding rectangle, in model units.
                  * @default 1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                height: number;
+                height?: number | undefined;
                 /**
                  * How far the sides lean over from a rectangle, in degrees; 0 gives a rectangle.
                  * @default 15
@@ -12951,7 +13041,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                angle: number;
+                angle?: number | undefined;
             }
             /**
              * The size and placement of a heart outline for `shapes.wire.createHeartWire` and
@@ -12963,28 +13053,29 @@ declare namespace Bit {
                  * The point the heart is centered on.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
                 /**
                  * The normal of the plane the heart lies in; the default lays it flat on the ground.
                  * @default [0, 1, 0]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
                 /**
                  * How far the heart is turned in its plane, in degrees.
                  * @default 0
-                 * @minimum 0
+                 * @minimum -Infinity
                  * @maximum Infinity
                  * @step 15
                  */
-                rotation: number;
+                rotation?: number | undefined;
                 /**
                  * The side of the square the heart roughly fits into, in model units.
                  * @default 2
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                sizeApprox: number;
+                sizeApprox?: number | undefined;
             }
             /**
              * A corner count, a radius and a placement for `shapes.wire.createNGonWire` and
@@ -12996,12 +13087,12 @@ declare namespace Bit {
                  * The point the polygon is centered on.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
                 /**
                  * The normal of the plane the polygon lies in; the default lays it flat on the ground.
                  * @default [0, 1, 0]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
                 /**
                  * How many corners, and so how many equal sides, the polygon has.
                  * @default 6
@@ -13009,15 +13100,16 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                nrCorners: number;
+                nrCorners?: number | undefined;
                 /**
                  * The distance from the center to each corner, in model units.
                  * @default 1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radius: number;
+                radius?: number | undefined;
             }
             /**
              * A center, a plane normal and two radii for the ellipse edge, wire and face methods of `shapes`
@@ -13029,12 +13121,12 @@ declare namespace Bit {
                  * The point the ellipse is centered on.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
                 /**
                  * The normal of the plane the ellipse lies in; the default lays it flat on the ground.
                  * @default [0, 1, 0]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
                 /**
                  * The half-width across the ellipse's short axis, in model units; must not exceed
                  * `radiusMajor`.
@@ -13043,7 +13135,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radiusMinor: number;
+                radiusMinor?: number | undefined;
                 /**
                  * The half-width along the ellipse's long axis, in model units.
                  * @default 2
@@ -13051,7 +13143,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radiusMajor: number;
+                radiusMajor?: number | undefined;
             }
             /**
              * The size of a coil for `shapes.wire.createHelixWire`: its radius, how much it climbs per turn and
@@ -13066,7 +13158,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radius: number;
+                radius?: number | undefined;
                 /**
                  * How far the coil climbs along the axis in one full turn, in model units.
                  * @default 1
@@ -13074,7 +13166,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                pitch: number;
+                pitch?: number | undefined;
                 /**
                  * The total climb of the coil along the axis, in model units.
                  * @default 5
@@ -13082,22 +13174,22 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                height: number;
+                height?: number | undefined;
                 /**
                  * The point on the axis where the coil starts climbing from.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
                 /**
                  * The direction of the axis the coil climbs along.
                  * @default [0, 1, 0]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
                 /**
                  * When true, the coil winds clockwise seen from the tip of the axis.
                  * @default false
                  */
-                clockwise: boolean;
+                clockwise?: boolean | undefined;
                 /**
                  * How far the fitted curve may stray from the exact helix, in model units.
                  * @default 0.0001
@@ -13105,7 +13197,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.0001
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
             }
             /**
              * The size of a coil for `shapes.wire.createHelixWireByTurns`: its radius, how much it climbs per
@@ -13120,7 +13212,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radius: number;
+                radius?: number | undefined;
                 /**
                  * How far the coil climbs along the axis in one full turn, in model units.
                  * @default 1
@@ -13128,7 +13220,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                pitch: number;
+                pitch?: number | undefined;
                 /**
                  * How many full turns the coil makes; fractions are allowed.
                  * @default 5
@@ -13136,22 +13228,22 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.5
                  */
-                numTurns: number;
+                numTurns?: number | undefined;
                 /**
                  * The point on the axis where the coil starts climbing from.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
                 /**
                  * The direction of the axis the coil climbs along.
                  * @default [0, 1, 0]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
                 /**
                  * When true, the coil winds clockwise seen from the tip of the axis.
                  * @default false
                  */
-                clockwise: boolean;
+                clockwise?: boolean | undefined;
                 /**
                  * How far the fitted curve may stray from the exact helix, in model units.
                  * @default 0.0001
@@ -13159,7 +13251,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.0001
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
             }
             /**
              * The size of a conical coil for `shapes.wire.createTaperedHelixWire`: the radius at each end, the
@@ -13174,7 +13266,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                startRadius: number;
+                startRadius?: number | undefined;
                 /**
                  * The distance from the axis to the coil at its top, in model units.
                  * @default 0.5
@@ -13182,7 +13274,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                endRadius: number;
+                endRadius?: number | undefined;
                 /**
                  * How far the coil climbs along the axis in one full turn, in model units.
                  * @default 1
@@ -13190,7 +13282,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                pitch: number;
+                pitch?: number | undefined;
                 /**
                  * The total climb of the coil along the axis, in model units.
                  * @default 5
@@ -13198,22 +13290,22 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                height: number;
+                height?: number | undefined;
                 /**
                  * The point on the axis where the coil starts climbing from.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
                 /**
                  * The direction of the axis the coil climbs along.
                  * @default [0, 1, 0]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
                 /**
                  * When true, the coil winds clockwise seen from the tip of the axis.
                  * @default false
                  */
-                clockwise: boolean;
+                clockwise?: boolean | undefined;
                 /**
                  * How far the fitted curve may stray from the exact helix, in model units.
                  * @default 0.0001
@@ -13221,7 +13313,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.0001
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
             }
             /**
              * The size of a flat spiral for `shapes.wire.createFlatSpiralWire`: the radius at each end and the
@@ -13236,7 +13328,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                startRadius: number;
+                startRadius?: number | undefined;
                 /**
                  * The distance from the center where the spiral ends, in model units.
                  * @default 5
@@ -13244,7 +13336,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                endRadius: number;
+                endRadius?: number | undefined;
                 /**
                  * How many full turns the spiral makes between the two radii; fractions are allowed.
                  * @default 5
@@ -13252,22 +13344,22 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.5
                  */
-                numTurns: number;
+                numTurns?: number | undefined;
                 /**
                  * The point the spiral winds around.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
                 /**
                  * The normal of the plane the spiral lies in; the default lays it flat on the ground.
                  * @default [0, 1, 0]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
                 /**
                  * When true, the spiral winds clockwise seen from the tip of the normal.
                  * @default false
                  */
-                clockwise: boolean;
+                clockwise?: boolean | undefined;
                 /**
                  * How far the fitted curve may stray from the exact spiral, in model units.
                  * @default 0.0001
@@ -13275,7 +13367,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.0001
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
             }
             /**
              * Text and its layout for `shapes.wire.textWires` and `textWiresWithData`, which write it as stroke
@@ -13307,7 +13399,8 @@ declare namespace Bit {
                 /**
                  * The height of a capital letter, in model units.
                  * @default 1
-                 * @minimum -Infinity
+                 * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
@@ -13346,7 +13439,7 @@ declare namespace Bit {
                  * When true, the middle of the whole text block is moved to the origin.
                  * @default false
                  */
-                centerOnOrigin: boolean;
+                centerOnOrigin?: boolean | undefined;
             }
             /**
              * A radius and an axis for `geom.surfaces.cylindricalSurface`, an infinite construction surface.
@@ -13360,17 +13453,17 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radius: number;
+                radius?: number | undefined;
                 /**
                  * A point on the axis of the cylinder.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
                 /**
                  * The direction of the axis of the cylinder.
                  * @default [0, 1, 0]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
             }
             /**
              * A 2D curve and two parameters for `geom.curves.geom2dTrimmedCurve`, which keeps the piece between
@@ -13386,30 +13479,30 @@ declare namespace Bit {
                 /**
                  * The parameter where the piece starts; the piece runs from `u1` to `u2`, whichever is larger.
                  * @default 0
-                 * @minimum 0
+                 * @minimum -Infinity
                  * @maximum Infinity
                  * @step 0.1
                  */
-                u1: number;
+                u1?: number | undefined;
                 /**
                  * The parameter where the piece ends.
                  * @default 1
-                 * @minimum 0
+                 * @minimum -Infinity
                  * @maximum Infinity
                  * @step 0.1
                  */
-                u2: number;
+                u2?: number | undefined;
                 /**
                  * On a closed curve, which of the two possible pieces is kept: true keeps the one running the
                  * curve's own way.
                  * @default true
                  */
-                sense: boolean;
+                sense?: boolean | undefined;
                 /**
                  * When true, the parameters of a periodic curve are brought into its period first.
                  * @default true
                  */
-                adjustPeriodic: boolean;
+                adjustPeriodic?: boolean | undefined;
             }
             /**
              * Two 2D points for `geom.curves.geom2dSegment`, a straight construction curve between them.
@@ -13420,12 +13513,12 @@ declare namespace Bit {
                  * The 2D point the segment starts at.
                  * @default [0, 0]
                  */
-                start: Base.Point2;
+                start?: Base.Point2 | undefined;
                 /**
                  * The 2D point the segment ends at.
                  * @default [1, 0]
                  */
-                end: Base.Point2;
+                end?: Base.Point2 | undefined;
             }
             /**
              * A solid, a spacing and a direction for `operations.slice`, which cuts it into parallel slices.
@@ -13444,12 +13537,12 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                step: number;
+                step?: number | undefined;
                 /**
                  * The direction the slices are stacked along; each cutting plane is perpendicular to it.
                  * @default [0, 1, 0]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
             }
             /**
              * A solid, a pattern of spacings and a direction for `operations.sliceInStepPattern`, which cuts it
@@ -13464,15 +13557,15 @@ declare namespace Bit {
                 shape: T;
                 /**
                  * The gaps between slices in model units, applied in turn from the bottom and repeated until
-                 * the top is reached.
+                 * the top is reached; they must add up to more than 0.
                  * @default [0.1, 0.2]
                  */
-                steps: number[];
+                steps?: number[] | undefined;
                 /**
                  * The direction the slices are stacked along; each cutting plane is perpendicular to it.
                  * @default [0, 1, 0]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
             }
             /**
              * Two points and the drawing settings for `dimensions.simpleLinearLengthDimension`: where the
@@ -13531,6 +13624,7 @@ declare namespace Bit {
                  * The height of the label's capital letters, in model units.
                  * @default 0.1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
@@ -13546,8 +13640,8 @@ declare namespace Bit {
                 /**
                  * Extra rotation of the label in its plane, in degrees.
                  * @default 0
-                 * @minimum -360
-                 * @maximum 360
+                 * @minimum -Infinity
+                 * @maximum Infinity
                  * @step 1
                  */
                 labelRotation?: number | undefined;
@@ -13591,7 +13685,6 @@ declare namespace Bit {
                  * An expression written instead of the plain number, with `val` standing for the distance, such
                  * as `100*val` or `Length: val mm`.
                  * @default 1*val
-                 * @optional true
                  */
                 labelOverwrite?: string | undefined;
                 /**
@@ -13610,17 +13703,17 @@ declare namespace Bit {
                  * The direction of the first leg of the angle, from the center.
                  * @default [1, 0, 0]
                  */
-                direction1: Base.Point3;
+                direction1?: Base.Point3 | undefined;
                 /**
                  * The direction of the second leg of the angle, from the center.
                  * @default [0, 0, 1]
                  */
-                direction2: Base.Point3;
+                direction2?: Base.Point3 | undefined;
                 /**
                  * The point the angle is measured at.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
                 /**
                  * The distance from the center to the dimension arc, in model units.
                  * @default 4
@@ -13628,7 +13721,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radius: number;
+                radius?: number | undefined;
                 /**
                  * The gap between the center and the start of each extension line, in model units.
                  * @default 0.5
@@ -13636,7 +13729,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                offsetFromCenter: number;
+                offsetFromCenter?: number | undefined;
                 /**
                  * How far the extension lines stick out past the arc, in model units.
                  * @default 0
@@ -13644,7 +13737,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                extraSize: number;
+                extraSize?: number | undefined;
                 /**
                  * How many decimals the angle is rounded to in the label.
                  * @default 2
@@ -13652,20 +13745,21 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                decimalPlaces: number;
+                decimalPlaces?: number | undefined;
                 /**
                  * Text written after the number, such as the unit.
                  * @default (deg)
                  */
-                labelSuffix: string;
+                labelSuffix?: string | undefined;
                 /**
                  * The height of the label's capital letters, in model units.
                  * @default 0.1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                labelSize: number;
+                labelSize?: number | undefined;
                 /**
                  * How far the label sits from the arc, in model units.
                  * @default 0.3
@@ -13673,12 +13767,12 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                labelOffset: number;
+                labelOffset?: number | undefined;
                 /**
                  * When true, the angle is written in radians instead of degrees.
                  * @default false
                  */
-                radians: boolean;
+                radians?: boolean | undefined;
                 /**
                  * What the arc ends with: nothing, or an arrowhead.
                  * @default none
@@ -13708,8 +13802,8 @@ declare namespace Bit {
                 /**
                  * Extra rotation of the label in its plane, in degrees.
                  * @default 0
-                 * @minimum -360
-                 * @maximum 360
+                 * @minimum -Infinity
+                 * @maximum Infinity
                  * @step 1
                  */
                 labelRotation?: number | undefined;
@@ -13727,7 +13821,6 @@ declare namespace Bit {
                  * An expression written instead of the plain number, with `val` standing for the angle, such as
                  * `100*val` or `Angle: val deg`.
                  * @default 1*val
-                 * @optional true
                  */
                 labelOverwrite?: string | undefined;
                 /**
@@ -13746,7 +13839,7 @@ declare namespace Bit {
                  * The spot on the model the pin marks.
                  * @default [0, 0, 0]
                  */
-                startPoint: Base.Point3;
+                startPoint?: Base.Point3 | undefined;
                 /**
                  * The point the pin line ends at, where the label is written.
                  * @default [0, 5, 2]
@@ -13782,6 +13875,7 @@ declare namespace Bit {
                  * The height of the label's capital letters, in model units.
                  * @default 0.1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
@@ -13815,8 +13909,8 @@ declare namespace Bit {
                 /**
                  * Extra rotation of the label in its plane, in degrees.
                  * @default 0
-                 * @minimum -360
-                 * @maximum 360
+                 * @minimum -Infinity
+                 * @maximum Infinity
                  * @step 1
                  */
                 labelRotation?: number | undefined;
@@ -13844,7 +13938,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                extrusionLengthFront: number;
+                extrusionLengthFront?: number | undefined;
                 /**
                  * How far the star grows against its plane normal, in model units.
                  * @default 0
@@ -13852,7 +13946,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                extrusionLengthBack: number;
+                extrusionLengthBack?: number | undefined;
             }
             /**
              * A regular polygon and the extrusion lengths for `shapes.solid.createNGonSolid`; at least one
@@ -13867,7 +13961,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                extrusionLengthFront: number;
+                extrusionLengthFront?: number | undefined;
                 /**
                  * How far the polygon grows against its plane normal, in model units.
                  * @default 0
@@ -13875,7 +13969,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                extrusionLengthBack: number;
+                extrusionLengthBack?: number | undefined;
             }
             /**
              * A parallelogram and the extrusion lengths for `shapes.solid.createParallelogramSolid`; at least
@@ -13890,7 +13984,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                extrusionLengthFront: number;
+                extrusionLengthFront?: number | undefined;
                 /**
                  * How far the parallelogram grows against its plane normal, in model units.
                  * @default 0
@@ -13898,7 +13992,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                extrusionLengthBack: number;
+                extrusionLengthBack?: number | undefined;
             }
             /**
              * A heart outline and the extrusion lengths for `shapes.solid.createHeartSolid`; at least one
@@ -13913,7 +14007,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                extrusionLengthFront: number;
+                extrusionLengthFront?: number | undefined;
                 /**
                  * How far the heart grows against its plane normal, in model units.
                  * @default 0
@@ -13921,7 +14015,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                extrusionLengthBack: number;
+                extrusionLengthBack?: number | undefined;
             }
             /**
              * A tree outline and the extrusion lengths for `shapes.solid.createChristmasTreeSolid`; at least
@@ -13936,7 +14030,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                extrusionLengthFront: number;
+                extrusionLengthFront?: number | undefined;
                 /**
                  * How far the tree grows against its plane normal, in model units.
                  * @default 0
@@ -13944,7 +14038,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                extrusionLengthBack: number;
+                extrusionLengthBack?: number | undefined;
             }
             /**
              * An L shape and the extrusion lengths for `shapes.solid.createLPolygonSolid`; at least one length
@@ -13959,7 +14053,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                extrusionLengthFront: number;
+                extrusionLengthFront?: number | undefined;
                 /**
                  * How far the L shape grows against its plane normal, in model units.
                  * @default 0
@@ -13967,7 +14061,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                extrusionLengthBack: number;
+                extrusionLengthBack?: number | undefined;
             }
             /**
              * A straight segment of a path, running from the previous point to `to`.
@@ -14059,27 +14153,27 @@ declare namespace Bit {
                  * The half-width of the ellipse along its rotated x axis.
                  * @default 0
                  */
-                rx: number;
+                rx?: number | undefined;
                 /**
                  * The half-width of the ellipse along its rotated y axis.
                  * @default 0
                  */
-                ry: number;
+                ry?: number | undefined;
                 /**
                  * How far the ellipse is turned in the plane, in radians, counterclockwise in path space.
                  * @default 0
                  */
-                xAxisRotation: number;
+                xAxisRotation?: number | undefined;
                 /**
                  * The angle on the ellipse where the arc starts, in radians.
                  * @default 0
                  */
-                startAngle: number;
+                startAngle?: number | undefined;
                 /**
                  * How far the arc sweeps from its start, in radians; negative sweeps clockwise in path space.
                  * @default 0
                  */
-                deltaAngle: number;
+                deltaAngle?: number | undefined;
             }
             /**
              * One segment of an SVG-style path: a line, a quadratic or cubic Bezier, or an arc. A path is a
@@ -14106,7 +14200,7 @@ declare namespace Bit {
                  * When true, the run closes from its last point back to `start`.
                  * @default false
                  */
-                closed: boolean;
+                closed?: boolean | undefined;
             }
             /**
              * How closed subpaths of a filled element are turned into faces.
@@ -14133,17 +14227,17 @@ declare namespace Bit {
                  * A factor applied to every path coordinate; 1 keeps the size.
                  * @default 1
                  */
-                scale: number;
+                scale?: number | undefined;
                 /**
                  * When true, Y is negated so a drawing made with Y pointing down, as in SVG, comes out upright.
                  * @default true
                  */
-                flipY: boolean;
+                flipY?: boolean | undefined;
                 /**
                  * The point the scaled and flipped drawing is moved to.
                  * @default [0, 0, 0]
                  */
-                origin: Base.Point3;
+                origin?: Base.Point3 | undefined;
             }
             /**
              * Subpaths and build options for `path.shapeFromPath`, which turns them into wires and, when asked,
@@ -14160,32 +14254,32 @@ declare namespace Bit {
                  * When true, closed subpaths become faces as well as wires.
                  * @default false
                  */
-                makeFaces: boolean;
+                makeFaces?: boolean | undefined;
                 /**
                  * When true, consecutive segments of a subpath are merged into a single edge where they can be.
                  * @default true
                  */
-                joinSegments: boolean;
+                joinSegments?: boolean | undefined;
                 /**
                  * How far apart segment ends may be and still join, in model units.
                  * @default 1e-7
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
                 /**
                  * A factor applied to every path coordinate; 1 keeps the size.
                  * @default 1
                  */
-                scale: number;
+                scale?: number | undefined;
                 /**
                  * When true, Y is negated so a drawing made with Y pointing down comes out upright.
                  * @default true
                  */
-                flipY: boolean;
+                flipY?: boolean | undefined;
                 /**
                  * The point the scaled and flipped drawing is moved to.
                  * @default [0, 0, 0]
                  */
-                origin: Base.Point3;
+                origin?: Base.Point3 | undefined;
             }
             /**
              * SVG text and import options for `svg.loadSVG` and `svg.loadSVGStructured`: which elements to
@@ -14197,60 +14291,60 @@ declare namespace Bit {
                  * The text of the SVG document.
                  * @default <svg width="19.125pt" height="19.125pt" viewBox="0 0 19.125 19.125" overflow="visible" version="1.1" xmlns="http://www.w3.org/2000/svg"><path d="M11.122705,15.698935 L15.272235,15.698935 C15.57419,15.729545 15.91649,15.387245 15.88588,15.08529 L15.88588,4.039708 C15.91649,3.737754 15.57419,3.395453 15.272235,3.426065 L9.572815,3.426065 C9.27086,3.395453 8.92856,3.737754 8.95917,4.039708 L8.95917,6.945415 C8.95604,7.118435 9.042725,7.30507 9.17695,7.414295 C9.30713,7.528305 9.50566,7.58247 9.675705,7.55037 C10.575375,7.32287 11.76631,8.055895 11.96849,8.96159 C12.311025,9.824045 11.739055,11.10017 10.86733,11.418385 C10.660165,11.503245 10.50001,11.752675 10.509065,11.976365 L10.509065,15.08529 C10.47845,15.387245 10.82075,15.729545 11.122705,15.698935 z" stroke="#f0cebb" stroke-width="0.5" fill-opacity="0" /><path d="M8.913155,15.698935 L4.226653,15.698935 C3.924699,15.729545 3.582398,15.387245 3.613009,15.08529 L3.613009,4.039708 C3.582398,3.737754 3.924699,3.395453 4.226653,3.426065 L7.36326,3.426065 C7.665215,3.395453 8.00752,3.737754 7.976905,4.039708 L7.976905,9.5625 C7.9468,10.306505 8.479485,11.13613 9.16853,11.418385 C9.375695,11.503245 9.53585,11.752675 9.5268,11.976365 L9.5268,15.08529 C9.55741,15.387245 9.21511,15.729545 8.913155,15.698935 z" stroke="#f0cebb" stroke-width="0.5" fill-opacity="0" /></svg>
                  */
-                svg: string;
+                svg?: string | undefined;
                 /**
                  * How filled shapes become faces: `none` keeps only wires, `auto` follows each element's fill
                  * rule, `nonzero` and `evenOdd` force a rule, `perSubpath` makes one face per closed subpath
                  * without holes.
                  * @default none
                  */
-                faceStrategy: svgFaceStrategyEnum;
+                faceStrategy?: svgFaceStrategyEnum | undefined;
                 /**
                  * Reserved for building ribbon faces from stroked paths; not supported yet, stroked paths stay
                  * wires.
                  * @default false
                  */
-                makeRibbons: boolean;
+                makeRibbons?: boolean | undefined;
                 /**
                  * When true, elements hidden by `display: none` or `visibility: hidden` are imported too.
                  * @default false
                  */
-                includeInvisible: boolean;
+                includeInvisible?: boolean | undefined;
                 /**
                  * When true, consecutive segments of a subpath are merged into a single edge where they can be.
                  * @default true
                  */
-                joinSegments: boolean;
+                joinSegments?: boolean | undefined;
                 /**
                  * How far apart segment ends may be and still join, in model units.
                  * @default 1e-7
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
                 /**
                  * A factor applied to the SVG coordinates; 1 keeps the size.
                  * @default 1
                  */
-                scale: number;
+                scale?: number | undefined;
                 /**
                  * When true, Y is negated so the drawing comes out upright, since SVG has Y pointing down.
                  * @default true
                  */
-                flipY: boolean;
+                flipY?: boolean | undefined;
                 /**
                  * Which point of the drawing's bounding box sits on `center`; `midMid` centers it.
                  * @default midMid
                  */
-                alignment: Base.basicAlignmentEnum;
+                alignment?: Base.basicAlignmentEnum | undefined;
                 /**
                  * The normal of the plane the drawing is laid on; the default lays it flat on the ground.
                  * @default [0, 1, 0]
                  */
-                direction: Base.Vector3;
+                direction?: Base.Vector3 | undefined;
                 /**
                  * The point the aligned drawing is placed at.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
             }
             /**
              * One imported SVG element as `svg.loadSVGStructured` returns it: the built shape and the style
@@ -14328,6 +14422,2332 @@ declare namespace Bit {
                  */
                 warnings: string[];
             }
+            /**
+             * A shape, a surface type and the faces to choose among for `select.faces.ofType`.
+             */
+            class SelectFacesOfTypeDto<T> {
+                constructor(shape?: T, type?: surfaceTypeEnum, indexes?: number[]);
+                /**
+                 * The shape whose faces are chosen from.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The kind of surface the chosen faces lie on.
+                 * @default plane
+                 */
+                type?: surfaceTypeEnum | undefined;
+                /**
+                 * The faces to choose among, counted from 0 as `shapes.face.getFaces` lists them; left out, all
+                 * are candidates, and an empty list chooses none.
+                 * @default undefined
+                 * @optional true
+                 */
+                indexes?: number[] | undefined;
+            }
+            /**
+             * A shape, a curve type and the edges to choose among for `select.edges.ofType`.
+             */
+            class SelectEdgesOfTypeDto<T> {
+                constructor(shape?: T, type?: curveTypeEnum, indexes?: number[]);
+                /**
+                 * The shape whose edges are chosen from.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The kind of curve the chosen edges run along.
+                 * @default line
+                 */
+                type?: curveTypeEnum | undefined;
+                /**
+                 * The edges to choose among, counted from 0 as `shapes.edge.getEdges` lists them; left out, all
+                 * are candidates, and an empty list chooses none.
+                 * @default undefined
+                 * @optional true
+                 */
+                indexes?: number[] | undefined;
+            }
+            /**
+             * A shape, a direction and an angle for `select.faces.facing` and `select.edges.along`.
+             */
+            class SelectByDirectionDto<T> {
+                constructor(shape?: T, direction?: Base.Vector3, angle?: number, indexes?: number[]);
+                /**
+                 * The shape whose faces or edges are chosen from.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The direction a face should face, or a straight edge run along; only its direction matters.
+                 * @default [0, 0, 1]
+                 */
+                direction?: Base.Vector3 | undefined;
+                /**
+                 * How far in degrees a face's normal, or an edge's line, may turn from `direction`.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum 180
+                 * @step 1
+                 */
+                angle?: number | undefined;
+                /**
+                 * The faces or edges to choose among, counted from 0 as the getters list them; left out, all are
+                 * candidates, and an empty list chooses none.
+                 * @default undefined
+                 * @optional true
+                 */
+                indexes?: number[] | undefined;
+            }
+            /**
+             * A shape, a direction and a tolerance for `select.faces.extreme` and `select.edges.extreme`.
+             */
+            class SelectExtremeDto<T> {
+                constructor(shape?: T, direction?: Base.Vector3, tolerance?: number, indexes?: number[]);
+                /**
+                 * The shape whose faces or edges are chosen from.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The direction to look furthest along; `[0, 0, -1]` finds the lowest.
+                 * @default [0, 0, 1]
+                 */
+                direction?: Base.Vector3 | undefined;
+                /**
+                 * How far short of the furthest centre another may lie and still be chosen, in model units.
+                 * @default 1e-7
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                tolerance?: number | undefined;
+                /**
+                 * The faces or edges to choose among, counted from 0 as the getters list them; left out, all are
+                 * candidates, and an empty list chooses none.
+                 * @default undefined
+                 * @optional true
+                 */
+                indexes?: number[] | undefined;
+            }
+            /**
+             * A shape and two opposite corners of a box for `select.faces.inBox` and `select.edges.inBox`.
+             */
+            class SelectInBoxDto<T> {
+                constructor(shape?: T, corner?: Base.Point3, oppositeCorner?: Base.Point3, indexes?: number[]);
+                /**
+                 * The shape whose faces or edges are chosen from.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * One corner of the box, which lines up with the axes.
+                 * @default [0, 0, 0]
+                 */
+                corner?: Base.Point3 | undefined;
+                /**
+                 * The corner across from `corner`; the two may be given either way round.
+                 * @default [1, 1, 1]
+                 */
+                oppositeCorner?: Base.Point3 | undefined;
+                /**
+                 * The faces or edges to choose among, counted from 0 as the getters list them; left out, all are
+                 * candidates, and an empty list chooses none.
+                 * @default undefined
+                 * @optional true
+                 */
+                indexes?: number[] | undefined;
+            }
+            /**
+             * A shape, a center and a radius for `select.faces.inSphere` and `select.edges.inSphere`.
+             */
+            class SelectInSphereDto<T> {
+                constructor(shape?: T, center?: Base.Point3, radius?: number, indexes?: number[]);
+                /**
+                 * The shape whose faces or edges are chosen from.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The point the chosen centres lie within `radius` of.
+                 * @default [0, 0, 0]
+                 */
+                center?: Base.Point3 | undefined;
+                /**
+                 * The radius of the sphere in model units.
+                 * @default 1
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                radius?: number | undefined;
+                /**
+                 * The faces or edges to choose among, counted from 0 as the getters list them; left out, all are
+                 * candidates, and an empty list chooses none.
+                 * @default undefined
+                 * @optional true
+                 */
+                indexes?: number[] | undefined;
+            }
+            /**
+             * A shape, a point and a count for `select.faces.nearest` and `select.edges.nearest`.
+             */
+            class SelectNearestDto<T> {
+                constructor(shape?: T, point?: Base.Point3, count?: number, indexes?: number[]);
+                /**
+                 * The shape whose faces or edges are chosen from.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The point the chosen faces or edges lie nearest.
+                 * @default [0, 0, 0]
+                 */
+                point?: Base.Point3 | undefined;
+                /**
+                 * How many to choose, nearest first; Infinity orders them all.
+                 * @default 1
+                 * @minimum 1
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                count?: number | undefined;
+                /**
+                 * The faces or edges to choose among, counted from 0 as the getters list them; left out, all are
+                 * candidates, and an empty list chooses none.
+                 * @default undefined
+                 * @optional true
+                 */
+                indexes?: number[] | undefined;
+            }
+            /**
+             * A shape, a plane and a tolerance for `select.faces.onPlane` and `select.edges.onPlane`.
+             */
+            class SelectOnPlaneDto<T> {
+                constructor(shape?: T, origin?: Base.Point3, normal?: Base.Vector3, tolerance?: number, indexes?: number[]);
+                /**
+                 * The shape whose faces or edges are chosen from.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * A point the plane passes through.
+                 * @default [0, 0, 0]
+                 */
+                origin?: Base.Point3 | undefined;
+                /**
+                 * The direction across the plane; either way round gives the same plane.
+                 * @default [0, 0, 1]
+                 */
+                normal?: Base.Vector3 | undefined;
+                /**
+                 * How far from the plane a face or an edge may lie and still be on it, in model units.
+                 * @default 1e-7
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                tolerance?: number | undefined;
+                /**
+                 * The faces or edges to choose among, counted from 0 as the getters list them; left out, all are
+                 * candidates, and an empty list chooses none.
+                 * @default undefined
+                 * @optional true
+                 */
+                indexes?: number[] | undefined;
+            }
+            /**
+             * A shape and a range for `select.faces.bySize`, `select.faces.byRadius`, `select.edges.byLength`
+             * and `select.edges.byRadius`.
+             */
+            class SelectInRangeDto<T> {
+                constructor(shape?: T, min?: number, max?: number, indexes?: number[]);
+                /**
+                 * The shape whose faces or edges are chosen from.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The smallest area, length or radius chosen.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                min?: number | undefined;
+                /**
+                 * The largest area, length or radius chosen.
+                 * @default 1
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                max?: number | undefined;
+                /**
+                 * The faces or edges to choose among, counted from 0 as the getters list them; left out, all are
+                 * candidates, and an empty list chooses none.
+                 * @default undefined
+                 * @optional true
+                 */
+                indexes?: number[] | undefined;
+            }
+            /**
+             * A shape and the faces or edges to start from, for `select.faces.adjacentTo`,
+             * `select.faces.ofEdges` and `select.edges.ofFaces`.
+             */
+            class SelectFromIndexesDto<T> {
+                constructor(shape?: T, indexes?: number[]);
+                /**
+                 * The shape whose faces or edges are chosen from.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The faces or edges to start from, counted from 0 as the getters list them.
+                 * @default undefined
+                 */
+                indexes: number[];
+            }
+            /**
+             * A shape and two sets of faces for `select.edges.between`, which finds where they meet.
+             */
+            class SelectBetweenDto<T> {
+                constructor(shape?: T, indexes?: number[], otherIndexes?: number[]);
+                /**
+                 * The shape whose edges are chosen from.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * One set of faces, counted from 0 as `shapes.face.getFaces` lists them.
+                 * @default undefined
+                 */
+                indexes: number[];
+                /**
+                 * The other set of faces, counted the same way.
+                 * @default undefined
+                 */
+                otherIndexes: number[];
+            }
+            /**
+             * A shape, the edges to start from and an angle for `select.edges.tangentChain`.
+             */
+            class SelectTangentChainDto<T> {
+                constructor(shape?: T, indexes?: number[], angle?: number);
+                /**
+                 * The shape whose edges are chosen from.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The edges the chain starts from, counted from 0 as `shapes.edge.getEdges` lists them.
+                 * @default undefined
+                 */
+                indexes: number[];
+                /**
+                 * How far in degrees two edges may turn where they meet and still continue each other.
+                 * @default 1
+                 * @minimum 0
+                 * @maximum 180
+                 * @step 1
+                 */
+                angle?: number | undefined;
+            }
+            /**
+             * A shape and an angle for `select.edges.convex` and `select.edges.concave`.
+             */
+            class SelectConvexityDto<T> {
+                constructor(shape?: T, tangentAngle?: number, indexes?: number[]);
+                /**
+                 * The shape whose edges are chosen from.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * How far in degrees, up to a right angle, two faces may turn at an edge and still count as
+                 * smooth, neither convex nor concave.
+                 * @default 1
+                 * @minimum 0
+                 * @maximum 90
+                 * @step 1
+                 */
+                tangentAngle?: number | undefined;
+                /**
+                 * The edges to choose among, counted from 0 as `shapes.edge.getEdges` lists them; left out, all
+                 * are candidates, and an empty list chooses none.
+                 * @default undefined
+                 * @optional true
+                 */
+                indexes?: number[] | undefined;
+            }
+            /**
+             * A shape and a direction for `select.faces.sortAlong` and `select.edges.sortAlong`.
+             */
+            class SelectSortAlongDto<T> {
+                constructor(shape?: T, direction?: Base.Vector3, indexes?: number[]);
+                /**
+                 * The shape whose faces or edges are sorted.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The direction to sort along, from the lowest centre to the highest.
+                 * @default [0, 0, 1]
+                 */
+                direction?: Base.Vector3 | undefined;
+                /**
+                 * The faces or edges to sort, counted from 0 as the getters list them; left out, all are sorted,
+                 * and an empty list sorts none.
+                 * @default undefined
+                 * @optional true
+                 */
+                indexes?: number[] | undefined;
+            }
+            /**
+             * A shape, a direction and a tolerance for `select.faces.groupAlong` and `select.edges.groupAlong`.
+             */
+            class SelectGroupAlongDto<T> {
+                constructor(shape?: T, direction?: Base.Vector3, tolerance?: number, indexes?: number[]);
+                /**
+                 * The shape whose faces or edges are grouped.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The direction to sort and group along.
+                 * @default [0, 0, 1]
+                 */
+                direction?: Base.Vector3 | undefined;
+                /**
+                 * How far past a group's first centre another may lie and still join the group, in model units.
+                 * @default 1e-7
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                tolerance?: number | undefined;
+                /**
+                 * The faces or edges to group, counted from 0 as the getters list them; left out, all are grouped,
+                 * and an empty list groups none.
+                 * @default undefined
+                 * @optional true
+                 */
+                indexes?: number[] | undefined;
+            }
+            /**
+             * A face and a point for `shapes.face.frameNearestPoint`.
+             */
+            class FrameNearestPointDto<T> {
+                constructor(shape?: T, point?: Base.Point3);
+                /**
+                 * The face the frame sits on.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The point whose nearest place on the face gets the frame; beyond the face's edge it comes to the edge.
+                 * @default [0, 0, 0]
+                 */
+                point?: Base.Point3 | undefined;
+            }
+            /**
+             * A face and the points to find frames nearest to, for `shapes.face.framesNearestPoints`.
+             */
+            class FramesNearestPointsDto<T> {
+                constructor(shape?: T, points?: Base.Point3[]);
+                /**
+                 * The face the frames sit on.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The points whose nearest places on the face get a frame each.
+                 * @default undefined
+                 */
+                points: Base.Point3[];
+            }
+            /**
+             * How the frames along an edge or a wire follow it, shared by the methods that make one frame and
+             * those that make many: the kind of frame and the up vector.
+             */
+            abstract class FrameOnCurveSharedDto {
+                /**
+                 * How the frames follow the curve.
+                 * @default rotationMinimizing
+                 */
+                kind?: curveFrameEnum | undefined;
+                /**
+                 * The way perpendicular frames keep level with, and the first rotation-minimizing frame starts
+                 * from; ignored by Frenet frames.
+                 * @default [0, 0, 1]
+                 */
+                up?: Base.Vector3 | undefined;
+            }
+            /**
+             * An edge or a wire, a parameter and the kind of frame for `shapes.edge.frameOnEdgeAtParam` and
+             * `shapes.wire.frameOnWireAtParam`.
+             */
+            class FrameOnCurveAtParamDto<T> extends FrameOnCurveSharedDto {
+                constructor(shape?: T, param?: number, kind?: curveFrameEnum, up?: Base.Vector3);
+                /**
+                 * The edge or wire the frame sits on.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * Where the frame sits, as a fraction from 0 at the start to 1 at the end.
+                 * @default 0.5
+                 * @minimum 0
+                 * @maximum 1
+                 * @step 0.1
+                 */
+                param?: number | undefined;
+            }
+            /**
+             * An edge or a wire, a length and the kind of frame for `shapes.edge.frameOnEdgeAtLength` and
+             * `shapes.wire.frameOnWireAtLength`.
+             */
+            class FrameOnCurveAtLengthDto<T> extends FrameOnCurveSharedDto {
+                constructor(shape?: T, length?: number, kind?: curveFrameEnum, up?: Base.Vector3);
+                /**
+                 * The edge or wire the frame sits on.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * How far along the curve from its start the frame sits, in model units, up to its length.
+                 * @default 1
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                length?: number | undefined;
+            }
+            /**
+             * An edge or a wire, parameters and the kind of frame for `shapes.edge.framesOnEdgeAtParams` and
+             * `shapes.wire.framesOnWireAtParams`.
+             */
+            class FramesOnCurveAtParamsDto<T> extends FrameOnCurveSharedDto {
+                constructor(shape?: T, params?: number[], kind?: curveFrameEnum, up?: Base.Vector3);
+                /**
+                 * The edge or wire the frames sit on.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * Where the frames sit, each a fraction from 0 at the start to 1 at the end.
+                 * @default undefined
+                 */
+                params: number[];
+            }
+            /**
+             * An edge or a wire, lengths and the kind of frame for `shapes.edge.framesOnEdgeAtLengths` and
+             * `shapes.wire.framesOnWireAtLengths`.
+             */
+            class FramesOnCurveAtLengthsDto<T> extends FrameOnCurveSharedDto {
+                constructor(shape?: T, lengths?: number[], kind?: curveFrameEnum, up?: Base.Vector3);
+                /**
+                 * The edge or wire the frames sit on.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * How far along the curve from its start each frame sits, in model units, up to its length.
+                 * @default undefined
+                 */
+                lengths: number[];
+            }
+            /**
+             * A wire, a count and the kind of frame for `shapes.wire.framesAlongWire`, frames spread evenly
+             * by length, and whether a closed wire repeats its first frame at the end.
+             */
+            class FramesAlongWireDto<T> extends FrameOnCurveSharedDto {
+                constructor(shape?: T, count?: number, kind?: curveFrameEnum, up?: Base.Vector3, skipEndOnClosed?: boolean);
+                /**
+                 * The wire the frames sit on.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * How many frames, the first at the start; `skipEndOnClosed` decides where the last goes on a
+                 * closed wire.
+                 * @default 10
+                 * @minimum 2
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                count?: number | undefined;
+                /**
+                 * On a closed wire, leaves out the end frame, which would sit on the first, and spaces the
+                 * frames evenly around the loop; open wires are unaffected.
+                 * @default true
+                 */
+                skipEndOnClosed?: boolean | undefined;
+            }
+            /**
+             * A shape and two frames for `transforms.orient`, which moves the shape from one onto the other.
+             */
+            class OrientDto<T> {
+                constructor(shape?: T, to?: Base.Frame, from?: Base.Frame);
+                /**
+                 * The shape to move.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The frame the shape lands on.
+                 * @default undefined
+                 */
+                to: Base.Frame;
+                /**
+                 * The frame the shape is moved from; leave it out for the world frame at the origin, normal
+                 * along z and direction along x.
+                 * @default undefined
+                 * @optional true
+                 */
+                from?: Base.Frame | undefined;
+            }
+            /**
+             * A shape and frames for `transforms.placeOnFrames`, one copy on each.
+             */
+            class PlaceOnFramesDto<T> {
+                constructor(shape?: T, frames?: Base.Frame[], from?: Base.Frame);
+                /**
+                 * The shape a copy of which lands on every frame.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The frames a copy lands on, one copy each.
+                 * @default undefined
+                 */
+                frames: Base.Frame[];
+                /**
+                 * The frame the copies are moved from; leave it out for the world frame at the origin, normal
+                 * along z and direction along x.
+                 * @default undefined
+                 * @optional true
+                 */
+                from?: Base.Frame | undefined;
+            }
+            /**
+             * A shape and matrices for `transforms.placeByMatrices`, one copy placed by each.
+             */
+            class PlaceByMatricesDto<T> {
+                constructor(shape?: T, matrices?: Base.TransformMatrixes[]);
+                /**
+                 * The shape a copy of which each placement places.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * One placement per entry: a list of column-major 4 x 4 matrices applied first to last, as
+                 * `frame.toMatrix` gives them, or a single matrix; each a turn and a move.
+                 * @default undefined
+                 */
+                matrices: Base.TransformMatrixes[];
+            }
+            /**
+             * An edge or a wire and places along it as fractions, for `analysis.curves.curvaturesAtParams`,
+             * `shapes.edge.splitEdgeAtParams` and `shapes.wire.splitWireAtParams`.
+             */
+            class DataOnGeometryAtParamsDto<T> {
+                constructor(shape?: T, params?: number[]);
+                /**
+                 * The edge or wire to read or cut.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * Places along the curve, each a fraction from 0 at the start to 1 at the end; each edge of a
+                 * wire takes an equal share, as in `shapes.wire.pointOnWireAtParam`.
+                 * @default undefined
+                 */
+                params: number[];
+            }
+            /**
+             * An edge or a wire, a tooth count and a scale for `analysis.curves.curvatureComb`, which draws the
+             * curvature as teeth standing on the curve.
+             */
+            class CurvatureCombDto<T> {
+                constructor(shape?: T, samples?: number, scale?: number);
+                /**
+                 * The edge or wire whose curvature is drawn.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * How many teeth, spaced evenly by length from the start of the curve to its end.
+                 * @default 50
+                 * @minimum 2
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                samples?: number | undefined;
+                /**
+                 * How long a tooth is per unit of curvature; 0 picks the scale that makes the longest tooth a
+                 * fifth of the curve's length.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                scale?: number | undefined;
+            }
+            /**
+             * An edge or a wire and an angle for `analysis.curves.kinks`, which finds the joints where the
+             * tangent turns sharply.
+             */
+            class CurveKinksDto<T> {
+                constructor(shape?: T, angle?: number);
+                /**
+                 * The edge or wire to look along.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * How far the tangent must turn where two edges meet for the joint to count as a kink, in
+                 * degrees; a turn of exactly this much does not count.
+                 * @default 1
+                 * @minimum 0
+                 * @maximum 180
+                 * @step 1
+                 */
+                angle?: number | undefined;
+            }
+            /**
+             * An edge or a wire and the way up for `analysis.curves.extremesAlong`, which finds the curve's
+             * highest and lowest points along that direction.
+             */
+            class CurveExtremesAlongDto<T> {
+                constructor(shape?: T, direction?: Base.Vector3);
+                /**
+                 * The edge or wire to look along.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The way up: the highest points lie furthest along it; only its direction matters.
+                 * @default [0, 1, 0]
+                 */
+                direction?: Base.Vector3 | undefined;
+            }
+            /**
+             * Two edges or wires and a tolerance for `analysis.curves.intersectCurves`, which finds where the
+             * two cross or run together.
+             */
+            class IntersectCurvesDto<T> {
+                constructor(shapeA?: T, shapeB?: T, tolerance?: number);
+                /**
+                 * The first edge or wire; the points come back in order along it.
+                 * @default undefined
+                 */
+                shapeA: T;
+                /**
+                 * The second edge or wire, the one the first meets.
+                 * @default undefined
+                 */
+                shapeB: T;
+                /**
+                 * How close the curves may pass and still count as meeting, in model units; points closer than
+                 * it to each other merge into one.
+                 * @default 1e-7
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.00001
+                 */
+                tolerance?: number | undefined;
+            }
+            /**
+             * An edge or a wire, a face and a tolerance for `analysis.curves.intersectCurveWithFace`, which
+             * finds where the curve passes through the face or lies on it.
+             */
+            class IntersectCurveWithFaceDto<T, U> {
+                constructor(shape?: T, face?: U, tolerance?: number);
+                /**
+                 * The edge or wire that meets the face; the points come back in order along it.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The face the curve meets, within its edges; the surface beyond them does not count.
+                 * @default undefined
+                 */
+                face: U;
+                /**
+                 * How close the curve may pass and still count as meeting the face, in model units; points
+                 * closer than it to each other merge into one.
+                 * @default 1e-7
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.00001
+                 */
+                tolerance?: number | undefined;
+            }
+            /**
+             * An edge and the lengths to add at its ends for `shapes.edge.extendEdge`, which carries the curve
+             * on past its start and its end.
+             */
+            class ExtendEdgeDto<T> {
+                constructor(shape?: T, atStart?: number, atEnd?: number);
+                /**
+                 * The edge to lengthen; it stays as it is and a longer copy comes back.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * How much length to add before the start, in model units.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                atStart?: number | undefined;
+                /**
+                 * How much length to add past the end, in model units.
+                 * @default 1
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                atEnd?: number | undefined;
+            }
+            /**
+             * Two edges and the kind of join for `shapes.edge.blendBetweenEdges`, which bridges the gap from
+             * the end of one to the start of the other with a smooth curve.
+             */
+            class BlendBetweenEdgesDto<T> {
+                constructor(from?: T, to?: T, matchCurvature?: boolean, bulge?: number);
+                /**
+                 * The edge whose end the blend leaves from, along its tangent there.
+                 * @default undefined
+                 */
+                from: T;
+                /**
+                 * The edge whose start the blend arrives at, along its tangent there.
+                 * @default undefined
+                 */
+                to: T;
+                /**
+                 * False matches the tangents at both ends with a cubic curve; true also matches the curvature
+                 * there, with a quintic curve.
+                 * @default false
+                 */
+                matchCurvature?: boolean | undefined;
+                /**
+                 * How far the blend holds each tangent before it turns; larger values swing wider.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                bulge?: number | undefined;
+            }
+            /**
+             * Three edges or vertices, the plane they lie in and a tolerance for
+             * `shapes.edge.circlesTangentToThree`, which draws every circle touching the edges and passing
+             * through the vertices.
+             */
+            class CirclesTangentToThreeDto<T> {
+                constructor(shapes?: T[], frame?: Base.Frame, tolerance?: number, onArgumentsOnly?: boolean);
+                /**
+                 * Three edges or vertices lying in the plane: each circle touches every edge and passes through
+                 * every vertex.
+                 * @default undefined
+                 */
+                shapes: T[];
+                /**
+                 * A frame whose origin and normal give the plane the shapes lie in; the circles are drawn in it
+                 * too.
+                 * @default undefined
+                 */
+                frame: Base.Frame;
+                /**
+                 * How close lines and circles may come to touching and still count as tangent, in model units.
+                 * @default 1e-7
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.00001
+                 */
+                tolerance?: number | undefined;
+                /**
+                 * When true, keeps only the circles that touch each edge within its ends; otherwise straight
+                 * edges count as endless lines and arcs as whole circles.
+                 * @default false
+                 */
+                onArgumentsOnly?: boolean | undefined;
+            }
+            /**
+             * Two edges or vertices, a radius and the plane they lie in for
+             * `shapes.edge.circlesTangentToTwoWithRadius`, which draws every circle of that radius touching the
+             * edges and passing through the vertices.
+             */
+            class CirclesTangentToTwoWithRadiusDto<T> {
+                constructor(shapes?: T[], frame?: Base.Frame, radius?: number, tolerance?: number, onArgumentsOnly?: boolean);
+                /**
+                 * Two edges or vertices lying in the plane: each circle touches every edge and passes through
+                 * every vertex.
+                 * @default undefined
+                 */
+                shapes: T[];
+                /**
+                 * A frame whose origin and normal give the plane the shapes lie in; the circles are drawn in it
+                 * too.
+                 * @default undefined
+                 */
+                frame: Base.Frame;
+                /**
+                 * The radius of every circle drawn, in model units.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                radius?: number | undefined;
+                /**
+                 * How close lines and circles may come to touching and still count as tangent, in model units.
+                 * @default 1e-7
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.00001
+                 */
+                tolerance?: number | undefined;
+                /**
+                 * When true, keeps only the circles that touch each edge within its ends; otherwise straight
+                 * edges count as endless lines and arcs as whole circles.
+                 * @default false
+                 */
+                onArgumentsOnly?: boolean | undefined;
+            }
+            /**
+             * Two edges or vertices, the edge the centers lie on and the plane for
+             * `shapes.edge.circlesTangentToTwoCenteredOn`, which draws every circle centered on that edge
+             * touching the edges and passing through the vertices.
+             */
+            class CirclesTangentToTwoCenteredOnDto<T> {
+                constructor(shapes?: T[], centerOn?: T, frame?: Base.Frame, tolerance?: number, onArgumentsOnly?: boolean);
+                /**
+                 * Two edges or vertices lying in the plane: each circle touches every edge and passes through
+                 * every vertex.
+                 * @default undefined
+                 */
+                shapes: T[];
+                /**
+                 * The edge in the plane that the center of every circle lies on.
+                 * @default undefined
+                 */
+                centerOn: T;
+                /**
+                 * A frame whose origin and normal give the plane the shapes lie in; the circles are drawn in it
+                 * too.
+                 * @default undefined
+                 */
+                frame: Base.Frame;
+                /**
+                 * How close lines and circles may come to touching and still count as tangent, in model units.
+                 * @default 1e-7
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.00001
+                 */
+                tolerance?: number | undefined;
+                /**
+                 * When true, keeps only the circles touching each edge within its ends and centered within
+                 * `centerOn`; otherwise straight edges count as endless lines and arcs as whole circles.
+                 * @default false
+                 */
+                onArgumentsOnly?: boolean | undefined;
+            }
+            /**
+             * Two edges, or an edge and a vertex, and the plane they lie in for
+             * `shapes.edge.linesTangentToTwo`, which draws every straight line touching both.
+             */
+            class LinesTangentToTwoDto<T> {
+                constructor(shapes?: T[], frame?: Base.Frame, angularTolerance?: number, onArgumentsOnly?: boolean);
+                /**
+                 * Two curved edges, or a curved edge and a vertex, lying in the plane; each line touches the
+                 * edges and passes through the vertex.
+                 * @default undefined
+                 */
+                shapes: T[];
+                /**
+                 * A frame whose origin and normal give the plane the shapes lie in; the lines are drawn in it
+                 * too.
+                 * @default undefined
+                 */
+                frame: Base.Frame;
+                /**
+                 * How nearly a line must run along a curve where it touches to count as tangent, as the sine of
+                 * the angle between them.
+                 * @default 1e-6
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.00001
+                 */
+                angularTolerance?: number | undefined;
+                /**
+                 * When true, keeps only the lines that touch each edge within its ends; otherwise arcs count as
+                 * whole circles.
+                 * @default false
+                 */
+                onArgumentsOnly?: boolean | undefined;
+            }
+            /**
+             * A curve, a straight reference edge, an angle and the plane for
+             * `shapes.edge.linesTangentAtAngle`, which draws every line touching the curve at that angle to the
+             * reference.
+             */
+            class LinesTangentAtAngleDto<T> {
+                constructor(shape?: T, reference?: T, frame?: Base.Frame, angle?: number, angularTolerance?: number, onArgumentsOnly?: boolean);
+                /**
+                 * The curved edge the lines touch, lying in the plane.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The straight edge the angle is measured from, lying in the plane; each line runs from its touch
+                 * to where it crosses this edge's line.
+                 * @default undefined
+                 */
+                reference: T;
+                /**
+                 * A frame whose origin and normal give the plane the edges lie in; the angle turns about the
+                 * normal.
+                 * @default undefined
+                 */
+                frame: Base.Frame;
+                /**
+                 * The angle from the reference's direction to the lines, in degrees, turning counterclockwise
+                 * about the frame's normal.
+                 * @default 45
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                angle?: number | undefined;
+                /**
+                 * The tolerance of the search for touching lines, in radians; an `angle` this close to 0, a
+                 * right angle or a half turn is taken as exactly that.
+                 * @default 1e-6
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.00001
+                 */
+                angularTolerance?: number | undefined;
+                /**
+                 * When true, keeps only the lines that touch the curve within its ends and cross the reference
+                 * within its ends, which leaves out lines parallel to it.
+                 * @default false
+                 */
+                onArgumentsOnly?: boolean | undefined;
+            }
+            /**
+             * An open wire or an edge, a distance and the corner style for `shapes.wire.offsetOpen`, which
+             * draws the offset curve on one side of it instead of a loop around it.
+             */
+            class OffsetOpenDto<T, U> {
+                constructor(shape?: T, face?: U, distance?: number, joinType?: joinTypeEnum);
+                /**
+                 * The open wire or edge to offset, lying in a plane; a straight one needs `face` to give it one.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * A flat face whose plane the offset lies in, seen from the side it looks to; leave it out to use
+                 * the plane the wire lies in.
+                 * @default undefined
+                 * @optional true
+                 */
+                face?: U | undefined;
+                /**
+                 * How far the offset curve lies from the wire, in model units: positive to the right of the
+                 * direction the wire runs, negative to the left.
+                 * @default 0.2
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                distance?: number | undefined;
+                /**
+                 * How the offset pieces meet where the wire has a corner: `arc` rounds them, `intersection`
+                 * extends them to a sharp corner, `tangent` keeps them tangent.
+                 * @default arc
+                 */
+                joinType?: joinTypeEnum | undefined;
+            }
+            /**
+             * Edges or wires, a shape with faces and the fitting settings for `shapes.wire.projectNormal`,
+             * which lays the curves onto the faces along their normals.
+             */
+            class ProjectNormalDto<T, U> {
+                constructor(wires?: T[], shape?: U, tolerance?: number, maxDistance?: number);
+                /**
+                 * The edges or wires to lay onto the shape.
+                 * @default undefined
+                 */
+                wires: T[];
+                /**
+                 * The shape whose faces the curves land on, within the faces' edges.
+                 * @default undefined
+                 */
+                shape: U;
+                /**
+                 * How far the fitted curves may stray from the exact projection, in model units.
+                 * @default 1e-4
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.00001
+                 */
+                tolerance?: number | undefined;
+                /**
+                 * Drops the parts of the projection lying farther than this from the curves they come from, in
+                 * model units; 0 keeps everything.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                maxDistance?: number | undefined;
+            }
+            /**
+             * An edge or a wire, a shape and a point for `shapes.wire.projectConical`, which casts the curve onto
+             * the shape along the lines from the point through it.
+             */
+            class ProjectConicalDto<T, U> {
+                constructor(wire?: T, shape?: U, from?: Base.Point3);
+                /**
+                 * The edge or wire to cast onto the shape.
+                 * @default undefined
+                 */
+                wire: T;
+                /**
+                 * The shape whose faces the curve lands on.
+                 * @default undefined
+                 */
+                shape: U;
+                /**
+                 * The point the curve is cast from, like a lamp throwing its shadow; it must not lie on the curve.
+                 * @default [0, 10, 0]
+                 */
+                from?: Base.Point3 | undefined;
+            }
+            /**
+             * Flat wires or edges, a face and a tolerance for `shapes.wire.wrapWiresOnFace`, which wraps the
+             * drawing around a plane, cylinder or cone face with its lengths kept.
+             */
+            class WrapWiresOnFaceDto<T, U> {
+                constructor(wires?: T[], face?: U, tolerance?: number);
+                /**
+                 * The wires or edges drawn flat on the ground plane, where the face's development lies with X
+                 * along its U direction and Z along V; Y is ignored.
+                 * @default undefined
+                 */
+                wires: T[];
+                /**
+                 * The plane, cylinder or cone face to wrap them around.
+                 * @default undefined
+                 */
+                face: U;
+                /**
+                 * How far the wrapped curves may stray from the exact wrap, in model units.
+                 * @default 1e-4
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.00001
+                 */
+                tolerance?: number | undefined;
+            }
+            /**
+             * Two shapes for `shapes.face.ruledBetween`, `analysis.measure.extrema` and
+             * `analysis.measure.angleBetween`; each method says what the two may be, and results that name a
+             * side call the first A and the second B.
+             */
+            class TwoShapesDto<T> {
+                constructor(shapeA?: T, shapeB?: T);
+                /**
+                 * The first shape, side A of the results.
+                 * @default undefined
+                 */
+                shapeA: T;
+                /**
+                 * The second shape, side B of the results.
+                 * @default undefined
+                 */
+                shapeB: T;
+            }
+            /**
+             * A grid of points for `shapes.face.fromPointGrid`, which makes a B-spline face through them or
+             * near them, with the degrees and the tolerance an approximation keeps to.
+             */
+            class FaceFromPointGridDto {
+                constructor(points?: Base.Point3[][], interpolate?: boolean, periodic?: boolean, degreeMin?: number, degreeMax?: number, tolerance?: number);
+                /**
+                 * Rows of equal length, at least two of two points each; the rows step along u and each row runs
+                 * along v.
+                 * @default undefined
+                 */
+                points: Base.Point3[][];
+                /**
+                 * True passes the face through every point at degree 3; false approximates the points within
+                 * `tolerance`, smoothing what the tolerance allows.
+                 * @default true
+                 */
+                interpolate?: boolean | undefined;
+                /**
+                 * Closes the face in u, joining the last row back to the first, which is not repeated; read only
+                 * when interpolating.
+                 * @default false
+                 */
+                periodic?: boolean | undefined;
+                /**
+                 * The lowest degree an approximation may use; read only when approximating.
+                 * @default 3
+                 * @minimum 1
+                 * @maximum 25
+                 * @step 1
+                 */
+                degreeMin?: number | undefined;
+                /**
+                 * The highest degree an approximation may use, at least `degreeMin`; read only when
+                 * approximating.
+                 * @default 8
+                 * @minimum 1
+                 * @maximum 25
+                 * @step 1
+                 */
+                degreeMax?: number | undefined;
+                /**
+                 * How far an approximation may pass from the points, in model units; read only when
+                 * approximating.
+                 * @default 1e-3
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.001
+                 */
+                tolerance?: number | undefined;
+            }
+            /**
+             * Two to four edges and a filling style for `shapes.face.boundaryPatch`, which makes a B-spline
+             * face bounded by the edges, each taken along its orientation.
+             */
+            class BoundaryPatchDto<T> {
+                constructor(edges?: T[], style?: fillingStyleEnum);
+                /**
+                 * Two to four edges: four that close up, three of which one meets the other two, or two opposite
+                 * sides, which share a corner in the curved style.
+                 * @default undefined
+                 */
+                edges: T[];
+                /**
+                 * How the patch fills between the edges.
+                 * @default coons
+                 */
+                style?: fillingStyleEnum | undefined;
+            }
+            /**
+             * Boundary edges, how the patch meets each, the faces beside them and points to pass near for
+             * `shapes.face.fillPatch`, with the settings of the plate surface it fits.
+             */
+            class FillPatchDto<T, U> {
+                constructor(edges?: T[], continuities?: continuityEnum[], supports?: (U | undefined)[], points?: Base.Point3[], degree?: number, pointsOnCurves?: number, iterations?: number, tolerance?: number);
+                /**
+                 * The boundary edges, in any order and direction, that close into one loop.
+                 * @default undefined
+                 */
+                edges: T[];
+                /**
+                 * How the patch meets each edge, one entry per edge in the order of `edges`; left out, the patch
+                 * only passes through every edge.
+                 * @default undefined
+                 * @optional true
+                 */
+                continuities?: continuityEnum[] | undefined;
+                /**
+                 * One face per edge, the face beside it, for tangent or curvature along an edge that stores none;
+                 * an undefined entry, or leaving it out, gives no face.
+                 * @default undefined
+                 * @optional true
+                 */
+                supports?: (U | undefined)[] | undefined;
+                /**
+                 * Points inside the boundary the patch passes near; left out, none.
+                 * @default undefined
+                 * @optional true
+                 */
+                points?: Base.Point3[] | undefined;
+                /**
+                 * The degree of the plate surface.
+                 * @default 3
+                 * @minimum 2
+                 * @maximum 9
+                 * @step 1
+                 */
+                degree?: number | undefined;
+                /**
+                 * How many points of each boundary edge the plate is fitted to.
+                 * @default 15
+                 * @minimum 2
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                pointsOnCurves?: number | undefined;
+                /**
+                 * How many passes the fit makes; matching curvature may need more than two.
+                 * @default 2
+                 * @minimum 1
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                iterations?: number | undefined;
+                /**
+                 * How far the patch may pass from the boundary and the points, in model units.
+                 * @default 1e-4
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.0001
+                 */
+                tolerance?: number | undefined;
+            }
+            /**
+             * A face and a tolerance for `shapes.face.unroll`, which lays a plane, cylinder or cone face flat
+             * without stretching it.
+             */
+            class UnrollFaceDto<T> {
+                constructor(shape?: T, tolerance?: number);
+                /**
+                 * The face to lay flat: one on a plane, a cylinder or a cone.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * How far the flat edges may stray from the exact development, in model units.
+                 * @default 1e-4
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.0001
+                 */
+                tolerance?: number | undefined;
+            }
+            /**
+             * A shape and a frame for `analysis.measure.boundingBoxInFrame`, which boxes the shape along the
+             * frame's axes instead of the world's.
+             */
+            class BoundingBoxInFrameDto<T> {
+                constructor(shape?: T, frame?: Base.Frame);
+                /**
+                 * The shape the box is found around.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The frame whose axes the box follows: its x along the frame's direction and its z along the
+                 * frame's normal. Only the axes matter, not the origin.
+                 * @default undefined
+                 */
+                frame: Base.Frame;
+            }
+            /**
+             * A shape, one of its edges and a place along the edge for `analysis.measure.dihedralAngle`, which
+             * measures the angle between the two faces that meet there.
+             */
+            class DihedralAngleDto<T> {
+                constructor(shape?: T, index?: number, param?: number);
+                /**
+                 * The shape the edge belongs to.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The edge, counted from 0 as `shapes.edge.getEdges` lists them.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                index?: number | undefined;
+                /**
+                 * Where along the edge the angle is read, as a share of its parameter range from 0 at its start
+                 * to 1 at its end.
+                 * @default 0.5
+                 * @minimum 0
+                 * @maximum 1
+                 * @step 0.1
+                 */
+                param?: number | undefined;
+            }
+            /**
+             * A shape, how densely to sample it and whether to read concave bends only, for
+             * `analysis.measure.minCurvatureRadius`.
+             */
+            class MinCurvatureRadiusDto<T> {
+                constructor(shape?: T, samples?: number, concaveOnly?: boolean);
+                /**
+                 * The shape whose tightest bend is found.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * How densely the shape is read: a grid of this many by this many places on each face, and this
+                 * many places along each edge.
+                 * @default 16
+                 * @minimum 1
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                samples?: number | undefined;
+                /**
+                 * True reads only where faces bend concavely, the tightest radius a round tool can reach; edges
+                 * and convex bends are then skipped.
+                 * @default false
+                 */
+                concaveOnly?: boolean | undefined;
+            }
+            /**
+             * Shapes and a clearance for `analysis.clashes.betweenShapes`, which finds the pairs of shapes that
+             * overlap or come within the clearance of each other.
+             */
+            class ClashesBetweenShapesDto<T> {
+                constructor(shapes?: T[], clearance?: number);
+                /**
+                 * The shapes to check against each other; a clash names two of them by their positions here.
+                 * @default undefined
+                 */
+                shapes: T[];
+                /**
+                 * How close two shapes may come before they clash, in model units; 0 reports only shapes that
+                 * touch or overlap.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                clearance?: number | undefined;
+            }
+            /**
+             * Two shapes, a clearance and a meshing precision for `analysis.clashes.facesWithin`, which finds
+             * the faces of one that come within the clearance of faces of the other.
+             */
+            class FacesWithinDto<T> {
+                constructor(shapeA?: T, shapeB?: T, clearance?: number, precision?: number);
+                /**
+                 * The first shape, whose faces are side A of each clash.
+                 * @default undefined
+                 */
+                shapeA: T;
+                /**
+                 * The second shape, whose faces are side B of each clash.
+                 * @default undefined
+                 */
+                shapeB: T;
+                /**
+                 * How close a face of one shape may come to a face of the other before the two clash, in model
+                 * units.
+                 * @default 0.1
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                clearance?: number | undefined;
+                /**
+                 * The mesh deflection of the search for candidate pairs, in model units; every pair it finds is
+                 * then measured exactly.
+                 * @default 0.01
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.01
+                 */
+                precision?: number | undefined;
+            }
+            /**
+             * A shape and a meshing precision for `analysis.clashes.selfIntersections`, which finds the faces
+             * of the shape that cross each other.
+             */
+            class SelfIntersectionsDto<T> {
+                constructor(shape?: T, precision?: number);
+                /**
+                 * The shape whose faces are checked against each other.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The mesh deflection of the search for candidate pairs, in model units; every pair it finds is
+                 * then confirmed exactly.
+                 * @default 0.01
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.01
+                 */
+                precision?: number | undefined;
+            }
+            /**
+             * Two shapes and a joining tolerance for `operations.sectionWires`, which gives the curves where the
+             * shapes meet, joined end to end into wires.
+             */
+            class SectionWiresDto<T> {
+                constructor(shapeA?: T, shapeB?: T, tolerance?: number);
+                /**
+                 * One of the two shapes, such as a solid to cut through.
+                 * @default undefined
+                 */
+                shapeA: T;
+                /**
+                 * The shape it meets, such as a face or a solid passing through `shapeA`.
+                 * @default undefined
+                 */
+                shapeB: T;
+                /**
+                 * How close the ends of two section edges must lie to be joined into one wire, in model units.
+                 * @default 1e-7
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.00001
+                 */
+                tolerance?: number | undefined;
+            }
+            /**
+             * A shape, the frames whose planes slice it and what each slice keeps for
+             * `operations.sliceByFrames`, which gives one slice per frame.
+             */
+            class SliceByFramesDto<T> {
+                constructor(shape?: T, frames?: Base.Frame[], makeFaces?: boolean, tolerance?: number);
+                /**
+                 * The shape to slice: faces come from its solids, wires from its solids, shells and faces.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * One plane per frame, through the frame's origin and square to its normal; the frame's
+                 * direction does not matter.
+                 * @default undefined
+                 */
+                frames: Base.Frame[];
+                /**
+                 * When true, each slice holds the faces where its plane passes through the solids, holes
+                 * included; when false, it holds the section wires.
+                 * @default true
+                 */
+                makeFaces?: boolean | undefined;
+                /**
+                 * How close the ends of two section edges must lie to be joined into one wire, in model units.
+                 * @default 1e-7
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.00001
+                 */
+                tolerance?: number | undefined;
+            }
+            /**
+             * A shape and the frame whose plane splits it for `operations.splitByFrame`, which returns what lies
+             * in front of the plane and what lies behind it.
+             */
+            class SplitByFrameDto<T> {
+                constructor(shape?: T, frame?: Base.Frame);
+                /**
+                 * The shape to split: its solids become the pieces, or its faces when it has no solids, or its
+                 * edges when it has neither.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The plane to split along, through the frame's origin; `front` holds what lies on the side its
+                 * normal points to.
+                 * @default undefined
+                 */
+                frame: Base.Frame;
+            }
+            /**
+             * A face and the edges or wires that cut it for `operations.splitFaceByWires`, which returns the
+             * pieces of the face.
+             */
+            class SplitFaceByWiresDto<T, U> {
+                constructor(shape?: T, wires?: U[]);
+                /**
+                 * The face to cut.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The edges or wires to cut along, lying on the face; a closed loop cuts out the region it
+                 * encloses.
+                 * @default undefined
+                 */
+                wires: U[];
+            }
+            /**
+             * A shape, a view frame and drawing options for `operations.hiddenLines`, which draws the edges seen
+             * from the frame and the edges hidden behind faces, flat on the XZ plane.
+             */
+            class HiddenLinesDto<T> {
+                constructor(shape?: T, frame?: Base.Frame, exact?: boolean, smoothEdges?: boolean, hiddenEdges?: boolean, focus?: number, precision?: number);
+                /**
+                 * The shape to draw.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The view: the eye sits on the side the normal points to and looks back along it, and the
+                 * drawing's x runs along the direction from the frame's origin.
+                 * @default undefined
+                 */
+                frame: Base.Frame;
+                /**
+                 * When true, the drawing is made from the exact geometry; when false, from a mesh, which is
+                 * faster and draws parallel views only.
+                 * @default true
+                 */
+                exact?: boolean | undefined;
+                /**
+                 * When true, the edges where faces meet without a crease, such as the borders of a fillet, are
+                 * drawn too.
+                 * @default false
+                 */
+                smoothEdges?: boolean | undefined;
+                /**
+                 * When true, the edges that faces cover are collected in `hidden`; when false, `hidden` stays
+                 * empty.
+                 * @default true
+                 */
+                hiddenEdges?: boolean | undefined;
+                /**
+                 * How far the eye sits from the frame's origin along its normal for a perspective, in model
+                 * units; 0 draws a parallel view. A perspective needs `exact`.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                focus?: number | undefined;
+                /**
+                 * The meshing tolerance in model units when `exact` is false; a smaller value follows curved
+                 * faces more closely.
+                 * @default 0.01
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.001
+                 */
+                precision?: number | undefined;
+            }
+            /**
+             * A shape, the frames to drill at and the size of the holes for `features.holes`;
+             * `features.counterboredHoles` and `features.countersunkHoles` add a shaped mouth to each hole.
+             */
+            class HolesDto<T> {
+                constructor(shape?: T, frames?: Base.Frame[], diameter?: number, depth?: number, tipAngle?: number);
+                /**
+                 * The shape to drill into.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * One hole per frame: the origin is where the hole enters and the normal points out of the
+                 * material, so the hole runs against it.
+                 * @default undefined
+                 */
+                frames: Base.Frame[];
+                /**
+                 * The diameter of each hole, in model units.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                diameter?: number | undefined;
+                /**
+                 * How deep each hole goes from its entry, in model units, not counting a drill point; 0 drills
+                 * through the whole shape.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                depth?: number | undefined;
+                /**
+                 * The full angle of the drill point at the bottom of a hole, in degrees: 0 leaves a flat
+                 * bottom, and 118 is the point of a twist drill.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum 180
+                 * @exclusiveMaximum true
+                 * @step 1
+                 */
+                tipAngle?: number | undefined;
+            }
+            /**
+             * The holes of `features.holes` with a wider, flat-bottomed counterbore at each mouth that sinks a
+             * screw head below the surface, for `features.counterboredHoles`.
+             */
+            class CounterboredHolesDto<T> extends HolesDto<T> {
+                constructor(shape?: T, frames?: Base.Frame[], diameter?: number, depth?: number, tipAngle?: number, counterboreDiameter?: number, counterboreDepth?: number);
+                /**
+                 * The diameter of the counterbore, in model units; it must be wider than `diameter`.
+                 * @default 2
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                counterboreDiameter?: number | undefined;
+                /**
+                 * How deep the counterbore goes from the hole's entry, in model units; it must stay shallower
+                 * than a hole of a given `depth`.
+                 * @default 0.5
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                counterboreDepth?: number | undefined;
+            }
+            /**
+             * The holes of `features.holes` with a cone-shaped countersink at each mouth that sinks a flat screw
+             * head flush with the surface, for `features.countersunkHoles`.
+             */
+            class CountersunkHolesDto<T> extends HolesDto<T> {
+                constructor(shape?: T, frames?: Base.Frame[], diameter?: number, depth?: number, tipAngle?: number, countersinkDiameter?: number, countersinkAngle?: number);
+                /**
+                 * The diameter of the countersink where it meets the surface, in model units; it must be wider
+                 * than `diameter`.
+                 * @default 2
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                countersinkDiameter?: number | undefined;
+                /**
+                 * The full angle of the countersink cone, in degrees, such as 90 or 82 for common flat head
+                 * screws.
+                 * @default 90
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum 180
+                 * @exclusiveMaximum true
+                 * @step 1
+                 */
+                countersinkAngle?: number | undefined;
+            }
+            /**
+             * A solid and the faces to remove from it for `features.removeFaces`, which closes the gap by
+             * extending the faces around them.
+             */
+            class RemoveFacesDto<T> {
+                constructor(shape?: T, indexes?: number[]);
+                /**
+                 * The shape to remove faces from; it must hold solids only.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The faces to remove, counted from 0 as `shapes.face.getFaces` lists them.
+                 * @default undefined
+                 */
+                indexes: number[];
+            }
+            /**
+             * A shape, the faces to move and how far for `features.pushPullFaces`, which moves each face along
+             * its outward normal and stretches the faces around it to follow.
+             */
+            class PushPullFacesDto<T> {
+                constructor(shape?: T, indexes?: number[], distance?: number, distances?: number[]);
+                /**
+                 * The shape whose faces move.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The faces to move, counted from 0 as `shapes.face.getFaces` lists them, each at most once.
+                 * @default undefined
+                 */
+                indexes: number[];
+                /**
+                 * How far every chosen face moves along its outward normal, in model units; a negative
+                 * distance moves it inward.
+                 * @default 1
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                distance?: number | undefined;
+                /**
+                 * One distance per entry of `indexes`, in the same order, used instead of `distance`; left out,
+                 * every chosen face moves by `distance`.
+                 * @default undefined
+                 * @optional true
+                 */
+                distances?: number[] | undefined;
+            }
+            /**
+             * A base shape, a profile face sketched on one of its faces and how far to sweep it for
+             * `features.boss`, which adds material, and `features.pocket`, which removes it.
+             */
+            class PrismFeatureDto<T, U> {
+                constructor(shape?: T, profile?: U, sketchFaceIndex?: number, direction?: Base.Vector3, extent?: featureExtentEnum, length?: number, untilFaceIndex?: number);
+                /**
+                 * The base shape the feature is built on.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The face to sweep; it must lie on the face of the base that `sketchFaceIndex` names.
+                 * @default undefined
+                 */
+                profile: U;
+                /**
+                 * The face of the base the profile lies on, counted from 0 as `shapes.face.getFaces` lists them.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                sketchFaceIndex?: number | undefined;
+                /**
+                 * The direction the profile travels in: away from the base for a boss, into it for a pocket.
+                 * @default [0, 1, 0]
+                 */
+                direction?: Base.Vector3 | undefined;
+                /**
+                 * Where the feature stops: after `length`, at the face `untilFaceIndex` names, or once it has
+                 * passed through the whole base.
+                 * @default length
+                 */
+                extent?: featureExtentEnum | undefined;
+                /**
+                 * How far the profile travels when `extent` is `length`, in model units.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                length?: number | undefined;
+                /**
+                 * The face the feature stops at when `extent` is `untilFace`: one the profile meets on its way,
+                 * such as the underside of an overhang or a void's ceiling.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                untilFaceIndex?: number | undefined;
+            }
+            /**
+             * A base shape, a profile face sketched on one of its faces, a draft angle and how far to sweep the
+             * profile for `features.taperedBoss` and `features.taperedPocket`, whose sides lean by the angle.
+             */
+            class TaperedPrismFeatureDto<T, U> {
+                constructor(shape?: T, profile?: U, sketchFaceIndex?: number, angle?: number, extent?: featureExtentEnum, length?: number, untilFaceIndex?: number);
+                /**
+                 * The base shape the feature is built on.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The face to sweep; it must lie on the face of the base that `sketchFaceIndex` names.
+                 * @default undefined
+                 */
+                profile: U;
+                /**
+                 * The face of the base the profile lies on, counted from 0 as `shapes.face.getFaces` lists them.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                sketchFaceIndex?: number | undefined;
+                /**
+                 * How far the sides lean from straight, in degrees: a positive angle narrows the feature as it
+                 * goes away from the sketch face, a negative one widens it.
+                 * @default 5
+                 * @minimum -90
+                 * @exclusiveMinimum true
+                 * @maximum 90
+                 * @exclusiveMaximum true
+                 * @step 1
+                 */
+                angle?: number | undefined;
+                /**
+                 * Where the feature stops: after `length`, at the face `untilFaceIndex` names, or once it has
+                 * passed through the whole base.
+                 * @default length
+                 */
+                extent?: featureExtentEnum | undefined;
+                /**
+                 * How far the feature runs from the sketch face when `extent` is `length`, in model units.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                length?: number | undefined;
+                /**
+                 * The face the feature stops at when `extent` is `untilFace`: one the profile meets on its way,
+                 * such as the underside of an overhang or a void's ceiling.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                untilFaceIndex?: number | undefined;
+            }
+            /**
+             * A base shape, a profile face sketched on one of its faces and an axis for
+             * `features.revolvedBoss` and `features.revolvedPocket`, which turn the profile about the axis to
+             * add or remove a ring.
+             */
+            class RevolvedFeatureDto<T, U> {
+                constructor(shape?: T, profile?: U, sketchFaceIndex?: number, axisOrigin?: Base.Point3, axisDirection?: Base.Vector3, angle?: number);
+                /**
+                 * The base shape the feature is built on.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The face to turn, lying in a plane through the axis; it must lie on the face of the base that
+                 * `sketchFaceIndex` names.
+                 * @default undefined
+                 */
+                profile: U;
+                /**
+                 * The face of the base the profile lies on, counted from 0 as `shapes.face.getFaces` lists them.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                sketchFaceIndex?: number | undefined;
+                /**
+                 * A point on the axis the profile turns about.
+                 * @default [0, 0, 0]
+                 */
+                axisOrigin?: Base.Point3 | undefined;
+                /**
+                 * The direction of the axis the profile turns about.
+                 * @default [0, 1, 0]
+                 */
+                axisDirection?: Base.Vector3 | undefined;
+                /**
+                 * How far the profile turns, in degrees, following the right-hand rule about the axis; 360
+                 * makes a whole ring.
+                 * @default 360
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum 360
+                 * @step 1
+                 */
+                angle?: number | undefined;
+            }
+            /**
+             * A base shape, a wire and the plane it lies in for `features.rib`, which fills the region the wire
+             * closes off against the base, and `features.groove`, which cuts a region away.
+             */
+            class RibFeatureDto<T, U> {
+                constructor(shape?: T, wire?: U, frame?: Base.Frame, thickness?: number, otherSideThickness?: number);
+                /**
+                 * The base shape the feature is built on.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The wire outlining the rib or groove in the plane of `frame`; the feature lies on its left as
+                 * it runs, seen from the side the normal points to.
+                 * @default undefined
+                 */
+                wire: U;
+                /**
+                 * The plane the wire lies in, through the frame's origin and square to its normal; the frame's
+                 * direction does not matter.
+                 * @default undefined
+                 */
+                frame: Base.Frame;
+                /**
+                 * How thick the feature is on the side of the plane the frame's normal points to, in model
+                 * units.
+                 * @default 0.5
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                thickness?: number | undefined;
+                /**
+                 * How thick the feature is on the other side of the plane, in model units; it and `thickness`
+                 * are not both 0.
+                 * @default 0.5
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                otherSideThickness?: number | undefined;
+            }
+            /**
+             * A flat spine and a profile for `operations.sweepEvolved`, which sweeps the profile along the spine
+             * keeping its place beside it, the way a moulding follows a wall.
+             */
+            class SweepEvolvedDto<T, U> {
+                constructor(spine?: T, profile?: U, makeSolid?: boolean);
+                /**
+                 * The path: a wire or a face lying in one plane; a face is swept along its boundary.
+                 * @default undefined
+                 */
+                spine: T;
+                /**
+                 * The edge or wire to sweep, drawn about the origin: x along the spine, y to the left of travel
+                 * and z up from the spine's plane.
+                 * @default undefined
+                 */
+                profile: U;
+                /**
+                 * When true, the sweep is closed into a solid where it can be: a closed profile gives a solid
+                 * wall, and a wall round a closed spine is capped.
+                 * @default true
+                 */
+                makeSolid?: boolean | undefined;
+            }
+            /**
+             * A spine, a profile and a scale at places along the spine for `operations.pipeWithScaling`, which
+             * sweeps the profile along the spine while scaling it.
+             */
+            class PipeWithScalingDto<T, U> {
+                constructor(spine?: T, profile?: U, params?: number[], scales?: number[], makeSolid?: boolean);
+                /**
+                 * The path to sweep along, an edge or a wire.
+                 * @default undefined
+                 */
+                spine: T;
+                /**
+                 * The edge or wire to sweep, placed across the start of the spine.
+                 * @default undefined
+                 */
+                profile: U;
+                /**
+                 * Places along the spine as fractions of it, rising from 0 at its start to 1 at its end; the
+                 * first is 0 and the last is 1.
+                 * @default [0, 1]
+                 */
+                params?: number[] | undefined;
+                /**
+                 * The scale of the profile at each place in `params`, in the same order, each above 0; 1 keeps
+                 * the profile's size.
+                 * @default [1, 0.5]
+                 */
+                scales?: number[] | undefined;
+                /**
+                 * When true, the ends are capped into a solid, which needs a closed profile; when false, the
+                 * result is an open shell.
+                 * @default true
+                 */
+                makeSolid?: boolean | undefined;
+            }
+            /**
+             * Shapes to join for `shapeFix.sewWithReport`, which sews their faces together along edges that lie
+             * within `tolerance` of each other and reports what it joined and what it left open.
+             */
+            class SewWithReportDto<T> {
+                constructor(shapes?: T[], tolerance?: number, nonManifold?: boolean);
+                /**
+                 * The faces, shells or other shapes whose faces are sewn together.
+                 * @default undefined
+                 */
+                shapes: T[];
+                /**
+                 * How far apart two edges may lie and still be sewn into one, in model units.
+                 * @default 1e-7
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.000001
+                 */
+                tolerance?: number | undefined;
+                /**
+                 * When true, an edge may join more than two faces, as where three sheets meet along one line;
+                 * when false, an edge joins two faces at most.
+                 * @default false
+                 */
+                nonManifold?: boolean | undefined;
+            }
+            /**
+             * An STL file for `io.loadStl`, which reads its triangles into a shape: one planar face per triangle,
+             * or one face that carries the whole mesh.
+             */
+            class LoadStlDto {
+                constructor(stlData?: string | ArrayBuffer | Uint8Array | File | Blob, asFaces?: boolean, adjustZtoY?: boolean);
+                /**
+                 * The STL file, ASCII or binary: the text of an ASCII file, or the file as ArrayBuffer,
+                 * Uint8Array, File or Blob.
+                 * @default undefined
+                 */
+                stlData: string | ArrayBuffer | Uint8Array | File | Blob;
+                /**
+                 * When true, each triangle becomes a planar face that sewing can join into a shell; when false,
+                 * one face carries the whole mesh, light to draw but not for modelling.
+                 * @default false
+                 */
+                asFaces?: boolean | undefined;
+                /**
+                 * When true, the file's Z-up is turned into this library's Y-up.
+                 * @default true
+                 */
+                adjustZtoY?: boolean | undefined;
+            }
+            /**
+             * A BREP file for `io.loadBrep`, the text format that keeps a shape's exact geometry and topology,
+             * as `io.saveShapeBrep` writes it.
+             */
+            class LoadBrepDto {
+                constructor(brepData?: string | File | Blob);
+                /**
+                 * The BREP file's text, or a File or Blob that holds it.
+                 * @default undefined
+                 */
+                brepData: string | File | Blob;
+            }
+            /**
+             * A shape and file options for `io.saveShapeBrep`, which writes the shape as a BREP file, the exact
+             * text format `io.loadBrep` reads back.
+             */
+            class SaveBrepDto<T> {
+                constructor(shape?: T, fileName?: string, tryDownload?: boolean);
+                /**
+                 * The shape written to the file.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The name the downloaded file gets.
+                 * @default shape.brep
+                 */
+                fileName?: string | undefined;
+                /**
+                 * When true, a browser download of the file is started where that is possible; the kernel
+                 * itself only returns the text.
+                 * @default true
+                 */
+                tryDownload?: boolean | undefined;
+            }
+            /**
+             * A shape, a file name and meshing options for `io.saveShapeObj`, which triangulates the shape and
+             * writes it as an OBJ file with the material library its `mtllib` line names.
+             */
+            class SaveObjDto<T> {
+                constructor(shape?: T, fileName?: string, precision?: number, adjustYtoZ?: boolean, tryDownload?: boolean);
+                /**
+                 * The shape written to the file.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The name the downloaded file gets. Without its extension it also names the shape and the
+                 * material library, so it may hold no spaces or slashes.
+                 * @default shape.obj
+                 */
+                fileName?: string | undefined;
+                /**
+                 * The meshing tolerance in model units; a smaller value follows curved surfaces more closely
+                 * and makes a bigger file.
+                 * @default 0.01
+                 * @minimum 1e-7
+                 * @maximum Infinity
+                 * @step 0.001
+                 */
+                precision?: number | undefined;
+                /**
+                 * When true, the shape is turned so this library's Y-up becomes Z-up.
+                 * @default false
+                 */
+                adjustYtoZ?: boolean | undefined;
+                /**
+                 * When true, a browser download of the OBJ file and of any material library is started where
+                 * that is possible; the kernel itself only returns the texts.
+                 * @default true
+                 */
+                tryDownload?: boolean | undefined;
+            }
+            /**
+             * A shape, a file name and meshing options for `io.saveShapePly`, which triangulates the shape and
+             * writes it as an ASCII PLY file with normals.
+             */
+            class SavePlyDto<T> {
+                constructor(shape?: T, fileName?: string, precision?: number, adjustYtoZ?: boolean, tryDownload?: boolean);
+                /**
+                 * The shape written to the file.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The name the downloaded file gets.
+                 * @default shape.ply
+                 */
+                fileName?: string | undefined;
+                /**
+                 * The meshing tolerance in model units; a smaller value follows curved surfaces more closely
+                 * and makes a bigger file.
+                 * @default 0.01
+                 * @minimum 1e-7
+                 * @maximum Infinity
+                 * @step 0.001
+                 */
+                precision?: number | undefined;
+                /**
+                 * When true, the shape is turned so this library's Y-up becomes Z-up.
+                 * @default false
+                 */
+                adjustYtoZ?: boolean | undefined;
+                /**
+                 * When true, a browser download of the file is started where that is possible; the kernel
+                 * itself only returns the text.
+                 * @default true
+                 */
+                tryDownload?: boolean | undefined;
+            }
+            /**
+             * A shape, a view and file options for `io.saveShapeSvg`, which draws the edges the view sees as an
+             * SVG drawing, and the edges other faces cover dashed when asked.
+             */
+            class SaveSvgDto<T> {
+                constructor(shape?: T, frame?: Base.Frame, drawHidden?: boolean, precision?: number, fileName?: string, tryDownload?: boolean);
+                /**
+                 * The shape to draw.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The view, as in `operations.hiddenLines`: the eye sits on the side the normal points to and
+                 * looks back along it, and the drawing's x runs along the direction.
+                 * @default undefined
+                 */
+                frame: Base.Frame;
+                /**
+                 * When true, the edges other faces cover are drawn too, dashed.
+                 * @default false
+                 */
+                drawHidden?: boolean | undefined;
+                /**
+                 * How far the straight segments that trace a curved edge may stray from it, in model units;
+                 * a smaller value follows curves more closely and makes a bigger file.
+                 * @default 0.01
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.001
+                 */
+                precision?: number | undefined;
+                /**
+                 * The name the downloaded file gets.
+                 * @default shape.svg
+                 */
+                fileName?: string | undefined;
+                /**
+                 * When true, a browser download of the file is started where that is possible; the kernel
+                 * itself only returns the text.
+                 * @default true
+                 */
+                tryDownload?: boolean | undefined;
+            }
+            /**
+             * A glTF file for `assembly.manager.loadGltfToDoc`, which reads its meshes, names, colors and
+             * hierarchy into an assembly document.
+             */
+            class LoadGltfToDocDto {
+                constructor(gltfData?: string | ArrayBuffer | Uint8Array | File | Blob);
+                /**
+                 * A binary `.glb`, or a `.gltf` with its buffers embedded, as text, ArrayBuffer, Uint8Array,
+                 * File or Blob; the file's header tells which of the two it is.
+                 * @default undefined
+                 */
+                gltfData: string | ArrayBuffer | Uint8Array | File | Blob;
+            }
+            /**
+             * An OBJ file for `assembly.manager.loadObjToDoc`, which reads its meshes and names into an
+             * assembly document.
+             */
+            class LoadObjToDocDto {
+                constructor(objData?: string | ArrayBuffer | Uint8Array | File | Blob);
+                /**
+                 * The OBJ file as text, ArrayBuffer, Uint8Array, File or Blob; a material library it names is
+                 * not read.
+                 * @default undefined
+                 */
+                objData: string | ArrayBuffer | Uint8Array | File | Blob;
+            }
+            /**
+             * A document, a meshing tolerance and file options for `assembly.manager.exportDocumentToObj`, which
+             * writes the document as an OBJ file with the material library its `mtllib` line names.
+             */
+            class ExportDocumentToObjDto<T> {
+                constructor(document?: T, meshDeflection?: number, fileName?: string, tryDownload?: boolean);
+                /**
+                 * The document from `buildAssemblyDocument`, `loadStepToDoc` or another loader.
+                 * @default undefined
+                 */
+                document: T;
+                /**
+                 * How closely triangles follow curved surfaces, in model units; smaller gives a finer mesh.
+                 * @default 0.1
+                 * @minimum 1e-7
+                 * @maximum Infinity
+                 * @step 0.01
+                 */
+                meshDeflection?: number | undefined;
+                /**
+                 * The name the downloaded file gets. Without its extension it also names the material library,
+                 * so it may hold no spaces or slashes.
+                 * @default assembly.obj
+                 */
+                fileName?: string | undefined;
+                /**
+                 * When true, a browser download of the OBJ file and of any material library is started where
+                 * that is possible; the kernel itself only returns the texts.
+                 * @default false
+                 */
+                tryDownload?: boolean | undefined;
+            }
+            /**
+             * A document, a meshing tolerance and file options for `assembly.manager.exportDocumentToPly`,
+             * which writes the document as an ASCII PLY file with normals and colors.
+             */
+            class ExportDocumentToPlyDto<T> {
+                constructor(document?: T, meshDeflection?: number, fileName?: string, tryDownload?: boolean);
+                /**
+                 * The document from `buildAssemblyDocument`, `loadStepToDoc` or another loader.
+                 * @default undefined
+                 */
+                document: T;
+                /**
+                 * How closely triangles follow curved surfaces, in model units; smaller gives a finer mesh.
+                 * @default 0.1
+                 * @minimum 1e-7
+                 * @maximum Infinity
+                 * @step 0.01
+                 */
+                meshDeflection?: number | undefined;
+                /**
+                 * The name the downloaded file gets.
+                 * @default assembly.ply
+                 */
+                fileName?: string | undefined;
+                /**
+                 * When true, a browser download of the file is started where that is possible; the kernel
+                 * itself only returns the text.
+                 * @default false
+                 */
+                tryDownload?: boolean | undefined;
+            }
         }
         /**
      * Re-export Base namespace from @bitbybit-dev/core and extend with Three.js-specific types.
@@ -14343,7 +16763,7 @@ declare namespace Bit {
          * objects. Passing an existing drawn object back in updates it in place.
          */
         declare namespace Draw {
-            type DrawOptions = DrawOcctShapeOptions | DrawBasicGeometryOptions | DrawManifoldOrCrossSectionOptions;
+            type DrawOptions = DrawOcctShapeOptions | DrawBasicGeometryOptions | DrawManifoldOrCrossSectionOptions | DrawFrameOptions;
             /**
              * Everything a draw call will accept: points, lines, segments and polylines; Verb curves and
              * surfaces; the handles the OCCT, Manifold and JSCAD kernels return; tags; whatever a layer
@@ -14364,7 +16784,7 @@ declare namespace Bit {
              * `number[]`, and drawing one is ordinary. Dropping these arms would narrow the union at the cost
              * of making the library's own output undrawable without a cast.
              */
-            type Entity = number[] | Base.Point3 | Base.Line3 | Base.Segment3 | Base.Polyline3 | Base.VerbCurve | Base.VerbSurface | Inputs.OCCT.TopoDSShapePointer | Inputs.OCCT.DecomposedMeshDto | Inputs.Manifold.ManifoldPointer | Inputs.Manifold.CrossSectionPointer | Inputs.JSCAD.JSCADEntity | Inputs.Tag.TagDto | CustomGeometryDrawable | number[][] | Base.Point3[] | Base.Line3[] | Base.Segment3[] | Base.Polyline3[] | Base.VerbCurve[] | Base.VerbSurface[] | Inputs.OCCT.TopoDSShapePointer[] | Inputs.OCCT.DecomposedMeshDto[] | Inputs.Manifold.ManifoldPointer[] | Inputs.Manifold.CrossSectionPointer[] | Inputs.JSCAD.JSCADEntity[] | Inputs.Tag.TagDto[];
+            type Entity = number[] | Base.Point3 | Base.Line3 | Base.Segment3 | Base.Polyline3 | Base.Frame | Base.VerbCurve | Base.VerbSurface | Inputs.OCCT.TopoDSShapePointer | Inputs.OCCT.DecomposedMeshDto | Inputs.Manifold.ManifoldPointer | Inputs.Manifold.CrossSectionPointer | Inputs.JSCAD.JSCADEntity | Inputs.Tag.TagDto | CustomGeometryDrawable | number[][] | Base.Point3[] | Base.Line3[] | Base.Segment3[] | Base.Polyline3[] | Base.Frame[] | Base.VerbCurve[] | Base.VerbSurface[] | Inputs.OCCT.TopoDSShapePointer[] | Inputs.OCCT.DecomposedMeshDto[] | Inputs.Manifold.ManifoldPointer[] | Inputs.Manifold.CrossSectionPointer[] | Inputs.JSCAD.JSCADEntity[] | Inputs.Tag.TagDto[];
             /**
              * Metadata a drawn tag carries so that handing it back updates it in place.
              */
@@ -14464,12 +16884,12 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                faceOpacity: number;
+                faceOpacity?: number | undefined;
                 /**
                  * Hex color string for face color
                  * @default #ff0000
                  */
-                faceColour: Base.Color;
+                faceColour?: Base.Color | undefined;
                 /**
                  * An engine material for the faces, used instead of `faceColour` when given
                  * @default undefined
@@ -14480,12 +16900,12 @@ declare namespace Bit {
                  * Hex color string for cross section drawing
                  * @default #ff00ff
                  */
-                crossSectionColour: Base.Color;
+                crossSectionColour?: Base.Color | undefined;
                 /**
                  * Width of cross section lines
                  * @default 2
                  */
-                crossSectionWidth: number;
+                crossSectionWidth?: number | undefined;
                 /**
                  * Cross section opacity value between 0 and 1
                  * @default 1
@@ -14493,22 +16913,22 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                crossSectionOpacity: number;
+                crossSectionOpacity?: number | undefined;
                 /**
                  * Compute normals for the shape
                  * @default false
                  */
-                computeNormals: boolean;
+                computeNormals?: boolean | undefined;
                 /**
                  * Draw two-sided faces with different colors for front and back. This helps visualize face orientation. Only applies to surfaces.
                  * @default true
                  */
-                drawTwoSided: boolean;
+                drawTwoSided?: boolean | undefined;
                 /**
                  * Hex color string for back face color (negative side of the face). Only used when drawTwoSided is true and drawing surfaces.
                  * @default #0000ff
                  */
-                backFaceColour: Base.Color;
+                backFaceColour?: Base.Color | undefined;
                 /**
                  * Back face opacity value between 0 and 1. Only used when drawTwoSided is true and drawing surfaces.
                  * @default 1
@@ -14516,7 +16936,7 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                backFaceOpacity: number;
+                backFaceOpacity?: number | undefined;
             }
             /**
              * Feeds `draw.optionsOcctShape`: everything about how an OCCT shape is drawn, from meshing
@@ -14526,7 +16946,7 @@ declare namespace Bit {
                 /**
                  * Provide options without default values
                  */
-                constructor(faceOpacity?: number, edgeOpacity?: number, edgeColour?: Base.Color, faceMaterial?: Base.Material, faceColour?: Base.Color, edgeWidth?: number, drawEdges?: boolean, drawFaces?: boolean, drawVertices?: boolean, vertexColour?: Base.Color, vertexSize?: number, precision?: number, drawEdgeIndexes?: boolean, edgeIndexHeight?: number, edgeIndexColour?: Base.Color, drawFaceIndexes?: boolean, faceIndexHeight?: number, faceIndexColour?: Base.Color, drawTwoSided?: boolean, backFaceColour?: Base.Color, backFaceOpacity?: number, edgeArrowSize?: number, edgeArrowAngle?: number, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean);
+                constructor(faceOpacity?: number, edgeOpacity?: number, edgeColour?: Base.Color, faceMaterial?: Base.Material, faceColour?: Base.Color, edgeWidth?: number, drawEdges?: boolean, drawFaces?: boolean, drawVertices?: boolean, vertexColour?: Base.Color, vertexSize?: number, precision?: number, drawEdgeIndexes?: boolean, edgeIndexHeight?: number, edgeIndexColour?: Base.Color, drawFaceIndexes?: boolean, faceIndexHeight?: number, faceIndexColour?: Base.Color, drawTwoSided?: boolean, backFaceColour?: Base.Color, backFaceOpacity?: number, edgeArrowSize?: number, edgeArrowAngle?: number, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, drawIsoCurves?: boolean, isoCurvesU?: number, isoCurvesV?: number, isoCurvesColour?: Base.Color, surfaceAnalysis?: Inputs.OCCT.surfaceAnalysisEnum, draftDirection?: Base.Vector3, analysisMin?: number, analysisMax?: number);
                 /**
                  * Face opacity value between 0 and 1
                  * @default 1
@@ -14534,7 +16954,7 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                faceOpacity: number;
+                faceOpacity?: number | undefined;
                 /**
                  * Edge opacity value between 0 and 1
                  * @default 1
@@ -14542,22 +16962,22 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                edgeOpacity: number;
+                edgeOpacity?: number | undefined;
                 /**
                  * Hex color string for the edges
                  * @default #ffffff
                  */
-                edgeColour: Base.Color;
+                edgeColour?: Base.Color | undefined;
                 /**
                  * Hex color string for face color
                  * @default #ff0000
                  */
-                faceColour: Base.Color;
+                faceColour?: Base.Color | undefined;
                 /**
                  * Color of the vertices that will be drawn
                  * @default #ff00ff
                  */
-                vertexColour: Base.Color;
+                vertexColour?: Base.Color | undefined;
                 /**
                  * An engine material for the faces, used instead of `faceColour` when given
                  * @default undefined
@@ -14571,7 +16991,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                edgeWidth: number;
+                edgeWidth?: number | undefined;
                 /**
                  * The size of a vertices that will be drawn
                  * @default 0.03
@@ -14579,22 +16999,22 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.01
                  */
-                vertexSize: number;
+                vertexSize?: number | undefined;
                 /**
                  * You can turn off drawing of edges via this property
                  * @default true
                  */
-                drawEdges: boolean;
+                drawEdges?: boolean | undefined;
                 /**
                  * You can turn off drawing of faces via this property
                  * @default true
                  */
-                drawFaces: boolean;
+                drawFaces?: boolean | undefined;
                 /**
                  * You can turn off drawing of vertexes via this property
                  * @default false
                  */
-                drawVertices: boolean;
+                drawVertices?: boolean | undefined;
                 /**
                  * Precision of the mesh that will be generated for the shape, lower number will mean more triangles
                  * @default 0.01
@@ -14602,12 +17022,12 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.01
                  */
-                precision: number;
+                precision?: number | undefined;
                 /**
                  * Draw index of edges in space
                  * @default false
                  */
-                drawEdgeIndexes: boolean;
+                drawEdgeIndexes?: boolean | undefined;
                 /**
                  * Indicates the edge index height if they are drawn
                  * @default 0.06
@@ -14615,17 +17035,17 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.01
                  */
-                edgeIndexHeight: number;
+                edgeIndexHeight?: number | undefined;
                 /**
                  * Edge index color if the edges are drawn
                  * @default #ff00ff
                  */
-                edgeIndexColour: Base.Color;
+                edgeIndexColour?: Base.Color | undefined;
                 /**
                  * Draw indexes of faces in space
                  * @default false
                  */
-                drawFaceIndexes: boolean;
+                drawFaceIndexes?: boolean | undefined;
                 /**
                  * Indicates the edge index height if they are drawn
                  * @default 0.06
@@ -14633,22 +17053,22 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.01
                  */
-                faceIndexHeight: number;
+                faceIndexHeight?: number | undefined;
                 /**
                  * Edge index color if the edges are drawn
                  * @default #0000ff
                  */
-                faceIndexColour: Base.Color;
+                faceIndexColour?: Base.Color | undefined;
                 /**
                  * Draw two-sided faces with different colors for front and back. This helps visualize face orientation. Only applies to surfaces.
                  * @default true
                  */
-                drawTwoSided: boolean;
+                drawTwoSided?: boolean | undefined;
                 /**
                  * Hex color string for back face color (negative side of the face). Only used when drawTwoSided is true and drawing surfaces.
                  * @default #0000ff
                  */
-                backFaceColour: Base.Color;
+                backFaceColour?: Base.Color | undefined;
                 /**
                  * Back face opacity value between 0 and 1. Only used when drawTwoSided is true and drawing surfaces.
                  * @default 1
@@ -14656,7 +17076,7 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                backFaceOpacity: number;
+                backFaceOpacity?: number | undefined;
                 /**
                  * Size of arrow heads at the end of edges to indicate edge/wire orientation. Set to 0 to disable arrows.
                  * @default 0
@@ -14664,7 +17084,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.01
                  */
-                edgeArrowSize: number;
+                edgeArrowSize?: number | undefined;
                 /**
                  * Angle of the arrow head in degrees. Controls how wide the arrow head spreads.
                  * @default 15
@@ -14672,23 +17092,77 @@ declare namespace Bit {
                  * @maximum 90
                  * @step 1
                  */
-                edgeArrowAngle: number;
+                edgeArrowAngle?: number | undefined;
                 /**
                  * Keep the cached triangulation on the shape after meshing. When false (default) the mesh data
                  * is flushed so it does not accumulate in memory across draws.
                  * @default false
                  */
-                keepMeshData: boolean;
+                keepMeshData?: boolean | undefined;
                 /**
                  * Allow re-meshing to a lower resolution triangulation than one already cached on the shape.
                  * @default true
                  */
-                allowQualityDecrease: boolean;
+                allowQualityDecrease?: boolean | undefined;
                 /**
                  * Force every face to be re-meshed to the requested precision regardless of cached triangulation.
                  * @default false
                  */
-                forceFaceDeflection: boolean;
+                forceFaceDeflection?: boolean | undefined;
+                /**
+                 * When true, each face's iso curves are drawn with the shape, as its edges are: at `edgeWidth`
+                 * and `edgeOpacity`, in `isoCurvesColour`.
+                 * @default false
+                 */
+                drawIsoCurves?: boolean | undefined;
+                /**
+                 * How many iso curves of constant u each face gets with `drawIsoCurves`, at values spread evenly
+                 * inside its u range and trimmed to the face.
+                 * @default 5
+                 * @minimum 0
+                 * @maximum 1000
+                 * @step 1
+                 */
+                isoCurvesU?: number | undefined;
+                /**
+                 * How many iso curves of constant v each face gets with `drawIsoCurves`, at values spread evenly
+                 * inside its v range and trimmed to the face.
+                 * @default 5
+                 * @minimum 0
+                 * @maximum 1000
+                 * @step 1
+                 */
+                isoCurvesV?: number | undefined;
+                /**
+                 * The color of the iso curves as a hex string.
+                 * @default #808080
+                 */
+                isoCurvesColour?: Base.Color | undefined;
+                /**
+                 * The surface analysis coloring the faces instead of `faceColour` and `faceMaterial`, from blue at
+                 * `analysisMin` through green to red at `analysisMax`; vertices without a value keep `faceColour`.
+                 * @default none
+                 */
+                surfaceAnalysis?: Inputs.OCCT.surfaceAnalysisEnum | undefined;
+                /**
+                 * The pull direction the draft angles are measured against; read only by `draftAngle`.
+                 * @default [0, 1, 0]
+                 */
+                draftDirection?: Base.Vector3 | undefined;
+                /**
+                 * The analysis value drawn blue, and anything below it; left out, the lowest finite value
+                 * found.
+                 * @default undefined
+                 * @optional true
+                 */
+                analysisMin?: number | undefined;
+                /**
+                 * The analysis value drawn red, and anything above it; left out, the highest finite value
+                 * found.
+                 * @default undefined
+                 * @optional true
+                 */
+                analysisMax?: number | undefined;
             }
             /**
              * Draw options for basic geometry types like points, lines, polylines, surfaces and jscad meshes
@@ -14699,13 +17173,13 @@ declare namespace Bit {
                  * Basic geometry colors to use for lines, points, polylines, surfaces, jscad meshes.
                  * @default #ff0000
                  */
-                colours: string | string[];
+                colours?: string | string[] | undefined;
                 /**
                  * How colors are spread over more entities than colors: first color for all, the last color
                  * for the remainder, colors repeating, or colors bouncing back and forth
                  * @default lastColorRemainder
                  */
-                colorMapStrategy: Base.colorMapStrategyEnum;
+                colorMapStrategy?: Base.colorMapStrategyEnum | undefined;
                 /**
                  * Size affect how big the drawn points are and how wide lines are.
                  * @default 0.1
@@ -14713,7 +17187,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                size: number;
+                size?: number | undefined;
                 /**
                  * Opacity of the point 0 to 1
                  * @default 1
@@ -14721,27 +17195,27 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                opacity: number;
+                opacity?: number | undefined;
                 /**
                  * If geometry needs to be updated later
                  * @default false
                  */
-                updatable: boolean;
+                updatable?: boolean | undefined;
                 /**
                  * When true, the entity is drawn but not shown until it is made visible
                  * @default false
                  */
-                hidden: boolean;
+                hidden?: boolean | undefined;
                 /**
                  * Draw two-sided faces with different colors for front and back. This helps visualize face orientation. Only applies to surfaces.
                  * @default true
                  */
-                drawTwoSided: boolean;
+                drawTwoSided?: boolean | undefined;
                 /**
                  * Hex color string for back face color (negative side of the face). Only used when drawTwoSided is true and drawing surfaces.
                  * @default #0000ff
                  */
-                backFaceColour: Base.Color;
+                backFaceColour?: Base.Color | undefined;
                 /**
                  * Back face opacity value between 0 and 1. Only used when drawTwoSided is true and drawing surfaces.
                  * @default 1
@@ -14749,7 +17223,7 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                backFaceOpacity: number;
+                backFaceOpacity?: number | undefined;
                 /**
                  * Size of the arrow head at the end of lines and polylines. Set to 0 to disable arrows.
                  * @default 0
@@ -14757,7 +17231,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.01
                  */
-                arrowSize: number;
+                arrowSize?: number | undefined;
                 /**
                  * Angle of the arrow head in degrees. Controls how wide the arrow head spreads.
                  * @default 15
@@ -14765,7 +17239,7 @@ declare namespace Bit {
                  * @maximum 90
                  * @step 1
                  */
-                arrowAngle: number;
+                arrowAngle?: number | undefined;
             }
             /**
              * Texture filtering mode - how the texture is sampled when scaled
@@ -14790,7 +17264,7 @@ declare namespace Bit {
                  * Name identifier for the texture
                  * @default Texture
                  */
-                name: string;
+                name?: string | undefined;
                 /**
                  * Horizontal (U) scale/tiling of the texture
                  * @default 1
@@ -14798,7 +17272,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                uScale: number;
+                uScale?: number | undefined;
                 /**
                  * Vertical (V) scale/tiling of the texture
                  * @default 1
@@ -14806,7 +17280,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                vScale: number;
+                vScale?: number | undefined;
                 /**
                  * Horizontal (U) offset of the texture
                  * @default 0
@@ -14814,7 +17288,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                uOffset: number;
+                uOffset?: number | undefined;
                 /**
                  * Vertical (V) offset of the texture
                  * @default 0
@@ -14822,7 +17296,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                vOffset: number;
+                vOffset?: number | undefined;
                 /**
                  * Rotation angle of the texture in radians around the W axis
                  * @default 0
@@ -14830,22 +17304,22 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                wAng: number;
+                wAng?: number | undefined;
                 /**
                  * Invert the texture on the Y axis
                  * @default false
                  */
-                invertY: boolean;
+                invertY?: boolean | undefined;
                 /**
                  * Invert the texture on the Z axis
                  * @default false
                  */
-                invertZ: boolean;
+                invertZ?: boolean | undefined;
                 /**
                  * Texture sampling/filtering mode
                  * @default nearest
                  */
-                samplingMode: samplingModeEnum;
+                samplingMode?: samplingModeEnum | undefined;
             }
             /**
              * Alpha/blend modes that determine how transparent materials are rendered
@@ -14866,12 +17340,12 @@ declare namespace Bit {
                  * Name identifier for the material
                  * @default PBRMaterial
                  */
-                name: string;
+                name?: string | undefined;
                 /**
                  * Base/albedo color of the material in hex format
                  * @default #0000ff
                  */
-                baseColor: Base.Color;
+                baseColor?: Base.Color | undefined;
                 /**
                  * Metallic factor (0 = dielectric, 1 = metallic)
                  * @default 0.5
@@ -14879,7 +17353,7 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                metallic: number;
+                metallic?: number | undefined;
                 /**
                  * Roughness factor (0 = smooth/mirror, 1 = rough/diffuse)
                  * @default 0.5
@@ -14887,7 +17361,7 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                roughness: number;
+                roughness?: number | undefined;
                 /**
                  * Overall opacity/transparency of the material (0 = fully transparent, 1 = fully opaque)
                  * @default 1
@@ -14895,7 +17369,7 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                alpha: number;
+                alpha?: number | undefined;
                 /**
                  * Emissive color - the color the material appears to emit (glow)
                  * @default #000000
@@ -14908,7 +17382,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                emissiveIntensity: number;
+                emissiveIntensity?: number | undefined;
                 /**
                  * Z-buffer depth offset factor to help with z-fighting on coplanar surfaces
                  * @default 0
@@ -14916,7 +17390,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                zOffset: number;
+                zOffset?: number | undefined;
                 /**
                  * Z-buffer depth offset units for fine-tuned z-fighting control
                  * @default 0
@@ -14924,7 +17398,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                zOffsetUnits: number;
+                zOffsetUnits?: number | undefined;
                 /**
                  * Texture to use for base/albedo color
                  * @default undefined
@@ -14959,7 +17433,7 @@ declare namespace Bit {
                  * Alpha/transparency mode: opaque, mask (cutout), or blend (translucent)
                  * @default opaque
                  */
-                alphaMode: alphaModeEnum;
+                alphaMode?: alphaModeEnum | undefined;
                 /**
                  * Alpha threshold for mask mode (pixels below this are fully transparent)
                  * @default 0.5
@@ -14967,22 +17441,76 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.05
                  */
-                alphaCutoff: number;
+                alphaCutoff?: number | undefined;
                 /**
                  * Render both sides of faces (equivalent to disabling backFaceCulling)
                  * @default false
                  */
-                doubleSided: boolean;
+                doubleSided?: boolean | undefined;
                 /**
                  * Render material as wireframe
                  * @default false
                  */
-                wireframe: boolean;
+                wireframe?: boolean | undefined;
                 /**
                  * Disable lighting calculations and render flat/unlit
                  * @default false
                  */
-                unlit: boolean;
+                unlit?: boolean | undefined;
+            }
+            /**
+             * Feeds `draw.optionsFrame`: how a frame is drawn, as its three axes in their own colors and a
+             * small grid in its plane that marks it as a plane.
+             */
+            class DrawFrameOptions {
+                constructor(size?: number, colorX?: Base.Color, colorY?: Base.Color, colorZ?: Base.Color, drawPlane?: boolean, colorPlane?: Base.Color, lineWidth?: number, updatable?: boolean);
+                /**
+                 * Length of each axis, in model units; the grid in the plane is as wide, centered on the origin.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                size?: number | undefined;
+                /**
+                 * Color of the X axis, which runs along the frame's direction.
+                 * @default #ff0000
+                 */
+                colorX?: Base.Color | undefined;
+                /**
+                 * Color of the Y axis.
+                 * @default #00ff00
+                 */
+                colorY?: Base.Color | undefined;
+                /**
+                 * Color of the Z axis, which runs along the frame's normal.
+                 * @default #0000ff
+                 */
+                colorZ?: Base.Color | undefined;
+                /**
+                 * Whether to draw the small grid in the frame's plane around its origin.
+                 * @default true
+                 */
+                drawPlane?: boolean | undefined;
+                /**
+                 * Color of the grid in the frame's plane.
+                 * @default #808080
+                 */
+                colorPlane?: Base.Color | undefined;
+                /**
+                 * How wide the lines are, on the scale the simple drawing options use for a line's `size`.
+                 * @default 2
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                lineWidth?: number | undefined;
+                /**
+                 * Whether the drawn frame can be redrawn in place by passing it back.
+                 * @default false
+                 */
+                updatable?: boolean | undefined;
             }
             /**
              * The kind of geometry a draw call detected, in singular and plural forms - point, line, node,
@@ -15004,6 +17532,8 @@ declare namespace Bit {
                 nodes = "nodes",
                 polyline = "polyline",
                 polylines = "polylines",
+                frame = "frame",
+                frames = "frames",
                 verbCurve = "verbCurve",
                 verbCurves = "verbCurves",
                 verbSurface = "verbSurface",
@@ -15079,7 +17609,7 @@ declare namespace Bit {
                  * The point the camera looks at and circles around
                  * @default [0, 0, 0]
                  */
-                pivotPoint: Base.Point3;
+                pivotPoint?: Base.Point3 | undefined;
                 /**
                  * How far from the pivot the camera starts, in scene units
                  * @default 20
@@ -15087,7 +17617,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                distance: number;
+                distance?: number | undefined;
                 /**
                  * How far above or below the pivot the camera starts, in degrees; 0 is level, positive is
                  * above looking down
@@ -15096,15 +17626,15 @@ declare namespace Bit {
                  * @maximum 90
                  * @step 1
                  */
-                pitch: number;
+                pitch?: number | undefined;
                 /**
                  * How far around the vertical axis the camera starts, in degrees
                  * @default 45
-                 * @minimum -360
-                 * @maximum 360
+                 * @minimum -Infinity
+                 * @maximum Infinity
                  * @step 1
                  */
-                yaw: number;
+                yaw?: number | undefined;
                 /**
                  * The closest the camera may zoom to the pivot, in scene units
                  * @default 0.1
@@ -15112,7 +17642,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                distanceMin: number;
+                distanceMin?: number | undefined;
                 /**
                  * The farthest the camera may zoom from the pivot, in scene units
                  * @default 1000
@@ -15120,7 +17650,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                distanceMax: number;
+                distanceMax?: number | undefined;
                 /**
                  * The lowest the camera may tilt, in degrees; -90 looks straight up from below
                  * @default -90
@@ -15128,7 +17658,7 @@ declare namespace Bit {
                  * @maximum 90
                  * @step 1
                  */
-                pitchAngleMin: number;
+                pitchAngleMin?: number | undefined;
                 /**
                  * The highest the camera may tilt, in degrees; 90 looks straight down from above
                  * @default 90
@@ -15136,31 +17666,31 @@ declare namespace Bit {
                  * @maximum 90
                  * @step 1
                  */
-                pitchAngleMax: number;
+                pitchAngleMax?: number | undefined;
                 /**
                  * How far a pointer drag turns the camera; higher turns faster
                  * @default 0.3
                  * @minimum 0
-                 * @maximum 10
+                 * @maximum Infinity
                  * @step 0.1
                  */
-                orbitSensitivity: number;
+                orbitSensitivity?: number | undefined;
                 /**
                  * How far a wheel step zooms the camera; higher zooms faster
                  * @default 0.15
                  * @minimum 0
-                 * @maximum 10
+                 * @maximum Infinity
                  * @step 0.01
                  */
-                distanceSensitivity: number;
+                distanceSensitivity?: number | undefined;
                 /**
                  * How far a pan drag moves the pivot; higher pans faster
                  * @default 1
                  * @minimum 0
-                 * @maximum 10
+                 * @maximum Infinity
                  * @step 0.1
                  */
-                panSensitivity: number;
+                panSensitivity?: number | undefined;
                 /**
                  * How much the camera keeps gliding after a drag, from 0 for none to 1 for most
                  * @default 0.1
@@ -15168,22 +17698,22 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                inertiaFactor: number;
+                inertiaFactor?: number | undefined;
                 /**
                  * When true, the scene is rendered again whenever the camera moves
                  * @default true
                  */
-                autoRender: boolean;
+                autoRender?: boolean | undefined;
                 /**
                  * When true and a focus object is given, the camera starts framed on it
                  * @default true
                  */
-                frameOnStart: boolean;
+                frameOnStart?: boolean | undefined;
                 /**
                  * When true, camera moves ease in and out instead of stopping dead
                  * @default true
                  */
-                enableDamping: boolean;
+                enableDamping?: boolean | undefined;
                 /**
                  * How quickly damped moves settle; lower is smoother but slower
                  * @default 0.1
@@ -15191,7 +17721,7 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.01
                  */
-                dampingFactor: number;
+                dampingFactor?: number | undefined;
                 /**
                  * An object to frame the camera on at the start, when given
                  * @optional true
@@ -15228,7 +17758,7 @@ declare namespace Bit {
                  * The point to move the camera to
                  * @default [0, 0, 0]
                  */
-                position: Base.Point3;
+                position?: Base.Point3 | undefined;
             }
             /**
              * Feeds `three.camera.orbitCamera.setPivotPoint` and `getPivotPoint` with the controller and
@@ -15245,7 +17775,7 @@ declare namespace Bit {
                  * The point the camera looks at and circles around
                  * @default [0, 0, 0]
                  */
-                pivotPoint: Base.Point3;
+                pivotPoint?: Base.Point3 | undefined;
             }
             /**
              * Feeds `three.camera.orbitCamera.focusOnObject` with the controller, the object to frame and
@@ -15268,10 +17798,10 @@ declare namespace Bit {
                  * much room
                  * @default 1.5
                  * @minimum 1
-                 * @maximum 5
+                 * @maximum Infinity
                  * @step 0.1
                  */
-                padding: number;
+                padding?: number | undefined;
             }
             /**
              * Feeds `three.camera.orbitCamera.resetCamera` with the controller and the angles and distance
@@ -15287,11 +17817,11 @@ declare namespace Bit {
                 /**
                  * How far around the vertical axis, in degrees
                  * @default 45
-                 * @minimum -360
-                 * @maximum 360
+                 * @minimum -Infinity
+                 * @maximum Infinity
                  * @step 1
                  */
-                yaw: number;
+                yaw?: number | undefined;
                 /**
                  * How far above or below the pivot, in degrees; positive is above looking down
                  * @default 30
@@ -15299,7 +17829,7 @@ declare namespace Bit {
                  * @maximum 90
                  * @step 1
                  */
-                pitch: number;
+                pitch?: number | undefined;
                 /**
                  * How far from the pivot, in scene units
                  * @default 20
@@ -15307,7 +17837,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                distance: number;
+                distance?: number | undefined;
             }
             /**
              * Feeds the `three.camera.orbitCamera` getters with the controller to read from.
@@ -15338,7 +17868,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                min: number;
+                min?: number | undefined;
                 /**
                  * The farthest the camera may zoom from the pivot, in scene units
                  * @default 1000
@@ -15346,7 +17876,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                max: number;
+                max?: number | undefined;
             }
             /**
              * Feeds `three.camera.orbitCamera.setPitchLimits` with the controller and how far down and up
@@ -15366,7 +17896,7 @@ declare namespace Bit {
                  * @maximum 90
                  * @step 1
                  */
-                min: number;
+                min?: number | undefined;
                 /**
                  * The highest the camera may tilt, in degrees; 90 looks straight down
                  * @default 90
@@ -15374,7 +17904,7 @@ declare namespace Bit {
                  * @maximum 90
                  * @step 1
                  */
-                max: number;
+                max?: number | undefined;
             }
         }
         /**
@@ -15418,44 +17948,45 @@ declare namespace Bit {
                 /**
                  * The size of the scene in world units. This determines ground size, light positions, and shadow bounds.
                  * @default 20
-                 * @minimum 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 10
                  */
-                sceneSize: number;
+                sceneSize?: number | undefined;
                 /**
                  * Background color of the scene in hex format.
                  * @default "#1a1c1f"
                  */
-                backgroundColor: string;
+                backgroundColor?: string | undefined;
                 /**
                  * Enable shadow mapping for realistic shadows.
                  * @default true
                  */
-                enableShadows: boolean;
+                enableShadows?: boolean | undefined;
                 /**
                  * Enable the ground plane.
                  * @default true
                  */
-                enableGround: boolean;
+                enableGround?: boolean | undefined;
                 /**
                  * Center position of the ground plane [x, y, z].
                  * @default [0, 0, 0]
                  */
-                groundCenter: Base.Point3;
+                groundCenter?: Base.Point3 | undefined;
                 /**
                  * Scale factor for the ground size relative to scene size. Values greater than 1 make the ground larger than the scene size.
                  * @default 2
                  * @minimum 0.5
-                 * @maximum 10
+                 * @maximum Infinity
                  * @step 0.5
                  */
-                groundScaleFactor: number;
+                groundScaleFactor?: number | undefined;
                 /**
                  * Color of the ground plane in hex format.
                  * @default "#333333"
                  */
-                groundColor: string;
+                groundColor?: string | undefined;
                 /**
                  * Opacity of the ground plane (0 = fully transparent, 1 = fully opaque).
                  * @default 1
@@ -15463,38 +17994,38 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                groundOpacity: number;
+                groundOpacity?: number | undefined;
                 /**
                  * Sky color for the hemisphere light (illumination from above).
                  * @default "#ffffff"
                  */
-                hemisphereLightSkyColor: string;
+                hemisphereLightSkyColor?: string | undefined;
                 /**
                  * Ground color for the hemisphere light (illumination from below).
                  * @default "#444444"
                  */
-                hemisphereLightGroundColor: string;
+                hemisphereLightGroundColor?: string | undefined;
                 /**
                  * Brightness of the soft light from above and below, 1 being full strength
                  * @default 1
                  * @minimum 0
-                 * @maximum 10
+                 * @maximum Infinity
                  * @step 0.1
                  */
-                hemisphereLightIntensity: number;
+                hemisphereLightIntensity?: number | undefined;
                 /**
                  * Color of the directional light (sun light).
                  * @default "#ffffff"
                  */
-                directionalLightColor: string;
+                directionalLightColor?: string | undefined;
                 /**
                  * Brightness of the sun-like light that casts the shadows, 1 being full strength
                  * @default 1.5
                  * @minimum 0
-                 * @maximum 10
+                 * @maximum Infinity
                  * @step 0.1
                  */
-                directionalLightIntensity: number;
+                directionalLightIntensity?: number | undefined;
                 /**
                  * Size of the shadow map in pixels (higher = sharper shadows but more GPU intensive).
                  * @default 2048
@@ -15502,12 +18033,12 @@ declare namespace Bit {
                  * @maximum 8192
                  * @step 256
                  */
-                shadowMapSize: number;
+                shadowMapSize?: number | undefined;
                 /**
                  * Enable automatic creation of an orbit camera controller.
                  * @default true
                  */
-                enableOrbitCamera: boolean;
+                enableOrbitCamera?: boolean | undefined;
                 /**
                  * Settings for the orbit camera, the same as `three.camera.orbitCamera.create` takes; left
                  * out, defaults sized from `sceneSize` are used
@@ -15534,7 +18065,7 @@ declare namespace Bit {
                  * The color as a hex text such as `#ff5733`, with or without the `#`.
                  * @default #0000ff
                  */
-                color: Base.Color;
+                color?: Base.Color | undefined;
             }
             /**
              * An `{ r, g, b }` color with channels from 0 to 255, for `color.rgb255Color`.
@@ -15547,7 +18078,7 @@ declare namespace Bit {
                  * @minimum 0
                  * @maximum 255
                  */
-                colorRgb: Base.ColorRGB;
+                colorRgb?: Base.ColorRGB | undefined;
             }
             /**
              * An `{ r, g, b }` color with channels from 0 to 1, for `color.rgb1Color`.
@@ -15560,7 +18091,7 @@ declare namespace Bit {
                  * @minimum 0
                  * @maximum 1
                  */
-                colorRgb: Base.ColorRGB;
+                colorRgb?: Base.ColorRGB | undefined;
             }
             /**
              * An `{ r, g, b, a }` color with color channels from 0 to 255 and opacity from 0 to 1, for
@@ -15575,7 +18106,7 @@ declare namespace Bit {
                  * @minimum 0
                  * @maximum 255
                  */
-                colorRgba: Base.ColorRGBA;
+                colorRgba?: Base.ColorRGBA | undefined;
             }
             /**
              * An `{ r, g, b, a }` color with every channel from 0 to 1, for `color.rgba1Color`.
@@ -15589,7 +18120,7 @@ declare namespace Bit {
                  * @minimum 0
                  * @maximum 1
                  */
-                colorRgba: Base.ColorRGBA;
+                colorRgba?: Base.ColorRGBA | undefined;
             }
             /**
              * Separate red, green and blue values from 0 to 255, for color.rgbAtomic255Color.
@@ -15602,21 +18133,21 @@ declare namespace Bit {
                  * @minimum 0
                  * @maximum 255
                  */
-                r: number;
+                r?: number | undefined;
                 /**
                  * The green channel, from 0 to 255.
                  * @default 0
                  * @minimum 0
                  * @maximum 255
                  */
-                g: number;
+                g?: number | undefined;
                 /**
                  * The blue channel, from 0 to 255.
                  * @default 255
                  * @minimum 0
                  * @maximum 255
                  */
-                b: number;
+                b?: number | undefined;
             }
             /**
              * Separate red, green, blue and alpha values from 0 to 255, for building a color.
@@ -15663,21 +18194,21 @@ declare namespace Bit {
                  * @minimum 0
                  * @maximum 1
                  */
-                r: number;
+                r?: number | undefined;
                 /**
                  * The green channel, from 0 to 1.
                  * @default 0
                  * @minimum 0
                  * @maximum 1
                  */
-                g: number;
+                g?: number | undefined;
                 /**
                  * The blue channel, from 0 to 1.
                  * @default 1
                  * @minimum 0
                  * @maximum 1
                  */
-                b: number;
+                b?: number | undefined;
             }
             /**
              * Separate red, green, blue and alpha values from 0 to 1, for building a color.
@@ -15722,12 +18253,13 @@ declare namespace Bit {
                  * The color to invert, as a hex text such as `#ff5733`.
                  * @default #0000ff
                  */
-                color: Base.Color;
+                color?: Base.Color | undefined;
                 /**
                  * When true, the result is black for a light color and white for a dark one instead of the
                  * exact inverse; useful for readable text.
+                 * @default false
                  */
-                blackAndWhite: boolean;
+                blackAndWhite?: boolean | undefined;
             }
             /**
              * A hex color and a target range for `color.hexToRgbMapped`, `color.getRedParam`,
@@ -15739,7 +18271,7 @@ declare namespace Bit {
                  * The color as a hex text such as `#ff5733`.
                  * @default #0000ff
                  */
-                color: Base.Color;
+                color?: Base.Color | undefined;
                 /**
                  * The value a channel of 0 maps to.
                  * @default 0
@@ -15747,7 +18279,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                from: number;
+                from?: number | undefined;
                 /**
                  * The value a channel of 255 maps to; 1 gives channels from 0 to 1.
                  * @default 255
@@ -15755,7 +18287,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                to: number;
+                to?: number | undefined;
             }
             /**
              * An `{ r, g, b }` color and the range its channels use, for `color.rgbObjToHex`.
@@ -15774,7 +18306,7 @@ declare namespace Bit {
                  * @maximum 255
                  * @step 0.1
                  */
-                min: number;
+                min?: number | undefined;
                 /**
                  * The highest value a channel can have in this object: 255 or 1; anything else is remapped
                  * to 0 to 255 first.
@@ -15783,7 +18315,7 @@ declare namespace Bit {
                  * @maximum 255
                  * @step 0.1
                  */
-                max: number;
+                max?: number | undefined;
             }
             /**
              * Three channel values and the range they use, for `color.rgbToHex`.
@@ -15797,7 +18329,7 @@ declare namespace Bit {
                  * @maximum 255
                  * @step 1
                  */
-                r: number;
+                r?: number | undefined;
                 /**
                  * The green channel, within `min` to `max`.
                  * @default 255
@@ -15805,7 +18337,7 @@ declare namespace Bit {
                  * @maximum 255
                  * @step 1
                  */
-                g: number;
+                g?: number | undefined;
                 /**
                  * The blue channel, within `min` to `max`.
                  * @default 255
@@ -15813,7 +18345,7 @@ declare namespace Bit {
                  * @maximum 255
                  * @step 1
                  */
-                b: number;
+                b?: number | undefined;
                 /**
                  * The lowest value a channel can have, usually 0.
                  * @default 0
@@ -15821,7 +18353,7 @@ declare namespace Bit {
                  * @maximum 255
                  * @step 0.1
                  */
-                min: number;
+                min?: number | undefined;
                 /**
                  * The highest value a channel can have: 255 or 1; anything else is remapped to 0 to 255
                  * first.
@@ -15830,7 +18362,7 @@ declare namespace Bit {
                  * @maximum 255
                  * @step 0.1
                  */
-                max: number;
+                max?: number | undefined;
             }
             /**
              * An `{ r, g, b }` color for `color.rgbToRed`, `color.rgbToGreen` and `color.rgbToBlue`.
@@ -15889,7 +18421,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                seconds: number;
+                seconds?: number | undefined;
             }
             /**
              * A date and a new value for its day, for `dates.setDayOfMonth` and `dates.setUTCDay`.
@@ -15908,7 +18440,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                day: number;
+                day?: number | undefined;
             }
             /**
              * A date and a new value for its year, for `dates.setYear` and `dates.setUTCYear`.
@@ -15928,7 +18460,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                year: number;
+                year?: number | undefined;
             }
             /**
              * A date and a new value for its month, for `dates.setMonth` and `dates.setUTCMonth`.
@@ -15948,7 +18480,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                month: number;
+                month?: number | undefined;
             }
             /**
              * A date and a new value for its hours, for `dates.setHours` and `dates.setUTCHours`.
@@ -15967,7 +18499,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                hours: number;
+                hours?: number | undefined;
             }
             /**
              * A date and a new value for its minutes, for `dates.setMinutes` and `dates.setUTCMinutes`.
@@ -15986,7 +18518,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                minutes: number;
+                minutes?: number | undefined;
             }
             /**
              * A date and a new value for its milliseconds, for `dates.setMilliseconds` and
@@ -16006,7 +18538,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                milliseconds: number;
+                milliseconds?: number | undefined;
             }
             /**
              * A date and a Unix timestamp for `dates.setTime`.
@@ -16025,7 +18557,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                time: number;
+                time?: number | undefined;
             }
             /**
              * A Unix timestamp for `dates.createFromUnixTimeStamp`, which turns it into a date.
@@ -16039,7 +18571,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                unixTimeStamp: number;
+                unixTimeStamp?: number | undefined;
             }
             /**
              * The parts of a date for `dates.createDate` and `dates.createDateUTC`; a part outside its
@@ -16054,7 +18586,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                year: number;
+                year?: number | undefined;
                 /**
                  * The month counting from 0: 0 is January, 11 December.
                  * @default 1
@@ -16062,7 +18594,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                month: number;
+                month?: number | undefined;
                 /**
                  * The day of the month, from 1 to 31.
                  * @default 1
@@ -16070,7 +18602,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                day: number;
+                day?: number | undefined;
                 /**
                  * The hour, from 0 to 23.
                  * @default 1
@@ -16078,7 +18610,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                hours: number;
+                hours?: number | undefined;
                 /**
                  * The minutes, from 0 to 59.
                  * @default 1
@@ -16086,7 +18618,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                minutes: number;
+                minutes?: number | undefined;
                 /**
                  * The seconds, from 0 to 59.
                  * @default 1
@@ -16094,7 +18626,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                seconds: number;
+                seconds?: number | undefined;
                 /**
                  * The milliseconds, from 0 to 999.
                  * @default 1
@@ -16102,7 +18634,521 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                milliseconds: number;
+                milliseconds?: number | undefined;
+            }
+        }
+        /**
+         * Parameters for frames: the origin, normal and direction a frame is built from, the frames, points
+         * and vectors converted between a frame and the world, and the counts and spacings of frame
+         * patterns. A frame is a point with three axes at right angles, and it places things.
+         */
+        declare namespace Frame {
+            /**
+             * One of a frame's own axes: `x` runs along its `direction`, `z` along its `normal` and `y`
+             * across both. Used by `frame.rotate`.
+             */
+            enum frameAxisEnum {
+                x = "x",
+                y = "y",
+                z = "z"
+            }
+            /**
+             * Where `frame.create` puts a frame, where its Z axis points and roughly where its X axis
+             * points; the X axis is turned square to the normal.
+             */
+            class CreateFrameDto {
+                constructor(origin?: Base.Point3, normal?: Base.Vector3, direction?: Base.Vector3);
+                /**
+                 * Where the frame sits.
+                 * @default [0, 0, 0]
+                 */
+                origin?: Base.Point3 | undefined;
+                /**
+                 * Where the Z axis points; any length but zero.
+                 * @default [0, 0, 1]
+                 */
+                normal?: Base.Vector3 | undefined;
+                /**
+                 * Roughly where the X axis points. It is turned square to `normal`, so it only must not run
+                 * along it.
+                 * @default [1, 0, 0]
+                 */
+                direction?: Base.Vector3 | undefined;
+            }
+            /**
+             * Where `frame.xy`, `frame.yz` and `frame.zx` put the frame they build; each of them fixes
+             * the axes itself.
+             */
+            class OriginDto {
+                constructor(origin?: Base.Point3);
+                /**
+                 * Where the frame sits.
+                 * @default [0, 0, 0]
+                 */
+                origin?: Base.Point3 | undefined;
+            }
+            /**
+             * The three points `frame.fromThreePoints` builds a frame from: its origin, a point its X axis
+             * runs toward and a point on the side its Y axis points to.
+             */
+            class ThreePointsDto {
+                constructor(origin?: Base.Point3, xPoint?: Base.Point3, planePoint?: Base.Point3);
+                /**
+                 * Where the frame sits.
+                 * @default [0, 0, 0]
+                 */
+                origin?: Base.Point3 | undefined;
+                /**
+                 * A point the X axis runs toward from `origin`.
+                 * @default [1, 0, 0]
+                 */
+                xPoint?: Base.Point3 | undefined;
+                /**
+                 * A third point in the plane, on the side the Y axis points to; it must not lie on the line
+                 * through the other two.
+                 * @default [0, 1, 0]
+                 */
+                planePoint?: Base.Point3 | undefined;
+            }
+            /**
+             * A point and a normal for `frame.fromPointAndNormal`, which picks the X axis by a fixed rule,
+             * so the same normal always gives the same frame.
+             */
+            class PointAndNormalDto {
+                constructor(origin?: Base.Point3, normal?: Base.Vector3);
+                /**
+                 * Where the frame sits.
+                 * @default [0, 0, 0]
+                 */
+                origin?: Base.Point3 | undefined;
+                /**
+                 * Where the Z axis points; any length but zero.
+                 * @default [0, 0, 1]
+                 */
+                normal?: Base.Vector3 | undefined;
+            }
+            /**
+             * The points `frame.bestFit` fits a plane through: at least three, not all on one line.
+             */
+            class BestFitDto {
+                constructor(points?: Base.Point3[]);
+                /**
+                 * The points to fit. Their order decides which way the normal points; where it turns
+                 * neither way, as in a bow-tie, the normal's largest component is positive.
+                 * @default undefined
+                 */
+                points: Base.Point3[];
+            }
+            /**
+             * One frame, for the methods that read a frame or turn it over: `frame.origin`, `frame.normal`,
+             * `frame.direction`, `frame.yDirection`, `frame.flip` and `frame.toMatrix`.
+             */
+            class FrameDto {
+                constructor(frame?: Base.Frame);
+                /**
+                 * The frame to read or change.
+                 * @default undefined
+                 */
+                frame: Base.Frame;
+            }
+            /**
+             * A list of frames for `frame.flipFrames`, which turns every one of them over.
+             */
+            class FramesDto {
+                constructor(frames?: Base.Frame[]);
+                /**
+                 * The frames to change, each on its own.
+                 * @default undefined
+                 */
+                frames: Base.Frame[];
+            }
+            /**
+             * The vector `frame.translate` and `frame.translateFrames` move frames by; their axes keep
+             * their directions.
+             */
+            abstract class TranslateSharedDto {
+                /**
+                 * How far to move each origin, in world coordinates and model units.
+                 * @default [0, 0, 0]
+                 */
+                translation?: Base.Vector3 | undefined;
+            }
+            /**
+             * A frame and the vector `frame.translate` moves it by; its axes keep their directions.
+             */
+            class TranslateDto extends TranslateSharedDto {
+                constructor(frame?: Base.Frame, translation?: Base.Vector3);
+                /**
+                 * The frame to move.
+                 * @default undefined
+                 */
+                frame: Base.Frame;
+            }
+            /**
+             * Frames and the one vector `frame.translateFrames` moves them all by; their axes keep their
+             * directions.
+             */
+            class TranslateFramesDto extends TranslateSharedDto {
+                constructor(frames?: Base.Frame[], translation?: Base.Vector3);
+                /**
+                 * The frames to move.
+                 * @default undefined
+                 */
+                frames: Base.Frame[];
+            }
+            /**
+             * The distance `frame.offset` and `frame.offsetFrames` move frames along their own normals;
+             * their axes keep their directions.
+             */
+            abstract class OffsetSharedDto {
+                /**
+                 * How far to move each frame along its normal, in model units; a negative distance moves
+                 * against it.
+                 * @default 1
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                distance?: number | undefined;
+            }
+            /**
+             * A frame and the distance `frame.offset` moves it along its own normal; its axes keep their
+             * directions.
+             */
+            class OffsetDto extends OffsetSharedDto {
+                constructor(frame?: Base.Frame, distance?: number);
+                /**
+                 * The frame to move.
+                 * @default undefined
+                 */
+                frame: Base.Frame;
+            }
+            /**
+             * Frames and the distance `frame.offsetFrames` moves each along its own normal; their axes keep
+             * their directions.
+             */
+            class OffsetFramesDto extends OffsetSharedDto {
+                constructor(frames?: Base.Frame[], distance?: number);
+                /**
+                 * The frames to move.
+                 * @default undefined
+                 */
+                frames: Base.Frame[];
+            }
+            /**
+             * One of a frame's own axes and the angle `frame.rotate` and `frame.rotateFrames` turn frames
+             * by about it, through each frame's origin.
+             */
+            abstract class RotateSharedDto {
+                /**
+                 * Which of each frame's own axes to turn about.
+                 * @default z
+                 */
+                axis?: frameAxisEnum | undefined;
+                /**
+                 * How far to turn, in degrees; positive is counter-clockwise when the axis points toward
+                 * you.
+                 * @default 90
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                angle?: number | undefined;
+            }
+            /**
+             * A frame, one of its own axes and the angle `frame.rotate` turns it by about that axis,
+             * through its origin.
+             */
+            class RotateDto extends RotateSharedDto {
+                constructor(frame?: Base.Frame, axis?: frameAxisEnum, angle?: number);
+                /**
+                 * The frame to turn.
+                 * @default undefined
+                 */
+                frame: Base.Frame;
+            }
+            /**
+             * Frames, one of their own axes and the angle `frame.rotateFrames` turns each by about that
+             * axis, through its own origin.
+             */
+            class RotateFramesDto extends RotateSharedDto {
+                constructor(frames?: Base.Frame[], axis?: frameAxisEnum, angle?: number);
+                /**
+                 * The frames to turn.
+                 * @default undefined
+                 */
+                frames: Base.Frame[];
+            }
+            /**
+             * The parent frame whose coordinates `frame.frameToWorld`, `frame.frameToLocal`,
+             * `frame.framesToWorld` and `frame.framesToLocal` read frames in.
+             */
+            abstract class ChildFrameSharedDto {
+                /**
+                 * The frame whose coordinates the frames are given in or converted to.
+                 * @default undefined
+                 */
+                parent: Base.Frame;
+            }
+            /**
+             * Two frames for `frame.frameToWorld` and `frame.frameToLocal`: the `child` to convert, and the
+             * `parent` whose coordinates are used.
+             */
+            class ChildFrameDto extends ChildFrameSharedDto {
+                constructor(child?: Base.Frame, parent?: Base.Frame);
+                /**
+                 * The frame to convert: given in the coordinates of `parent` for `frameToWorld`, in world
+                 * coordinates for `frameToLocal`.
+                 * @default undefined
+                 */
+                child: Base.Frame;
+            }
+            /**
+             * Frames and one parent frame for `frame.framesToWorld` and `frame.framesToLocal`, which convert
+             * every frame between the parent's coordinates and world coordinates.
+             */
+            class ChildFramesDto extends ChildFrameSharedDto {
+                constructor(children?: Base.Frame[], parent?: Base.Frame);
+                /**
+                 * The frames to convert: given in the coordinates of `parent` for `framesToWorld`, in world
+                 * coordinates for `framesToLocal`.
+                 * @default undefined
+                 */
+                children: Base.Frame[];
+            }
+            /**
+             * A frame and one point for `frame.pointToWorld` and `frame.pointToLocal`, which convert the
+             * point between the frame's coordinates and world coordinates.
+             */
+            class FramePointDto {
+                constructor(frame?: Base.Frame, point?: Base.Point3);
+                /**
+                 * The frame whose coordinates the point is converted to or from.
+                 * @default undefined
+                 */
+                frame: Base.Frame;
+                /**
+                 * The point to convert: in the frame's coordinates for `pointToWorld`, in world coordinates
+                 * for `pointToLocal`.
+                 * @default undefined
+                 */
+                point: Base.Point3;
+            }
+            /**
+             * A frame and a list of points for `frame.pointsToWorld` and `frame.pointsToLocal`, which
+             * convert every point between the frame's coordinates and world coordinates.
+             */
+            class FramePointsDto {
+                constructor(frame?: Base.Frame, points?: Base.Point3[]);
+                /**
+                 * The frame whose coordinates the points are converted to or from.
+                 * @default undefined
+                 */
+                frame: Base.Frame;
+                /**
+                 * The points to convert: in the frame's coordinates for `pointsToWorld`, in world
+                 * coordinates for `pointsToLocal`.
+                 * @default undefined
+                 */
+                points: Base.Point3[];
+            }
+            /**
+             * A frame and a vector for `frame.vectorToWorld` and `frame.vectorToLocal`, which turn the
+             * vector between the frame's axes and the world axes without moving it.
+             */
+            class FrameVectorDto {
+                constructor(frame?: Base.Frame, vector?: Base.Vector3);
+                /**
+                 * The frame whose axes the vector is converted to or from.
+                 * @default undefined
+                 */
+                frame: Base.Frame;
+                /**
+                 * The vector to convert: along the frame's axes for `vectorToWorld`, along the world axes
+                 * for `vectorToLocal`.
+                 * @default undefined
+                 */
+                vector: Base.Vector3;
+            }
+            /**
+             * The transformation `frame.fromMatrix` reads a frame from: where it moves the world origin and
+             * where it turns the world X and Z axes.
+             */
+            class TransformationDto {
+                constructor(transformation?: Base.TransformMatrixes);
+                /**
+                 * A transformation matrix, or a list of them applied in order; scaling is dropped and a
+                 * perspective part is refused.
+                 * @default undefined
+                 */
+                transformation: Base.TransformMatrixes;
+            }
+            /**
+             * Two frames for `frame.matrixFromTo`, whose transformation carries anything placed on `from`
+             * onto `to`, turning it the same way.
+             */
+            class FromToDto {
+                constructor(to?: Base.Frame, from?: Base.Frame);
+                /**
+                 * The frame to move onto.
+                 * @default undefined
+                 */
+                to: Base.Frame;
+                /**
+                 * The frame to move from; left out, the world frame.
+                 * @default undefined
+                 * @optional true
+                 */
+                from?: Base.Frame | undefined;
+            }
+            /**
+             * The counts and spacings of the grid of frames `frame.grid` lays out in the plane of `frame`,
+             * each turned the same way as `frame`.
+             */
+            class GridDto {
+                constructor(frame?: Base.Frame, countX?: number, countY?: number, spacingX?: number, spacingY?: number, centered?: boolean);
+                /**
+                 * The frame whose plane and axes the grid follows; left out, the world frame.
+                 * @default undefined
+                 * @optional true
+                 */
+                frame?: Base.Frame | undefined;
+                /**
+                 * How many frames along the X axis.
+                 * @default 3
+                 * @minimum 1
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                countX?: number | undefined;
+                /**
+                 * How many frames along the Y axis.
+                 * @default 3
+                 * @minimum 1
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                countY?: number | undefined;
+                /**
+                 * The distance between neighbours along the X axis, in model units.
+                 * @default 2
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                spacingX?: number | undefined;
+                /**
+                 * The distance between neighbours along the Y axis, in model units.
+                 * @default 2
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                spacingY?: number | undefined;
+                /**
+                 * When true the grid is centered on the frame's origin; otherwise it starts there and runs
+                 * along the X and Y axes.
+                 * @default false
+                 */
+                centered?: boolean | undefined;
+            }
+            /**
+             * The count, radius and sweep of the ring of frames `frame.polar` lays out around the normal of
+             * `frame`, in its plane.
+             */
+            class PolarDto {
+                constructor(frame?: Base.Frame, count?: number, radius?: number, angle?: number, startAngle?: number, rotate?: boolean);
+                /**
+                 * The frame the ring turns around, about its normal; left out, the world frame.
+                 * @default undefined
+                 * @optional true
+                 */
+                frame?: Base.Frame | undefined;
+                /**
+                 * How many frames in the ring.
+                 * @default 6
+                 * @minimum 1
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                count?: number | undefined;
+                /**
+                 * The distance from the center to each frame, in model units; at 0 the frames only turn
+                 * in place.
+                 * @default 3
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                radius?: number | undefined;
+                /**
+                 * The angle the ring covers, in degrees, from -360 to 360. A full turn spaces the frames
+                 * evenly without repeating the first; a smaller angle puts one at each end.
+                 * @default 360
+                 * @minimum -360
+                 * @maximum 360
+                 * @step 1
+                 */
+                angle?: number | undefined;
+                /**
+                 * The angle of the first frame, in degrees from the X axis toward the Y axis.
+                 * @default 0
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                startAngle?: number | undefined;
+                /**
+                 * When true the frames rotate with the ring, as copies around a hub do; otherwise every frame
+                 * keeps the axes of `frame`.
+                 * @default true
+                 */
+                rotate?: boolean | undefined;
+            }
+            /**
+             * The counts and hexagon size of the honeycomb `frame.hexGrid` lays out in the plane of
+             * `frame`: one frame at the center of each hexagon, turned the same way as `frame`.
+             */
+            class HexGridDto {
+                constructor(frame?: Base.Frame, countX?: number, countY?: number, radius?: number, centered?: boolean);
+                /**
+                 * The frame whose plane and axes the honeycomb follows; left out, the world frame.
+                 * @default undefined
+                 * @optional true
+                 */
+                frame?: Base.Frame | undefined;
+                /**
+                 * How many hexagons in each row, along the X axis.
+                 * @default 3
+                 * @minimum 1
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                countX?: number | undefined;
+                /**
+                 * How many rows, along the Y axis; every second row is shifted by half a hexagon.
+                 * @default 3
+                 * @minimum 1
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                countY?: number | undefined;
+                /**
+                 * The distance from a hexagon's center to one of its corners, in model units; two corners
+                 * lie on the frame's Y axis.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                radius?: number | undefined;
+                /**
+                 * When true the honeycomb is centered on the frame's origin; otherwise its first hexagon
+                 * sits there.
+                 * @default false
+                 */
+                centered?: boolean | undefined;
             }
         }
         /**
@@ -16236,12 +19282,12 @@ declare namespace Bit {
                  * Layer name for all paths in this part
                  * @default Default
                  */
-                layer: string;
+                layer?: string | undefined;
                 /**
-                 * Color for all paths in this part
+                 * Color for all paths in this part, as a hex string such as `#000000`
                  * @default #000000
                  */
-                color: Base.Color;
+                color?: Base.Color | undefined;
                 /**
                  * Array of paths, each containing multiple segments
                  * @default undefined
@@ -16602,7 +19648,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                index: number;
+                index?: number | undefined;
                 /**
                  * When true, the item is deep-copied so the caller cannot change the list through it; an
                  * item that cannot be copied, such as one with circular references, throws.
@@ -16627,7 +19673,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                indexStart: number;
+                indexStart?: number | undefined;
                 /**
                  * Position just after the last item to take; it is not included.
                  * @default 1
@@ -16635,7 +19681,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                indexEnd: number;
+                indexEnd?: number | undefined;
                 /**
                  * When true, the items are deep-copied so the caller cannot change the list through them;
                  * an item that cannot be copied throws.
@@ -16685,7 +19731,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                lengthLimit: number;
+                lengthLimit?: number | undefined;
             }
             /**
              * A list and a direction for `lists.sortNumber` and `lists.sortTexts`.
@@ -16708,7 +19754,7 @@ declare namespace Bit {
                  * reversed.
                  * @default true
                  */
-                orderAsc: boolean;
+                orderAsc?: boolean | undefined;
             }
             /**
              * Objects, the property to compare and a direction for `lists.sortByPropValue`.
@@ -16730,12 +19776,12 @@ declare namespace Bit {
                  * When true, the object with the smallest value comes first; when false the largest.
                  * @default true
                  */
-                orderAsc: boolean;
+                orderAsc?: boolean | undefined;
                 /**
                  * Name of the property whose numeric value decides the order.
                  * @default propName
                  */
-                property: string;
+                property?: string | undefined;
             }
             /**
              * A list for `lists.removeAllItems`, which empties it in place.
@@ -16765,13 +19811,13 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                nrElements: number;
+                nrElements?: number | undefined;
                 /**
                  * When true, the items left over at the end form a shorter last group; when false they are
                  * dropped.
                  * @default false
                  */
-                keepRemainder: boolean;
+                keepRemainder?: boolean | undefined;
             }
             /**
              * An item and a count for `lists.repeat`.
@@ -16790,7 +19836,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                times: number;
+                times?: number | undefined;
             }
             /**
              * A list, an item and a position for `lists.addItemAtIndex`.
@@ -16815,7 +19861,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                index: number;
+                index?: number | undefined;
                 /**
                  * When true, the list is deep-copied first so the input is never changed; when false the
                  * item is inserted in place.
@@ -16843,7 +19889,7 @@ declare namespace Bit {
                  * list are ignored.
                  * @default [0]
                  */
-                indexes: number[];
+                indexes?: number[] | undefined;
                 /**
                  * When true, the list is deep-copied first so the input is never changed; when false the
                  * items are inserted in place.
@@ -16871,7 +19917,7 @@ declare namespace Bit {
                  * insertion; a wrong count or order throws.
                  * @default [0]
                  */
-                indexes: number[];
+                indexes?: number[] | undefined;
                 /**
                  * When true, the list is deep-copied first so the input is never changed; when false the
                  * items are inserted in place.
@@ -16897,7 +19943,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                index: number;
+                index?: number | undefined;
                 /**
                  * When true, the list is deep-copied first so the input is never changed; when false the
                  * item is removed in place.
@@ -16945,7 +19991,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                nth: number;
+                nth?: number | undefined;
                 /**
                  * Position of the first item to remove, counting from 0.
                  * @default 0
@@ -16953,7 +19999,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                offset: number;
+                offset?: number | undefined;
                 /**
                  * When true, the list is deep-copied first so the input is never changed; when false the
                  * items are removed in place.
@@ -16979,7 +20025,7 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                threshold: number;
+                threshold?: number | undefined;
                 /**
                  * When true, the list is deep-copied first so the input is never changed.
                  * @default true
@@ -17021,7 +20067,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1e-7
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
                 /**
                  * When true, the list is deep-copied first so the input is never changed.
                  * @default true
@@ -17043,7 +20089,7 @@ declare namespace Bit {
                  * the list ends.
                  * @default [true, true, false]
                  */
-                pattern: boolean[];
+                pattern?: boolean[] | undefined;
             }
             /**
              * A list, a step and an offset for `lists.getNthItem`.
@@ -17062,7 +20108,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                nth: number;
+                nth?: number | undefined;
                 /**
                  * Position of the first item to keep, counting from 0.
                  * @default 0
@@ -17070,7 +20116,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                offset: number;
+                offset?: number | undefined;
                 /**
                  * When true, the items are deep-copied so the caller cannot change the list through them.
                  * @default true
@@ -17106,7 +20152,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                level: number;
+                level?: number | undefined;
             }
             /**
              * A list and an item for `lists.addItem` and `lists.prependItem`.
@@ -17149,7 +20195,7 @@ declare namespace Bit {
                  * Whether the item goes at the start (`first`) or the end (`last`).
                  * @default last
                  */
-                position: firstLastEnum;
+                position?: firstLastEnum | undefined;
                 /**
                  * When true, the list is deep-copied first so the input is never changed; when false the
                  * item is added in place.
@@ -17250,7 +20296,7 @@ declare namespace Bit {
                  * not convert types.
                  * @default less
                  */
-                operator: BooleanOperatorsEnum;
+                operator?: BooleanOperatorsEnum | undefined;
             }
             /**
              * One boolean for `logic.boolean` and `logic.not`, which pass it through or flip it.
@@ -17261,7 +20307,7 @@ declare namespace Bit {
                  * The boolean value.
                  * @default false
                  */
-                boolean: boolean;
+                boolean?: boolean | undefined;
             }
             /**
              * A list of booleans for `logic.notList`, which flips every one of them.
@@ -17288,7 +20334,7 @@ declare namespace Bit {
                  * When true the gate is open and the value passes; when false the result is undefined.
                  * @default false
                  */
-                boolean: boolean;
+                boolean?: boolean | undefined;
             }
             /**
              * A preferred value and a fallback for `logic.firstDefinedValueGate`.
@@ -17320,7 +20366,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                length: number;
+                length?: number | undefined;
                 /**
                  * The chance of each boolean being true, from 0 (never) to 1 (always).
                  * @default 0.5
@@ -17328,7 +20374,7 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                trueThreshold: number;
+                trueThreshold?: number | undefined;
             }
             /**
              * Numbers, two thresholds and a step count for `logic.twoThresholdRandomGradient`.
@@ -17346,7 +20392,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                thresholdTotalTrue: number;
+                thresholdTotalTrue?: number | undefined;
                 /**
                  * Numbers above this are always false; between the two thresholds the chance of true fades
                  * from certain to none.
@@ -17355,7 +20401,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                thresholdTotalFalse: number;
+                thresholdTotalFalse?: number | undefined;
                 /**
                  * How many steps the fade between the thresholds has; more steps make it smoother.
                  * @default 10
@@ -17363,7 +20409,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                nrLevels: number;
+                nrLevels?: number | undefined;
             }
             /**
              * Numbers and a threshold for `logic.thresholdBooleanList`, which turns them into booleans.
@@ -17381,12 +20427,12 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                threshold: number;
+                threshold?: number | undefined;
                 /**
                  * When true, every result is flipped: true becomes false and false becomes true.
                  * @default false
                  */
-                inverse: boolean;
+                inverse?: boolean | undefined;
             }
             /**
              * Numbers and ranges for `logic.thresholdGapsBooleanList`, which marks the numbers inside any
@@ -17408,7 +20454,7 @@ declare namespace Bit {
                  * When true, every result is flipped: true becomes false and false becomes true.
                  * @default false
                  */
-                inverse: boolean;
+                inverse?: boolean | undefined;
             }
         }
         /**
@@ -17510,7 +20556,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                number: number;
+                number?: number | undefined;
                 /**
                  * The number to divide by; the remainder is smaller than it.
                  * @default 2
@@ -17518,7 +20564,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                modulus: number;
+                modulus?: number | undefined;
             }
             /**
              * One number for the single-number methods of `math`: `sqrt`, `abs`, `sin`, `degToRad` and the
@@ -17533,7 +20579,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                number: number;
+                number?: number | undefined;
             }
             /**
              * A value between 0 and 1, a target range and an easing curve for `math.ease`.
@@ -17547,7 +20593,7 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                x: number;
+                x?: number | undefined;
                 /**
                  * The value at the start of the curve.
                  * @default 0
@@ -17555,7 +20601,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                min: number;
+                min?: number | undefined;
                 /**
                  * The value at the end of the curve.
                  * @default 1
@@ -17563,13 +20609,13 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                max: number;
+                max?: number | undefined;
                 /**
                  * The easing curve: `easeIn` starts slowly, `easeOut` ends slowly, `easeInOut` does both,
                  * in sine, quadratic, cubic and other strengths.
                  * @default easeInSine
                  */
-                ease: easeEnum;
+                ease?: easeEnum | undefined;
             }
             /**
              * A number and a precision for `math.roundToDecimals` and `math.roundAndRemoveTrailingZeros`.
@@ -17583,15 +20629,15 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                number: number;
+                number?: number | undefined;
                 /**
                  * How many digits to keep after the decimal point; 0 rounds to a whole number.
                  * @default 2
-                 * @minimum -Infinity
+                 * @minimum 0
                  * @maximum Infinity
                  * @step 1
                  */
-                decimalPlaces: number;
+                decimalPlaces?: number | undefined;
             }
             /**
              * Two numbers and the arithmetic operation `math.twoNrOperation` applies to them.
@@ -17605,7 +20651,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                first: number;
+                first?: number | undefined;
                 /**
                  * The second operand: the number subtracted, divided by, or used as the exponent.
                  * @default 1
@@ -17613,12 +20659,12 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                second: number;
+                second?: number | undefined;
                 /**
                  * The operation to apply to `first` and `second`, in that order
                  * @default add
                  */
-                operation: mathTwoNrOperatorEnum;
+                operation?: mathTwoNrOperatorEnum | undefined;
             }
             /**
              * Two numbers for `math.add`, `math.subtract`, `math.multiply`, `math.divide` and `math.power`.
@@ -17632,7 +20678,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                first: number;
+                first?: number | undefined;
                 /**
                  * The second operand: the number subtracted, divided by, or used as the exponent.
                  * @default 2
@@ -17640,7 +20686,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                second: number;
+                second?: number | undefined;
             }
             /**
              * One number and the operation `math.oneNrOperation` applies to it.
@@ -17654,12 +20700,12 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                number: number;
+                number?: number | undefined;
                 /**
                  * The operation to apply to `number`
                  * @default absolute
                  */
-                operation: mathOneNrOperatorEnum;
+                operation?: mathOneNrOperatorEnum | undefined;
             }
             /**
              * A number, the range it is in and the range `math.remap` maps it to.
@@ -17673,7 +20719,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                number: number;
+                number?: number | undefined;
                 /**
                  * The low end of the range the number is in.
                  * @default 0
@@ -17681,7 +20727,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                fromLow: number;
+                fromLow?: number | undefined;
                 /**
                  * The high end of the range the number is in.
                  * @default 1
@@ -17689,7 +20735,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                fromHigh: number;
+                fromHigh?: number | undefined;
                 /**
                  * The low end of the range to map to; `fromLow` lands here.
                  * @default 1
@@ -17697,7 +20743,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                toLow: number;
+                toLow?: number | undefined;
                 /**
                  * The high end of the range to map to; `fromHigh` lands here.
                  * @default 2
@@ -17705,7 +20751,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                toHigh: number;
+                toHigh?: number | undefined;
             }
             /**
              * The range `math.randomNumber` picks a value from; `low` can be picked, `high` is never quite
@@ -17720,7 +20766,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                low: number;
+                low?: number | undefined;
                 /**
                  * The top of the range; values get close to it but never reach it.
                  * @default 1
@@ -17728,7 +20774,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                high: number;
+                high?: number | undefined;
             }
             /**
              * The range and the count for `math.randomNumbers`; `low` can be picked, `high` is never quite
@@ -17743,7 +20789,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                low: number;
+                low?: number | undefined;
                 /**
                  * The top of the range; values get close to it but never reach it.
                  * @default 1
@@ -17751,15 +20797,15 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                high: number;
+                high?: number | undefined;
                 /**
                  * How many random numbers to produce.
                  * @default 10
-                 * @minimum -Infinity
+                 * @minimum 0
                  * @maximum Infinity
                  * @step 1
                  */
-                count: number;
+                count?: number | undefined;
             }
             /**
              * A number and a precision for `math.toFixed`, which formats it as text.
@@ -17777,11 +20823,11 @@ declare namespace Bit {
                 /**
                  * How many digits to show after the decimal point, padding with zeros.
                  * @default 2
-                 * @minimum -Infinity
-                 * @maximum Infinity
+                 * @minimum 0
+                 * @maximum 100
                  * @step 1
                  */
-                decimalPlaces: number;
+                decimalPlaces?: number | undefined;
             }
             /**
              * A number and the range `math.clamp` keeps it within.
@@ -17795,7 +20841,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                number: number;
+                number?: number | undefined;
                 /**
                  * The lowest value allowed; anything below becomes this.
                  * @default 0
@@ -17803,7 +20849,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                min: number;
+                min?: number | undefined;
                 /**
                  * The highest value allowed; anything above becomes this.
                  * @default 1
@@ -17811,7 +20857,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                max: number;
+                max?: number | undefined;
             }
             /**
              * A start, an end and a fraction for `math.lerp`, which blends between them.
@@ -17825,7 +20871,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                start: number;
+                start?: number | undefined;
                 /**
                  * The value at fraction 1.
                  * @default 1
@@ -17833,7 +20879,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                end: number;
+                end?: number | undefined;
                 /**
                  * How far from start to end, from 0 to 1; values outside that range extrapolate.
                  * @default 0.5
@@ -17841,7 +20887,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.01
                  */
-                t: number;
+                t?: number | undefined;
             }
             /**
              * A start, an end and a value for `math.inverseLerp`, which finds the value's fraction between
@@ -17856,7 +20902,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                start: number;
+                start?: number | undefined;
                 /**
                  * The value that counts as fraction 1.
                  * @default 1
@@ -17864,7 +20910,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                end: number;
+                end?: number | undefined;
                 /**
                  * The value to locate between start and end.
                  * @default 0.5
@@ -17872,7 +20918,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                value: number;
+                value?: number | undefined;
             }
             /**
              * A number and the range `math.wrap` cycles it into.
@@ -17886,7 +20932,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                number: number;
+                number?: number | undefined;
                 /**
                  * The start of the range, included in the result.
                  * @default 0
@@ -17894,7 +20940,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                min: number;
+                min?: number | undefined;
                 /**
                  * The end of the range, not included: a number reaching it comes back in at `min`.
                  * @default 1
@@ -17902,7 +20948,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                max: number;
+                max?: number | undefined;
             }
             /**
              * A running value and a length for `math.pingPong`, which bounces the value between 0 and the
@@ -17917,7 +20963,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                t: number;
+                t?: number | undefined;
                 /**
                  * The turning point: the result rises to it, then falls back to 0.
                  * @default 1
@@ -17925,7 +20971,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                length: number;
+                length?: number | undefined;
             }
             /**
              * A current value, a target and a step limit for `math.moveTowards`.
@@ -17939,7 +20985,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                current: number;
+                current?: number | undefined;
                 /**
                  * The value to move toward; it is never overshot.
                  * @default 1
@@ -17947,7 +20993,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                target: number;
+                target?: number | undefined;
                 /**
                  * The largest change allowed in one step.
                  * @default 0.1
@@ -17955,7 +21001,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.01
                  */
-                maxDelta: number;
+                maxDelta?: number | undefined;
             }
             /**
              * An expression written as text for `math.evalArithmetic`.
@@ -17967,7 +21013,7 @@ declare namespace Bit {
                  * such as `(3 + 2) / 4`.
                  * @default 1+1
                  */
-                expression: string;
+                expression?: string | undefined;
             }
         }
         /**
@@ -18017,7 +21063,7 @@ declare namespace Bit {
                 /**
                  * A triangle whose normal is shorter than this counts as having no area.
                  * @default 1e-7
-                 * @minimum -Infinity
+                 * @minimum 0
                  * @maximum Infinity
                  * @step 1e-7
                  */
@@ -18042,7 +21088,7 @@ declare namespace Bit {
                  * Distances below this, in model units, count as zero when deciding whether the triangles
                  * touch.
                  * @default 1e-7
-                 * @minimum -Infinity
+                 * @minimum 0
                  * @maximum Infinity
                  * @step 1e-7
                  */
@@ -18068,7 +21114,7 @@ declare namespace Bit {
                  * Distances below this, in model units, count as zero: when deciding whether triangles
                  * touch and when joining segment ends into polylines.
                  * @default 1e-7
-                 * @minimum -Infinity
+                 * @minimum 0
                  * @maximum Infinity
                  * @step 1e-7
                  */
@@ -18105,7 +21151,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                x: number;
+                x?: number | undefined;
                 /**
                  * The Y value, the second entry; Y is up.
                  * @default 0
@@ -18113,7 +21159,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                y: number;
+                y?: number | undefined;
                 /**
                  * The Z value, the third entry.
                  * @default 0
@@ -18121,7 +21167,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                z: number;
+                z?: number | undefined;
             }
             /**
              * The two values `point.pointXY` puts together into `[x, y]`.
@@ -18135,7 +21181,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                x: number;
+                x?: number | undefined;
                 /**
                  * The Y value, the second entry.
                  * @default 0
@@ -18143,7 +21189,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                y: number;
+                y?: number | undefined;
             }
             /**
              * A list of points for the methods that read them together: `point.boundingBoxOfPoints`,
@@ -18194,27 +21240,27 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                opacity: number;
+                opacity?: number | undefined;
                 /**
                  * Size of the drawn point, in model units.
-                 * @default 3
+                 * @default 0.1
                  * @minimum 0
                  * @maximum Infinity
                  * @step 0.1
                  */
-                size: number;
+                size?: number | undefined;
                 /**
                  * Color of the point as a hex string such as `#ff0000`; a list of strings is also
                  * accepted.
                  * @default #444444
                  */
-                colours: string | string[];
+                colours?: string | string[] | undefined;
                 /**
                  * When true, the drawn mesh is built so its position can be changed later without
                  * redrawing.
                  * @default false
                  */
-                updatable: boolean;
+                updatable?: boolean | undefined;
                 /**
                  * A mesh drawn earlier for this point; when given it is updated in place instead of a new
                  * one being made.
@@ -18244,7 +21290,7 @@ declare namespace Bit {
                  * @maximum 1
                  * @step 0.1
                  */
-                opacity: number;
+                opacity?: number | undefined;
                 /**
                  * Size of each drawn point, in model units.
                  * @default 0.1
@@ -18252,18 +21298,18 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                size: number;
+                size?: number | undefined;
                 /**
                  * One hex color string for all points, or one string per point.
                  * @default #444444
                  */
-                colours: string | string[];
+                colours?: string | string[] | undefined;
                 /**
                  * When true, the drawn mesh is built so the positions can be changed later without
                  * redrawing.
                  * @default false
                  */
-                updatable: boolean;
+                updatable?: boolean | undefined;
                 /**
                  * A mesh drawn earlier for these points; when given it is updated in place instead of a new
                  * one being made.
@@ -18351,17 +21397,17 @@ declare namespace Bit {
                  * Distance to move along X, in model units.
                  * @default 0
                  */
-                x: number;
+                x?: number | undefined;
                 /**
                  * Distance to move along Y, which is up, in model units.
                  * @default 1
                  */
-                y: number;
+                y?: number | undefined;
                 /**
                  * Distance to move along Z, in model units.
                  * @default 0
                  */
-                z: number;
+                z?: number | undefined;
             }
             /**
              * Points, a center and a factor per axis for `point.scalePointsCenterXYZ`.
@@ -18377,13 +21423,13 @@ declare namespace Bit {
                  * The point that stays in place while the others move away from it or toward it.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
                 /**
                  * The factor for each axis as `[x, y, z]`: `[1, 2, 1]` doubles distances along Y and leaves
                  * X and Z as they are.
                  * @default [1, 1, 1]
                  */
-                scaleXyz: Base.Vector3;
+                scaleXyz?: Base.Vector3 | undefined;
             }
             /**
              * Points, a center, a direction and a factor for `point.stretchPointsDirFromCenter`, which
@@ -18434,17 +21480,17 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                angle: number;
+                angle?: number | undefined;
                 /**
                  * The direction of the axis to turn around.
                  * @default [0, 1, 0]
                  */
-                axis: Base.Vector3;
+                axis?: Base.Vector3 | undefined;
                 /**
                  * A point the axis passes through.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
             }
             /**
              * Points and one transformation per point for `point.transformsForPoints`; the two lists must
@@ -18490,7 +21536,7 @@ declare namespace Bit {
                  * When true, the normal is flipped to point the other way.
                  * @default false
                  */
-                reverseNormal: boolean;
+                reverseNormal?: boolean | undefined;
             }
             /**
              * A corner for `point.maxFilletRadius` and `point.maxFilletRadiusHalfLine`: the corner point is
@@ -18517,11 +21563,11 @@ declare namespace Bit {
                  * A segment shorter than this, or an angle within it of straight or folded back, gives a
                  * radius of 0.
                  * @default 1e-7
-                 * @minimum -Infinity
+                 * @minimum 0
                  * @maximum Infinity
                  * @step 1e-7
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
             }
             /**
              * A polyline's points for `point.maxFilletsHalfLine` and `point.safestPointsMaxFilletHalfLine`,
@@ -18544,7 +21590,7 @@ declare namespace Bit {
                  * A segment shorter than this, or an angle within it of straight or folded back, gives a
                  * radius of 0.
                  * @default 1e-7
-                 * @minimum -Infinity
+                 * @minimum 0
                  * @maximum Infinity
                  * @step 1e-7
                  */
@@ -18572,8 +21618,9 @@ declare namespace Bit {
                 /**
                  * When true, a last point that repeats the first is dropped as well, which closes a loop
                  * cleanly.
+                 * @default false
                  */
-                checkFirstAndLast: boolean;
+                checkFirstAndLast?: boolean | undefined;
             }
             /**
              * A point and a list to search for `point.closestPointFromPoints`,
@@ -18610,7 +21657,7 @@ declare namespace Bit {
                 /**
                  * The points count as equal when the distance between them is below this.
                  * @default 1e-7
-                 * @minimum -Infinity
+                 * @minimum 0
                  * @maximum Infinity
                  * @step 1e-7
                  */
@@ -18678,7 +21725,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                phi: number;
+                phi?: number | undefined;
                 /**
                  * How many points to place along the spiral.
                  * @default 200
@@ -18686,7 +21733,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 10
                  */
-                numberPoints: number;
+                numberPoints?: number | undefined;
                 /**
                  * How much the spiral widens per turn; larger values spread the turns further apart.
                  * @default 3
@@ -18694,7 +21741,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                widening: number;
+                widening?: number | undefined;
                 /**
                  * The distance from the origin the last point reaches, in model units.
                  * @default 6
@@ -18702,7 +21749,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radius: number;
+                radius?: number | undefined;
                 /**
                  * Scales the distance before the angle is computed, which turns the whole spiral; 1 leaves
                  * it as it is.
@@ -18711,7 +21758,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                factor: number;
+                factor?: number | undefined;
             }
             /**
              * The area, counts and orientation for `point.hexGridScaledToFit`, which sizes hexagons so the
@@ -18806,7 +21853,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                nrHexagonsY: number;
+                nrHexagonsY?: number | undefined;
                 /**
                  * How many columns of hexagons along X.
                  * @default 21
@@ -18814,7 +21861,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                nrHexagonsX: number;
+                nrHexagonsX?: number | undefined;
                 /**
                  * Distance from a hexagon's center to one of its corners, in model units.
                  * @default 0.2
@@ -18822,17 +21869,17 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                radiusHexagon: number;
+                radiusHexagon?: number | undefined;
                 /**
                  * When true, the middle of the grid sits at the origin instead of its corner.
                  * @default false
                  */
-                orientOnCenter: boolean;
+                orientOnCenter?: boolean | undefined;
                 /**
                  * When true, the grid lies on the XZ ground plane (Y becomes 0) instead of the XY plane.
                  * @default false
                  */
-                pointsOnGround: boolean;
+                pointsOnGround?: boolean | undefined;
             }
         }
         /**
@@ -18882,7 +21929,8 @@ declare namespace Bit {
                 /**
                  * A color used when the polyline is drawn, as a hex text such as `#ff0000` or as `[r, g,
                  * b]` values from 0 to 1.
-                 * @default #444444
+                 * @default undefined
+                 * @optional true
                  */
                 color?: string | number[] | undefined;
             }
@@ -19034,7 +22082,7 @@ declare namespace Bit {
                 /**
                  * Two segment ends closer than this, in model units, count as touching.
                  * @default 1e-5
-                 * @minimum -Infinity
+                 * @minimum 0
                  * @maximum Infinity
                  * @step 1e-5
                  */
@@ -19054,7 +22102,7 @@ declare namespace Bit {
                 /**
                  * Distance, in model units, below which two points count as the same.
                  * @default 1e-5
-                 * @minimum -Infinity
+                 * @minimum 0
                  * @maximum Infinity
                  * @step 1e-5
                  */
@@ -19078,7 +22126,7 @@ declare namespace Bit {
                 /**
                  * Crossing points closer together than this, in model units, are reported once.
                  * @default 1e-5
-                 * @minimum -Infinity
+                 * @minimum 0
                  * @maximum Infinity
                  * @step 1e-5
                  */
@@ -19101,7 +22149,7 @@ declare namespace Bit {
                  * The text the method works on; it is not changed, a new text is returned.
                  * @default Hello World
                  */
-                text: string;
+                text?: string | undefined;
             }
             /**
              * A text and a separator for `text.split`.
@@ -19112,12 +22160,12 @@ declare namespace Bit {
                  * The text to cut into pieces.
                  * @default a,b,c
                  */
-                text: string;
+                text?: string | undefined;
                 /**
                  * The text that marks a cut; it is dropped from the pieces.
                  * @default ,
                  */
-                separator: string;
+                separator?: string | undefined;
             }
             /**
              * A text, what to look for in it and what to put in its place, for `text.replaceAll`.
@@ -19128,17 +22176,17 @@ declare namespace Bit {
                  * The text to make the replacements in.
                  * @default a-c
                  */
-                text: string;
+                text?: string | undefined;
                 /**
                  * The text to look for; every occurrence is replaced.
                  * @default -
                  */
-                search: string;
+                search?: string | undefined;
                 /**
                  * The text that takes the place of each occurrence.
                  * @default b
                  */
-                replaceWith: string;
+                replaceWith?: string | undefined;
             }
             /**
              * Texts and a separator for `text.join`, which writes them one after another.
@@ -19154,7 +22202,7 @@ declare namespace Bit {
                  * The text placed between neighbors; an empty text joins them directly.
                  * @default ,
                  */
-                separator: string;
+                separator?: string | undefined;
             }
             /**
              * Any value for `text.toString`, which turns it into text the way JavaScript prints it.
@@ -19188,12 +22236,12 @@ declare namespace Bit {
                  * The text with placeholders such as `{0}` and `{1}`.
                  * @default Hello {0}
                  */
-                text: string;
+                text?: string | undefined;
                 /**
                  * The values, in placeholder order: the first fills `{0}`, the second `{1}`.
                  * @default ["World"]
                  */
-                values: string[];
+                values?: string[] | undefined;
             }
             /**
              * A text and something to look for in it, for `text.includes`, `text.startsWith`,
@@ -19205,12 +22253,12 @@ declare namespace Bit {
                  * The text to look in.
                  * @default hello world
                  */
-                text: string;
+                text?: string | undefined;
                 /**
                  * The text to look for, matched exactly, including case.
                  * @default world
                  */
-                search: string;
+                search?: string | undefined;
             }
             /**
              * A text and a range of positions for `text.substring` and `text.slice`.
@@ -19221,7 +22269,7 @@ declare namespace Bit {
                  * The text to take characters from.
                  * @default hello world
                  */
-                text: string;
+                text?: string | undefined;
                 /**
                  * Position of the first character to take, counting from 0.
                  * @default 0
@@ -19229,11 +22277,12 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                start: number;
+                start?: number | undefined;
                 /**
                  * Position just after the last character to take; leave it out to take everything to the
                  * end.
-                 * @default 5
+                 * @default undefined
+                 * @optional true
                  * @minimum 0
                  * @maximum Infinity
                  * @step 1
@@ -19249,7 +22298,7 @@ declare namespace Bit {
                  * The text to read a character from.
                  * @default hello
                  */
-                text: string;
+                text?: string | undefined;
                 /**
                  * Position of the character, counting from 0.
                  * @default 0
@@ -19257,7 +22306,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                index: number;
+                index?: number | undefined;
             }
             /**
              * A text, a length and a filler for `text.padStart` and `text.padEnd`.
@@ -19268,7 +22317,7 @@ declare namespace Bit {
                  * The text to lengthen.
                  * @default x
                  */
-                text: string;
+                text?: string | undefined;
                 /**
                  * The length to reach; a text already that long stays as it is.
                  * @default 3
@@ -19276,12 +22325,12 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                length: number;
+                length?: number | undefined;
                 /**
                  * The filler repeated until the length is reached; the last repeat is cut short if needed.
                  * @default a
                  */
-                padString: string;
+                padString?: string | undefined;
             }
             /**
              * A text and a count for `text.repeat`.
@@ -19292,7 +22341,7 @@ declare namespace Bit {
                  * The text that is written out again and again.
                  * @default ha
                  */
-                text: string;
+                text?: string | undefined;
                 /**
                  * How many times the text appears in the result.
                  * @default 3
@@ -19300,7 +22349,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                count: number;
+                count?: number | undefined;
             }
             /**
              * Texts for `text.concat`, joined with nothing between them.
@@ -19311,7 +22360,7 @@ declare namespace Bit {
                  * The texts to join, in order.
                  * @default ["hello", " ", "world"]
                  */
-                texts: string[];
+                texts?: string[] | undefined;
             }
             /**
              * A text and a regular expression for `text.regexTest`, `text.regexMatch`, `text.regexSearch`
@@ -19323,19 +22372,19 @@ declare namespace Bit {
                  * The text the pattern is applied to.
                  * @default hello123world
                  */
-                text: string;
+                text?: string | undefined;
                 /**
                  * The regular expression, written as it would be between the slashes in JavaScript, such as
                  * `[0-9]+`.
                  * @default [0-9]+
                  */
-                pattern: string;
+                pattern?: string | undefined;
                 /**
                  * The regular expression flags: `g` for every match, `i` to ignore case, `m` for
                  * line-by-line anchors, and `s`, `u`, `y` as in JavaScript.
                  * @default g
                  */
-                flags: string;
+                flags?: string | undefined;
             }
             /**
              * A text, a regular expression and a replacement for `text.regexReplace`.
@@ -19346,25 +22395,25 @@ declare namespace Bit {
                  * The text to make the replacements in.
                  * @default hello123world456
                  */
-                text: string;
+                text?: string | undefined;
                 /**
                  * The regular expression, written as it would be between the slashes in JavaScript, such as
                  * `[0-9]+`.
                  * @default [0-9]+
                  */
-                pattern: string;
+                pattern?: string | undefined;
                 /**
                  * The regular expression flags: `g` replaces every match instead of the first, `i` ignores
                  * case, and `m`, `s`, `u`, `y` work as in JavaScript.
                  * @default g
                  */
-                flags: string;
+                flags?: string | undefined;
                 /**
                  * The text that takes the place of each match; `$1` and the like refer to capture groups,
                  * as in JavaScript.
                  * @default X
                  */
-                replaceWith: string;
+                replaceWith?: string | undefined;
             }
             /**
              * One character and its size and placement for `text.vectorChar`, which draws it as stroke
@@ -19377,7 +22426,7 @@ declare namespace Bit {
                  * question mark.
                  * @default A
                  */
-                char: string;
+                char?: string | undefined;
                 /**
                  * How far to shift the strokes along X, in model units.
                  * @default 0
@@ -19392,13 +22441,13 @@ declare namespace Bit {
                  * @minimum -Infinity
                  * @maximum Infinity
                  * @step 0.1
-                 * @optional true
+                 * @default 0
                  */
                 yOffset?: number | undefined;
                 /**
                  * The height of a capital letter, in model units; the strokes are scaled to it.
                  * @default 1
-                 * @minimum -Infinity
+                 * @minimum 0
                  * @maximum Infinity
                  * @step 0.1
                  */
@@ -19443,7 +22492,7 @@ declare namespace Bit {
                 /**
                  * The height of a capital letter, in model units.
                  * @default 1
-                 * @minimum -Infinity
+                 * @minimum 0
                  * @maximum Infinity
                  * @step 0.1
                  */
@@ -19508,17 +22557,17 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                angle: number;
+                angle?: number | undefined;
                 /**
                  * The direction of the axis to turn around.
                  * @default [0, 1, 0]
                  */
-                axis: Base.Vector3;
+                axis?: Base.Vector3 | undefined;
                 /**
                  * A point the axis passes through; it stays in place.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
             }
             /**
              * A center and an angle for `transforms.rotationCenterX`, `transforms.rotationCenterY` and
@@ -19534,12 +22583,12 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                angle: number;
+                angle?: number | undefined;
                 /**
                  * The point the axis passes through; it stays in place.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
             }
             /**
              * Three angles and a center for `transforms.rotationCenterYawPitchRoll`.
@@ -19553,7 +22602,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                yaw: number;
+                yaw?: number | undefined;
                 /**
                  * The turn about the X axis, in degrees.
                  * @default 0
@@ -19561,7 +22610,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                pitch: number;
+                pitch?: number | undefined;
                 /**
                  * The turn about the Z axis, in degrees.
                  * @default 0
@@ -19569,12 +22618,12 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                roll: number;
+                roll?: number | undefined;
                 /**
                  * The point the rotation turns around; it stays in place.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
             }
             /**
              * A factor per axis for `transforms.scaleXYZ`, measured from the origin.
@@ -19586,7 +22635,7 @@ declare namespace Bit {
                  * X and Z as they are.
                  * @default [1, 1, 1]
                  */
-                scaleXyz: Base.Vector3;
+                scaleXyz?: Base.Vector3 | undefined;
             }
             /**
              * A center, a direction and a factor for `transforms.stretchDirFromCenter`.
@@ -19623,13 +22672,13 @@ declare namespace Bit {
                  * The point that stays in place while everything else moves away from it or toward it.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
                 /**
                  * The factor for each axis as `[x, y, z]`: `[1, 2, 1]` doubles distances along Y and leaves
                  * X and Z as they are.
                  * @default [1, 1, 1]
                  */
-                scaleXyz: Base.Vector3;
+                scaleXyz?: Base.Vector3 | undefined;
             }
             /**
              * One factor for `transforms.uniformScale`, applied on every axis from the origin.
@@ -19644,7 +22693,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                scale: number;
+                scale?: number | undefined;
             }
             /**
              * One factor and a center for `transforms.uniformScaleFromCenter`.
@@ -19659,12 +22708,12 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                scale: number;
+                scale?: number | undefined;
                 /**
                  * The point that stays in place while everything else moves away from it or toward it.
                  * @default [0, 0, 0]
                  */
-                center: Base.Point3;
+                center?: Base.Point3 | undefined;
             }
             /**
              * A vector for `transforms.translationXYZ`, which builds the matrix that moves by it.
@@ -19675,7 +22724,7 @@ declare namespace Bit {
                  * How far to move along each axis, as `[x, y, z]` in model units.
                  * @default [0, 0, 0]
                  */
-                translation: Base.Vector3;
+                translation?: Base.Vector3 | undefined;
             }
             /**
              * Several vectors for `transforms.translationsXYZ`, one transformation each.
@@ -19742,7 +22791,7 @@ declare namespace Bit {
                  * @minimum 0
                  * @maximum Infinity
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
             }
             /**
              * Vectors to filter with `vector.removeConsecutiveDuplicateVectors`: only a vector that repeats
@@ -19760,14 +22809,14 @@ declare namespace Bit {
                  * of points cleanly.
                  * @default false
                  */
-                checkFirstAndLast: boolean;
+                checkFirstAndLast?: boolean | undefined;
                 /**
                  * Two vectors count as the same when every entry differs by less than this.
                  * @default 1e-7
                  * @minimum 0
                  * @maximum Infinity
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
             }
             /**
              * Two vectors to compare with `vector.vectorsTheSame`, and how close their entries must be.
@@ -19790,7 +22839,7 @@ declare namespace Bit {
                  * @minimum 0
                  * @maximum Infinity
                  */
-                tolerance: number;
+                tolerance?: number | undefined;
             }
             /**
              * One vector of any length for the single-vector methods of `vector`: `sum`, `min`, `max`,
@@ -19838,7 +22887,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                max: number;
+                max?: number | undefined;
             }
             /**
              * The three values `vector.vectorXYZ` puts together into `[x, y, z]`.
@@ -19852,7 +22901,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.5
                  */
-                x: number;
+                x?: number | undefined;
                 /**
                  * The Y value, the second entry; Y is up.
                  * @default 0
@@ -19860,7 +22909,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.5
                  */
-                y: number;
+                y?: number | undefined;
                 /**
                  * The Z value, the third entry.
                  * @default 0
@@ -19868,7 +22917,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.5
                  */
-                z: number;
+                z?: number | undefined;
             }
             /**
              * The two values `vector.vectorXY` puts together into `[x, y]`.
@@ -19882,7 +22931,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.5
                  */
-                x: number;
+                x?: number | undefined;
                 /**
                  * The Y value, the second entry.
                  * @default 0
@@ -19890,7 +22939,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.5
                  */
-                y: number;
+                y?: number | undefined;
             }
             /**
              * A start, an end and a step for `vector.span`, which lists every number from `min` to `max` in
@@ -19902,11 +22951,12 @@ declare namespace Bit {
                  * Distance between neighboring numbers; the last number is `max` only when a step lands on
                  * it.
                  * @default 0.1
-                 * @minimum -Infinity
+                 * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
-                step: number;
+                step?: number | undefined;
                 /**
                  * The first number of the span.
                  * @default 0
@@ -19914,7 +22964,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                min: number;
+                min?: number | undefined;
                 /**
                  * The end of the span; included when a step lands on it.
                  * @default 1
@@ -19922,7 +22972,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                max: number;
+                max?: number | undefined;
             }
             /**
              * A start, an end, a count and an easing curve for `vector.spanEaseItems`, which spaces the
@@ -19937,7 +22987,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                nrItems: number;
+                nrItems?: number | undefined;
                 /**
                  * The first number.
                  * @default 0
@@ -19945,7 +22995,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                min: number;
+                min?: number | undefined;
                 /**
                  * The last number.
                  * @default 1
@@ -19953,19 +23003,19 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                max: number;
+                max?: number | undefined;
                 /**
                  * The easing curve that spaces the numbers: an `easeIn` curve bunches them near `min`, an
                  * `easeOut` curve near `max`, an `easeInOut` curve at both ends.
                  * @default easeInSine
                  */
-                ease: Math.easeEnum;
+                ease?: Math.easeEnum | undefined;
                 /**
                  * When true, the result holds the gaps between neighboring numbers instead of the numbers
                  * themselves; the first entry is `min`.
                  * @default false
                  */
-                intervals: boolean;
+                intervals?: boolean | undefined;
             }
             /**
              * A start, an end and a count for `vector.spanLinearItems`, which spaces the numbers evenly.
@@ -19979,7 +23029,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                nrItems: number;
+                nrItems?: number | undefined;
                 /**
                  * The first number.
                  * @default 0
@@ -19987,7 +23037,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                min: number;
+                min?: number | undefined;
                 /**
                  * The last number.
                  * @default 1
@@ -19995,7 +23045,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                max: number;
+                max?: number | undefined;
             }
             /**
              * A start point, a direction and a distance for `vector.onRay`, which finds the point that far
@@ -20016,7 +23066,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 1
                  */
-                distance: number;
+                distance?: number | undefined;
                 /**
                  * The direction to travel in, used as given; a unit vector makes `distance` a length in
                  * model units.
@@ -20049,7 +23099,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                fraction: number;
+                fraction?: number | undefined;
                 /**
                  * The vector the blend reaches at fraction 1.
                  * @default undefined
@@ -20074,7 +23124,7 @@ declare namespace Bit {
                  * @maximum Infinity
                  * @step 0.1
                  */
-                scalar: number;
+                scalar?: number | undefined;
                 /**
                  * The vector to scale.
                  * @default undefined
@@ -20175,7 +23225,7 @@ declare namespace Bit {
                  * When true, the loaded model is added to the scene invisible, to be shown later
                  * @default false
                  */
-                hidden: boolean;
+                hidden?: boolean | undefined;
             }
             /**
              * A model file to load into the scene by address, as the renderer packages'
@@ -20199,7 +23249,7 @@ declare namespace Bit {
                  * When true, the loaded model is added to the scene invisible, to be shown later
                  * @default false
                  */
-                hidden: boolean;
+                hidden?: boolean | undefined;
             }
             /**
              * Feeds `asset.download`: what to write into the downloaded file, what to call it and which
@@ -20222,12 +23272,12 @@ declare namespace Bit {
                  * Extension added to the file name after a dot, such as `txt`, `csv` or `json`
                  * @default txt
                  */
-                extension: string;
+                extension?: string | undefined;
                 /**
                  * MIME type declared for text content, such as `text/plain` or `application/json`
                  * @default text/plain
                  */
-                contentType: string;
+                contentType?: string | undefined;
             }
             /**
              * A glb model held as bytes to load into the scene, as the renderer packages'
@@ -20245,12 +23295,12 @@ declare namespace Bit {
                  * match a real file
                  * @default model.glb
                  */
-                fileName: string;
+                fileName?: string | undefined;
                 /**
                  * When true, the loaded model is added to the scene invisible, to be shown later
                  * @default false
                  */
-                hidden: boolean;
+                hidden?: boolean | undefined;
             }
             /**
              * Feeds `asset.blobToFile`: the Blob to wrap, the name the File gets and, when the Blob's own
@@ -20267,7 +23317,7 @@ declare namespace Bit {
                  * Name the File carries, extension included
                  * @default file
                  */
-                fileName: string;
+                fileName?: string | undefined;
                 /**
                  * MIME type declared on the File, such as `model/gltf-binary`; left out, the Blob's own
                  * type is kept
@@ -20321,7 +23371,7 @@ declare namespace Bit {
                  * The whole CSV text, rows separated by `rowSeparator`
                  * @default name,age\nJohn,30
                  */
-                csv: string;
+                csv?: string | undefined;
                 /**
                  * The text between rows, normally a line break; `\n` written as two characters is read as
                  * one
@@ -20345,7 +23395,7 @@ declare namespace Bit {
                  * The whole CSV text, headers included
                  * @default name,age\nJohn,30\nJane,25
                  */
-                csv: string;
+                csv?: string | undefined;
                 /**
                  * Index of the row whose cells become the object keys, counting from 0 and skipping blank
                  * lines
@@ -20393,13 +23443,13 @@ declare namespace Bit {
                  * The whole CSV text, normally without a header line
                  * @default John,30\nJane,25
                  */
-                csv: string;
+                csv?: string | undefined;
                 /**
                  * The object keys, one per column in column order; a row with more cells than keys loses
                  * the extra cells
                  * @default ["name", "age"]
                  */
-                headers: string[];
+                headers?: string[] | undefined;
                 /**
                  * Index of the first row turned into an object, counting from 0; set it to 1 to skip a
                  * header line the text does have
@@ -20438,12 +23488,12 @@ declare namespace Bit {
                  * The whole CSV text, headers included
                  * @default name,age\nJohn,30\nJane,25
                  */
-                csv: string;
+                csv?: string | undefined;
                 /**
                  * Header name of the column whose values are listed
                  * @default name
                  */
-                column: string;
+                column?: string | undefined;
                 /**
                  * Index of the row whose cells are the header names, counting from 0
                  * @default 0
@@ -20488,18 +23538,18 @@ declare namespace Bit {
                  * The whole CSV text, headers included
                  * @default name,age\nJohn,30\nJane,25
                  */
-                csv: string;
+                csv?: string | undefined;
                 /**
                  * Header name of the column that is compared with `value`
                  * @default age
                  */
-                column: string;
+                column?: string | undefined;
                 /**
                  * The text a row's cell must equal to be kept; compared as a number when the column is in
                  * `numberColumns`
                  * @default 30
                  */
-                value: string;
+                value?: string | undefined;
                 /**
                  * Index of the row whose cells are the header names, counting from 0
                  * @default 0
@@ -20546,7 +23596,7 @@ declare namespace Bit {
                  * undefined as empty cells
                  * @default [["name", "age"], ["John", "30"]]
                  */
-                array: (string | number | boolean | null | undefined)[][];
+                array?: (string | number | boolean | null | undefined)[][] | undefined;
                 /**
                  * The text put between rows, normally a line break; `\n` written as two characters is used
                  * as one
@@ -20569,12 +23619,12 @@ declare namespace Bit {
                  * The objects, one row each, in order; a property an object lacks becomes an empty cell
                  * @default [{"name": "John", "age": "30"}]
                  */
-                json: T[];
+                json?: T[] | undefined;
                 /**
                  * The property names written as columns, in this order; properties not listed are left out
                  * @default ["name", "age"]
                  */
-                headers: string[];
+                headers?: string[] | undefined;
                 /**
                  * When true, the first line holds the header names
                  * @default true
@@ -20603,7 +23653,7 @@ declare namespace Bit {
                  * order
                  * @default [{"name": "John", "age": "30"}]
                  */
-                json: T[];
+                json?: T[] | undefined;
                 /**
                  * When true, the first line holds the header names
                  * @default true
@@ -20631,7 +23681,7 @@ declare namespace Bit {
                  * The whole CSV text, headers included
                  * @default name,age\nJohn,30
                  */
-                csv: string;
+                csv?: string | undefined;
                 /**
                  * Index of the row whose cells are the header names, counting from 0 and skipping blank
                  * lines
@@ -20664,7 +23714,7 @@ declare namespace Bit {
                  * The whole CSV text; blank lines are not counted
                  * @default name,age\nJohn,30\nJane,25
                  */
-                csv: string;
+                csv?: string | undefined;
                 /**
                  * When true, the first row is a header line and is not counted; ignored when `dataStartRow`
                  * is set
@@ -20719,7 +23769,7 @@ declare namespace Bit {
                  * error
                  * @default "[0, 0, 0]"
                  */
-                text: string;
+                text?: string | undefined;
             }
             /**
              * Feeds `json.query` with the JSON to search and the JSONPath expression that selects values in
@@ -20758,7 +23808,7 @@ declare namespace Bit {
                  * Name of the top-level property to set; a property that does not exist yet is added
                  * @default propName
                  */
-                property: string;
+                property?: string | undefined;
             }
             /**
              * Feeds `json.getJsonFromArrayByFirstPropMatch`: the list of objects to search, the property to
@@ -20775,7 +23825,7 @@ declare namespace Bit {
                  * Name of the property compared on every object
                  * @default propName
                  */
-                property: string;
+                property?: string | undefined;
                 /**
                  * The value the property must equal exactly, same type included
                  * @default undefined
@@ -20797,7 +23847,7 @@ declare namespace Bit {
                  * Name of the top-level property whose value comes back; a missing one gives undefined
                  * @default propName
                  */
-                property: string;
+                property?: string | undefined;
             }
             /**
              * Feeds `json.setValue`: the JSON to copy and change, the JSONPath to the objects to change,
@@ -20821,12 +23871,12 @@ declare namespace Bit {
                  * set on each of them
                  * @default $.pathToParent
                  */
-                path: string;
+                path?: string | undefined;
                 /**
                  * Name of the property set on every object the path reaches
                  * @default propertyName
                  */
-                prop: string;
+                prop?: string | undefined;
             }
             /**
              * Feeds `json.setValuesOnPaths`: the JSON to copy and change and three lists of the same
@@ -20906,8 +23956,9 @@ declare namespace Bit {
                 /**
                  * When true, a later draw with `tagVariable` changes this tag in place instead of adding
                  * another
+                 * @default false
                  */
-                updatable: boolean;
+                updatable?: boolean | undefined;
                 /**
                  * The tag an earlier draw gave back, to change in place; used only when `updatable` is true
                  * @optional true
@@ -20927,8 +23978,9 @@ declare namespace Bit {
                 /**
                  * When true, a later draw with `tagsVariable` changes these tags in place, adding and
                  * removing to match the new list
+                 * @default false
                  */
-                updatable: boolean;
+                updatable?: boolean | undefined;
                 /**
                  * The tags an earlier draw gave back, to change in place; used only when `updatable` is
                  * true
@@ -20950,21 +24002,25 @@ declare namespace Bit {
                 /**
                  * The point in the scene the label is pinned to; it stays over that point as the camera
                  * moves
+                 * @default [0, 0, 0]
                  */
-                position: Base.Point3;
+                position?: Base.Point3 | undefined;
                 /**
                  * Hex color of the label's text
+                 * @default #444444
                  */
-                colour: string;
+                colour?: string | undefined;
                 /**
                  * Font size of the label, in pixels
+                 * @default 12
                  */
-                size: number;
+                size?: number | undefined;
                 /**
                  * When true, a label far from the camera is drawn smaller than one nearby, as if it sat in
                  * the scene
+                 * @default false
                  */
-                adaptDepth: boolean;
+                adaptDepth?: boolean | undefined;
                 /**
                  * Set by drawing to ask for a refresh of the label on the next frame; not something to set
                  * by hand
@@ -21976,8 +25032,201 @@ declare namespace Bit {
          */
         declare namespace OCCT {
             /**
-     * Sub-shape counts for compounds and assemblies.
+     * One pair a clash query reports: the two items by index, `indexA` below `indexB` when both come
+     * from one list or one shape, the nearest distance between them (0 where they touch, overlap or one
+     * lies inside a solid of the other), the volume they share when both hold a solid (0 otherwise), and
+     * the nearest points, `pointA` on the first and `pointB` on the second; where faces of one shape
+     * cross, both are one point on their crossing.
      */
+            interface Clash {
+                indexA: number;
+                indexB: number;
+                distance: number;
+                volume: number;
+                pointA: Base.Point3;
+                pointB: Base.Point3;
+            }
+            /**
+             * The point of a curve nearest a given point: its parameter as a fraction of the curve, its length
+             * from the start, its distance from the given point, and the index of the edge it lies on as
+             * `shapes.edge.getEdgesAlongWire` numbers them.
+             */
+            interface CurveClosestPoint {
+                point: Base.Point3;
+                param: number;
+                length: number;
+                distance: number;
+                edgeIndex: number;
+            }
+            /**
+             * How a curve bends at one place: the point, the unit tangent, the principal normal pointing to the
+             * center of curvature, the binormal (tangent x normal), the curvature (1 over the radius), the
+             * radius, the center of the circle that fits the curve there, and the torsion, positive where the
+             * curve winds as a right-handed helix does. Where the curve runs straight, `isStraight` is true, the
+             * curvature and torsion are 0, the radius is `Infinity`, the normal and binormal are zero vectors
+             * and the center is the point itself.
+             */
+            interface CurveCurvature {
+                point: Base.Point3;
+                tangent: Base.Vector3;
+                normal: Base.Vector3;
+                binormal: Base.Vector3;
+                curvature: number;
+                radius: number;
+                center: Base.Point3;
+                torsion: number;
+                isStraight: boolean;
+            }
+            /**
+             * A corner of a curve where its tangent turns: the point, the index of the edge that ends there as
+             * `shapes.edge.getEdgesAlongWire` numbers them, and the angle the tangent turns by, in degrees, from
+             * 0 for a smooth join to 180 for a turn back.
+             */
+            interface CurveKink {
+                point: Base.Point3;
+                edgeIndex: number;
+                angle: number;
+            }
+            /**
+             * A highest or lowest point of a curve along a direction: the point, its parameter as a fraction of
+             * the curve, its length from the start, its height (how far it lies along the direction, measured
+             * from the origin), whether it is a highest point rather than a lowest, and whether it is a global
+             * one, with no point of the curve higher, or lower for a lowest point.
+             */
+            interface CurveExtreme {
+                point: Base.Point3;
+                param: number;
+                length: number;
+                height: number;
+                isMaximum: boolean;
+                isGlobal: boolean;
+            }
+            /**
+             * A point where two curves meet: its parameter on each as a fraction of that curve, the index of the
+             * edge it lies on in each as `shapes.edge.getEdgesAlongWire` numbers them, and whether it is an end
+             * of a stretch where the curves run together rather than a crossing.
+             */
+            interface CurveIntersection {
+                point: Base.Point3;
+                paramA: number;
+                paramB: number;
+                edgeIndexA: number;
+                edgeIndexB: number;
+                isOverlap: boolean;
+            }
+            /**
+             * A point where a curve meets a face: its parameter on the curve as a fraction, the index of the
+             * edge it lies on as `shapes.edge.getEdgesAlongWire` numbers them, its `u` and `v` on the face as
+             * fractions of the face's UV bounds, as `shapes.face.pointOnUV` takes them, and whether it is an end
+             * of a stretch of the curve lying on the face.
+             */
+            interface CurveFaceIntersection {
+                point: Base.Point3;
+                param: number;
+                edgeIndex: number;
+                u: number;
+                v: number;
+                isOverlap: boolean;
+            }
+            /**
+             * One nearest pair of points between two shapes: `pointA` on the first and `pointB` on the second,
+             * the distance between them, and on each side what the point lies on (a vertex, an edge or a face),
+             * that sub-shape's index as `shapes.vertex.getVertices`, `shapes.edge.getEdges` or
+             * `shapes.face.getFaces` numbers it, and where on it: on a face `u` and `v` as fractions of its UV
+             * bounds, as `shapes.face.pointOnUV` takes them; on an edge `u` as a fraction of the edge from its
+             * start to its end as it runs, and `v` 0; on a vertex both 0. When one shape lies inside a solid of
+             * the other, the one pair is at distance 0 on a vertex of the inner shape, and the index of the side
+             * that contains the other is -1.
+             */
+            interface ShapeExtremum {
+                pointA: Base.Point3;
+                pointB: Base.Point3;
+                distance: number;
+                supportA: OCCT.shapeTypeEnum;
+                supportB: OCCT.shapeTypeEnum;
+                indexA: number;
+                indexB: number;
+                uA: number;
+                vA: number;
+                uB: number;
+                vB: number;
+            }
+            /**
+             * The angle between two faces or edges, in degrees from 0 to 180, read where they are nearest: at
+             * `pointA` and `pointB`, between the directions there, which are a face's unit normal and an edge's
+             * unit tangent along the edge's orientation.
+             */
+            interface AngleBetween {
+                angle: number;
+                pointA: Base.Point3;
+                pointB: Base.Point3;
+                directionA: Base.Vector3;
+                directionB: Base.Vector3;
+            }
+            /**
+             * The angle between the two faces that meet at an edge, measured through the material, in degrees:
+             * 90 for the edge of a box, 180 where the faces meet smoothly, 270 for the inner edge of an L, with
+             * `isConvex` true up to 180. `point` is where on the edge it was read, `normalA` and `normalB` are
+             * the faces' unit normals there, and `faceIndexA` and `faceIndexB` the faces as
+             * `shapes.face.getFaces` numbers them.
+             */
+            interface DihedralAngle {
+                angle: number;
+                isConvex: boolean;
+                point: Base.Point3;
+                normalA: Base.Vector3;
+                normalB: Base.Vector3;
+                faceIndexA: number;
+                faceIndexB: number;
+            }
+            /**
+             * The tightest bend found on a shape: its radius in model units, the point where it was found, and
+             * the face or edge it lies on, with that face's index as `shapes.face.getFaces` numbers it or that
+             * edge's as `shapes.edge.getEdges` does. Where nothing bends, `radius` is `Infinity`, `support` is
+             * `unknown` and `index` is -1.
+             */
+            interface MinCurvatureRadius {
+                radius: number;
+                point: Base.Point3;
+                support: OCCT.shapeTypeEnum;
+                index: number;
+            }
+            /**
+             * The point of a face nearest a given point: its `u` and `v` as fractions of the face's UV bounds,
+             * as `shapes.face.pointOnUV` takes them, its distance from the given point, the face's unit normal
+             * there, and whether it lies on the face's boundary, where a point beyond the face's edges comes to.
+             */
+            interface FaceClosestPoint {
+                point: Base.Point3;
+                u: number;
+                v: number;
+                distance: number;
+                normal: Base.Vector3;
+                isOnBoundary: boolean;
+            }
+            /**
+             * How a face bends at one place: the point, the unit normal the way the face looks, the largest and
+             * smallest curvatures (1 over a radius, positive where the face bulges out along its normal, as the
+             * outside of a ball does), their mean and product (the Gaussian curvature), and the unit directions
+             * along which the face bends most and least. `isUmbilic` is true where it bends the same way in every
+             * direction, as a plane or a ball does; where no curvature can be read, `isDefined` is false and the
+             * curvatures and directions are 0.
+             */
+            interface FaceCurvature {
+                point: Base.Point3;
+                normal: Base.Vector3;
+                maxCurvature: number;
+                minCurvature: number;
+                meanCurvature: number;
+                gaussianCurvature: number;
+                maxDirection: Base.Vector3;
+                minDirection: Base.Vector3;
+                isUmbilic: boolean;
+                isDefined: boolean;
+            }
+            /**
+             * Sub-shape counts for compounds and assemblies.
+             */
             interface SubShapeCounts {
                 /** Number of solid shapes */
                 solids: number;
@@ -22692,6 +25941,25 @@ declare namespace Bit {
                 error?: string | undefined;
             }
             /**
+             * A shape's principal axes of inertia as a frame at its centre of mass: the direction is the axis
+             * the shape turns about most easily, the normal the axis it resists most. The moments are about the
+             * direction, the frame's y axis and the normal, in that order, for a density of 1.
+             */
+            interface PrincipalFrame {
+                frame: Base.Frame;
+                moments: Base.Vector3;
+            }
+            /**
+             * A box around a shape as a frame at its centre and half its size along the frame's direction, y
+             * axis and normal. `analysis.measure.orientedBoundingBox` turns the box to fit the shape, its
+             * direction along the longest side and its normal along the shortest;
+             * `analysis.measure.boundingBoxInFrame` keeps the axes of the frame it is given.
+             */
+            interface OrientedBoundingBox {
+                frame: Base.Frame;
+                halfSizes: Base.Vector3;
+            }
+            /**
              * The name of a curve's underlying type - line, circle, ellipse, hyperbola, parabola, Bezier,
              * B-spline and the rest - as it appears in a geometry report.
              */
@@ -22773,6 +26041,98 @@ declare namespace Bit {
                 nbEdges?: number | undefined;
             }
             /**
+             * What an operation made of the faces, edges and vertices of one shape it was given, as lists of
+             * indexes: faces as `shapes.face.getFaces` lists them, edges as `shapes.edge.getEdges` does and
+             * vertices as `shapes.vertex.getVertices` does, of the input and the result alike. `faces[i]` holds
+             * the result faces input face `i` became: itself where it is unchanged, its pieces where it was cut,
+             * none where it is gone. `facesFromEdges[i]` holds the result faces made from input edge `i`, such as
+             * the round a fillet puts along it; `firstFaces` and `lastFaces` are a sweep's ends.
+             */
+            interface ShapeHistory {
+                faces: number[][];
+                edges: number[][];
+                facesFromEdges: number[][];
+                facesFromVertices: number[][];
+                edgesFromVertices: number[][];
+                firstFaces: number[];
+                lastFaces: number[];
+            }
+            /**
+             * A shape an operation made, with what it made of each face, edge and vertex of the shape it was
+             * given.
+             */
+            interface ShapeWithHistory<T> {
+                shape: T;
+                history: ShapeHistory;
+            }
+            /**
+             * A shape an operation made from several shapes, with the history of each shape it was given, in
+             * the order they were given.
+             */
+            interface ShapeWithHistories<T> {
+                shape: T;
+                histories: ShapeHistory[];
+            }
+            /**
+             * The two texts of an OBJ export: `obj`, the mesh, and `mtl`, the material library its `mtllib`
+             * line names, empty when the shapes carry no colours or materials.
+             */
+            interface ObjFiles {
+                obj: string;
+                mtl: string;
+            }
+            /**
+             * The product manufacturing information a document holds, as a STEP AP242 file brings it along: its
+             * dimensions, its geometric tolerances and the datums the tolerances refer to. Each names the shapes
+             * it applies to by their labels, which `assembly.query.getShapeFromLabel` reads.
+             */
+            interface DocumentPmi {
+                dimensions: PmiDimension[];
+                tolerances: PmiTolerance[];
+                datums: PmiDatum[];
+            }
+            /**
+             * A dimension: its label, its kind, such as `Size_Diameter` or `Location_LinearDistance`, its name,
+             * and its nominal `value`. `upperTolerance` and `lowerTolerance`, both positive, say how far above
+             * and below the value it may lie; `lowerBound` and `upperBound` give a range instead, whose middle is
+             * the value. `shapes` and `otherShapes` hold the labels of the shapes it measures from and to.
+             * Lengths are in the document's length unit and angles in degrees; a value that is not finite reads
+             * NaN.
+             */
+            interface PmiDimension {
+                label: string;
+                type: string;
+                name: string;
+                value: number;
+                upperTolerance?: number | undefined;
+                lowerTolerance?: number | undefined;
+                lowerBound?: number | undefined;
+                upperBound?: number | undefined;
+                shapes: string[];
+                otherShapes: string[];
+            }
+            /**
+             * A geometric tolerance: its label, its kind, such as `Flatness` or `Position`, its name, its value
+             * in the document's length unit (NaN when not finite), the labels of the shapes it applies to, and
+             * the labels of the datums it refers to, which `datums` of the same `DocumentPmi` describes.
+             */
+            interface PmiTolerance {
+                label: string;
+                type: string;
+                name: string;
+                value: number;
+                shapes: string[];
+                datums: string[];
+            }
+            /**
+             * A datum: its label, its name, such as `A`, and the labels of the shapes it is taken from.
+             */
+            interface PmiDatum {
+                label: string;
+                name: string;
+                shapes: string[];
+            }
+            /**
              * A shape paired with a stable identifier. Operations that return many shapes use it so a
              * caller can match results back to what produced them - which face a fillet was applied to, which
              * part a section came from - instead of relying on array order.
@@ -22789,6 +26149,68 @@ declare namespace Bit {
                 compound?: U | undefined;
                 shapes?: ShapeWithId<U>[] | undefined;
                 data?: M | undefined;
+            }
+            /**
+             * One sub-shape with something wrong: its kind, its index as the getter of that kind numbers it
+             * (`shapes.face.getFaces` for a face, `shapes.edge.getEdges` for an edge, `shapes.vertex.getVertices`
+             * for a vertex, and so on), and the names of the checks it fails, such as `NotClosed`,
+             * `BadOrientationOfSubshape` or `InvalidCurveOnSurface`. When the check itself fails, one fault names
+             * the whole shape at index 0 with a status that starts with `CheckFail`.
+             */
+            interface ValidityFault {
+                type: OCCT.shapeTypeEnum;
+                index: number;
+                statuses: string[];
+            }
+            /**
+             * What a check of a shape found: whether it is a sound shape, every sub-shape with something wrong,
+             * vertices first, then edges, wires, faces, shells and solids, and the smallest, largest and average
+             * tolerance over its vertices, edges and faces, in model units.
+             */
+            interface ValidityReport {
+                isValid: boolean;
+                faults: ValidityFault[];
+                minTolerance: number;
+                maxTolerance: number;
+                averageTolerance: number;
+            }
+            /**
+             * The free boundaries of a shape, its edges that bound only one face joined into wires: `closed`
+             * holds the wires that close on themselves, such as the rim of an opening, and `open` the others,
+             * each as a compound of wires.
+             */
+            interface FreeBoundaries<T> {
+                closed: T;
+                open: T;
+            }
+            /**
+             * What sewing made: the sewn shape, a compound of the edges left bounding only one face and their
+             * count, how many edges ended up shared by more than two faces, how many were sewn together, and how
+             * many degenerate edges and pieces smaller than the tolerance were found, such as the poles of a sphere.
+             */
+            interface SewReport<T> {
+                shape: T;
+                freeEdges: T;
+                freeEdgeCount: number;
+                multipleEdgeCount: number;
+                contiguousEdgeCount: number;
+                degeneratedCount: number;
+            }
+            /**
+             * The two sides of a shape split by a plane: `front` on the side the plane's normal points to,
+             * `back` on the other.
+             */
+            interface SplitByFrameResult<T> {
+                front: T;
+                back: T;
+            }
+            /**
+             * The edges of a view of a shape, flattened into a drawing on the XZ plane: `visible` holds the
+             * edges the eye sees, `hidden` the ones that faces cover.
+             */
+            interface HiddenLinesResult<T> {
+                visible: T;
+                hidden: T;
             }
             /**
              * The wires of a single character in a text run: the outlines that bound its filled regions,
@@ -29789,7 +33211,7 @@ declare namespace Bit {
          * const grown = await bitbybit.jscad.expansions.expand({ geometry: square, delta: 1, corners: Bit.Inputs.JSCAD.solidCornerTypeEnum.round, segments: 16 });
          * ```
          */
-        expand(inputs: Inputs.JSCAD.ExpansionDto): Promise<Inputs.JSCAD.JSCADEntity>;
+        expand(inputs: Inputs.JSCAD.ExpandDto): Promise<Inputs.JSCAD.JSCADEntity>;
         /**
          * Builds the outline of a 2D shape or path at distance `delta` from the original, outward for
          * positive and inward for negative.
@@ -30229,9 +33651,9 @@ declare namespace Bit {
          * Builds a filled 2D shape from the outline points, taken in order and closed back to the
          * first.
          *
-         * Only X and Y are used, Z is dropped; repeated consecutive points are removed and at least
-         * three distinct points are needed. Counter-clockwise order gives a normal shape, clockwise
-         * gives a negative one.
+         * The points may be 2D or 3D; only X and Y are used. Repeated consecutive points are removed
+         * and at least three distinct points are needed. Counter-clockwise order gives a normal shape,
+         * clockwise gives a negative one.
          * @param inputs - The outline points
          * @returns The 2D shape
          * @group from
@@ -32792,12 +36214,481 @@ declare namespace Bit {
         init(occt: Worker): void;
     }
     /**
+     * Questions asked of OpenCascade shapes, answered with points, numbers and index lists rather than
+     * new shapes. `curves` reads edges and wires, `surfaces` reads faces, `measure` measures boxes,
+     * distances, angles and radii, and `clashes` finds shapes and faces that overlap or come too close.
+     * The shapes themselves are left as they are.
+     */
+    declare class OCCTAnalysis {
+        readonly curves: OCCTAnalysisCurves;
+        readonly surfaces: OCCTAnalysisSurfaces;
+        readonly measure: OCCTAnalysisMeasure;
+        readonly clashes: OCCTAnalysisClashes;
+    }
+    /**
+     * Finding shapes and faces that overlap or come closer than a clearance: pairs among a list of
+     * placed shapes, faces of two shapes within a distance of each other, and faces of one shape that
+     * cut through each other. Each clash names the two items by index with the distance between them
+     * and, for solids, the volume they share.
+     */
+    declare class OCCTAnalysisClashes {
+        private readonly occWorkerManager;
+        /**
+         * Finds every pair among a list of shapes that overlap, touch or come within a clearance of each
+         * other, such as colliding parts.
+         *
+         * A clash names the two by their positions in the list, from 0, with their distance, 0 where they
+         * touch, overlap or nest, and the volume two solids share.
+         * @param inputs - The shapes and the clearance
+         * @returns The clashing pairs, in list order
+         * @group clashes
+         * @shortname clashes between shapes
+         * @drawable false
+         * @example
+         * ```typescript
+         * const clashes = await bitbybit.occt.analysis.clashes.betweenShapes({ shapes: [bracket, bolt, plate], clearance: 0.5 });
+         * const overlapping = clashes.filter(clash => clash.volume > 0);
+         * ```
+         */
+        betweenShapes(inputs: Inputs.OCCT.ClashesBetweenShapesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.Clash[]>;
+        /**
+         * Finds the faces of one shape that come within a clearance of faces of another, each pair
+         * measured exactly.
+         *
+         * A clash names a face of each as `shapes.face.getFaces` numbers them, sorted by the first shape's
+         * face. Candidates come from meshes of copies at `precision`, so the shapes given stay unmeshed;
+         * faces without a surface take no part.
+         * @param inputs - The two shapes, the clearance and the meshing precision
+         * @returns The pairs of faces within the clearance
+         * @group clashes
+         * @shortname faces within
+         * @drawable false
+         * @example
+         * ```typescript
+         * const tooClose = await bitbybit.occt.analysis.clashes.facesWithin({ shapeA: housing, shapeB: board, clearance: 0.2, precision: 0.01 });
+         * ```
+         */
+        facesWithin(inputs: Inputs.OCCT.FacesWithinDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.Clash[]>;
+        /**
+         * Finds the pairs of faces of one shape that cross each other anywhere but along an edge they
+         * share.
+         *
+         * A clash names the two faces as `shapes.face.getFaces` numbers them, with both points at one
+         * place on their crossing. Candidates come from a mesh of a copy at `precision` and are confirmed
+         * exactly; a mere touch can be missed.
+         * @param inputs - The shape and the meshing precision
+         * @returns The pairs of crossing faces
+         * @group clashes
+         * @shortname self intersections
+         * @drawable false
+         * @example
+         * ```typescript
+         * const crossings = await bitbybit.occt.analysis.clashes.selfIntersections({ shape: sweep, precision: 0.01 });
+         * const isClean = crossings.length === 0;
+         * ```
+         */
+        selfIntersections(inputs: Inputs.OCCT.SelfIntersectionsDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.Clash[]>;
+    }
+    /**
+     * Questions asked of edges and wires, answered with points and numbers rather than new shapes: the
+     * closest point with its parameter and length along the curve, curvature and its comb, kinks where
+     * the tangent turns, extremes along a direction, and intersections with other curves and with faces.
+     * Parameters are fractions from 0 at the start to 1 at the end, where each edge of a wire takes an
+     * equal share, as `shapes.wire.pointOnWireAtParam` takes them. Edges are numbered as
+     * `shapes.edge.getEdgesAlongWire` lists them, and angles are in degrees.
+     */
+    declare class OCCTAnalysisCurves {
+        private readonly occWorkerManager;
+        /**
+         * Finds the point of an edge or a wire nearest each given point, with where it lies along the
+         * curve.
+         *
+         * Each result carries the point, its parameter as a fraction of the curve, its length from the
+         * start, its distance from the given point and the edge it lies on; at a corner that is the
+         * edge starting there.
+         * @param inputs - The edge or wire and the points to measure from
+         * @returns One closest point per given point, in the same order
+         * @group points
+         * @shortname closest points
+         * @drawable false
+         * @example
+         * ```typescript
+         * const nearest = await bitbybit.occt.analysis.curves.closestPoints({ shape: wire, points: [[12, 0, 5], [3, 0, -2]] });
+         * const cut = await bitbybit.occt.shapes.wire.splitWireAtParams({ shape: wire, params: nearest.map(result => result.param) });
+         * ```
+         */
+        closestPoints(inputs: Inputs.OCCT.ClosestPointsOnShapeFromPointsDto<Inputs.OCCT.TopoDSWirePointer | Inputs.OCCT.TopoDSEdgePointer>): Promise<Models.OCCT.CurveClosestPoint[]>;
+        /**
+         * Reads how an edge or a wire bends at places given as fractions from 0 at its start to 1 at its
+         * end.
+         *
+         * Each result holds the point, tangent, normal, binormal, curvature, radius, center and torsion;
+         * a straight stretch reads `isStraight` with an `Infinity` radius. At a corner of a wire the edge
+         * starting there is read.
+         * @param inputs - The edge or wire and the fractions along it
+         * @returns One curvature per fraction, in the same order
+         * @group curvature
+         * @shortname curvatures at params
+         * @drawable false
+         * @example
+         * ```typescript
+         * const [start, middle] = await bitbybit.occt.analysis.curves.curvaturesAtParams({ shape: spline, params: [0, 0.5] });
+         * const bendRadius = middle.radius;
+         * ```
+         */
+        curvaturesAtParams(inputs: Inputs.OCCT.DataOnGeometryAtParamsDto<Inputs.OCCT.TopoDSWirePointer | Inputs.OCCT.TopoDSEdgePointer>): Promise<Models.OCCT.CurveCurvature[]>;
+        /**
+         * Reads how an edge or a wire bends at places given as lengths along it from its start, in model
+         * units.
+         *
+         * Each result is what `curvaturesAtParams` gives: the point, the tangent, normal and binormal,
+         * the curvature with its radius and center, and the torsion. At a corner of a wire the edge
+         * starting there is read.
+         * @param inputs - The edge or wire and the lengths along it
+         * @returns One curvature per length, in the same order
+         * @group curvature
+         * @shortname curvatures at lengths
+         * @drawable false
+         * @example
+         * ```typescript
+         * const curvatures = await bitbybit.occt.analysis.curves.curvaturesAtLengths({ shape: spline, lengths: [0, 2.5, 5] });
+         * const tightest = Math.max(...curvatures.map(result => result.curvature));
+         * ```
+         */
+        curvaturesAtLengths(inputs: Inputs.OCCT.DataOnGeometryAtLengthsDto<Inputs.OCCT.TopoDSWirePointer | Inputs.OCCT.TopoDSEdgePointer>): Promise<Models.OCCT.CurveCurvature[]>;
+        /**
+         * Draws a curvature comb along an edge or a wire: teeth standing on the curve, as long as the
+         * curvature there, pointing away from its center.
+         *
+         * The first polyline runs through the tips, showing how the curvature changes; then comes one
+         * two-point polyline per tooth, from the curve to its tip. The teeth are spaced evenly by length.
+         * @param inputs - The edge or wire, the number of teeth and their scale
+         * @returns The polyline through the tips, then one polyline per tooth
+         * @group curvature
+         * @shortname curvature comb
+         * @drawable true
+         * @example
+         * ```typescript
+         * const comb = await bitbybit.occt.analysis.curves.curvatureComb({ shape: spline, samples: 80, scale: 0 });
+         * const outline = comb[0];
+         * ```
+         */
+        curvatureComb(inputs: Inputs.OCCT.CurvatureCombDto<Inputs.OCCT.TopoDSWirePointer | Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.Base.Polyline3[]>;
+        /**
+         * Finds the corners of an edge or a wire where the tangent turns by more than an angle, such as
+         * the corners of a polyline.
+         *
+         * Each kink comes with the edge ending there and the turn in degrees, in walking order; a closed
+         * wire's closing corner, at its start, comes first.
+         * @param inputs - The edge or wire and the angle in degrees
+         * @returns The kinks, in order along the curve
+         * @group shape
+         * @shortname kinks
+         * @drawable false
+         * @example
+         * ```typescript
+         * const corners = await bitbybit.occt.analysis.curves.kinks({ shape: outline, angle: 10 });
+         * const cornerPoints = corners.map(kink => kink.point);
+         * ```
+         */
+        kinks(inputs: Inputs.OCCT.CurveKinksDto<Inputs.OCCT.TopoDSWirePointer | Inputs.OCCT.TopoDSEdgePointer>): Promise<Models.OCCT.CurveKink[]>;
+        /**
+         * Finds the highest and lowest points of an edge or a wire along a direction, such as the crests
+         * of a wave.
+         *
+         * They come in order along the curve, marked as maxima or minima, and as global when nothing lies
+         * higher, or lower; ties are all global. An open curve's ends count; a level stretch is reported
+         * at its start.
+         * @param inputs - The edge or wire and the direction that is up
+         * @returns The highest and lowest points, in order along the curve
+         * @group shape
+         * @shortname extremes along
+         * @drawable false
+         * @example
+         * ```typescript
+         * const extremes = await bitbybit.occt.analysis.curves.extremesAlong({ shape: wave, direction: [0, 1, 0] });
+         * const crests = extremes.filter(extreme => extreme.isMaximum);
+         * ```
+         */
+        extremesAlong(inputs: Inputs.OCCT.CurveExtremesAlongDto<Inputs.OCCT.TopoDSWirePointer | Inputs.OCCT.TopoDSEdgePointer>): Promise<Models.OCCT.CurveExtreme[]>;
+        /**
+         * Finds where two edges or wires cross or touch, with the parameter and the edge of each point on
+         * both curves.
+         *
+         * The points come in order along the first curve. Where the curves run together, the two ends of
+         * the shared stretch come back marked `isOverlap`; curves that do not meet give an empty list.
+         * @param inputs - The two edges or wires and the tolerance
+         * @returns The points where they meet, in order along the first curve
+         * @group intersections
+         * @shortname intersect curves
+         * @drawable false
+         * @example
+         * ```typescript
+         * const crossings = await bitbybit.occt.analysis.curves.intersectCurves({ shapeA: path, shapeB: border, tolerance: 1e-7 });
+         * const pieces = await bitbybit.occt.shapes.wire.splitWireAtParams({ shape: path, params: crossings.map(crossing => crossing.paramA) });
+         * ```
+         */
+        intersectCurves(inputs: Inputs.OCCT.IntersectCurvesDto<Inputs.OCCT.TopoDSWirePointer | Inputs.OCCT.TopoDSEdgePointer>): Promise<Models.OCCT.CurveIntersection[]>;
+        /**
+         * Finds where an edge or a wire passes through a face or lies on it, within the face's edges.
+         *
+         * The points come in order along the curve, with `u` and `v` as the fractions that
+         * `shapes.face.pointOnUV` takes. A stretch lying on the face gives its two ends, marked
+         * `isOverlap`.
+         * @param inputs - The edge or wire, the face and the tolerance
+         * @returns The points where the curve meets the face, in order along the curve
+         * @group intersections
+         * @shortname intersect curve with face
+         * @drawable false
+         * @example
+         * ```typescript
+         * const hits = await bitbybit.occt.analysis.curves.intersectCurveWithFace({ shape: path, face, tolerance: 1e-7 });
+         * const normals = await Promise.all(hits.map(hit => bitbybit.occt.shapes.face.normalOnUV({ shape: face, paramU: hit.u, paramV: hit.v })));
+         * ```
+         */
+        intersectCurveWithFace(inputs: Inputs.OCCT.IntersectCurveWithFaceDto<Inputs.OCCT.TopoDSWirePointer | Inputs.OCCT.TopoDSEdgePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Models.OCCT.CurveFaceIntersection[]>;
+        /**
+         * Tells what kind of curve an edge runs along: a line, a circle, an ellipse, a hyperbola, a
+         * parabola, a Bezier curve, a B-spline, an offset curve or another kind.
+         *
+         * The kinds are the ones `select.edges.ofType` chooses edges by.
+         * @param inputs - The edge
+         * @returns The kind of curve the edge runs along
+         * @group shape
+         * @shortname curve type
+         * @drawable false
+         * @example
+         * ```typescript
+         * const kind = await bitbybit.occt.analysis.curves.curveType({ shape: edge });
+         * const isRound = kind === Bit.Inputs.OCCT.curveTypeEnum.circle;
+         * ```
+         */
+        curveType(inputs: Inputs.OCCT.ShapeDto<Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.OCCT.curveTypeEnum>;
+    }
+    /**
+     * Measurements of shapes: a bounding box that follows the geometry exactly, a box in a frame, the
+     * box turned to fit and the principal axes of inertia, every closest pair of points between two
+     * shapes with the sub-shapes they lie on, angles between faces and edges, the dihedral angle along an
+     * edge, and the tightest radius of curvature. Lengths are in model units and angles in degrees.
+     */
+    declare class OCCTAnalysisMeasure {
+        private readonly occWorkerManager;
+        /**
+         * Finds the box lined up with the axes that just holds a shape's exact geometry.
+         *
+         * Unlike `operations.boundingBoxOfShape`, which may add tolerances and the mesh, it leaves no gap:
+         * a ball of radius 3 gets a box of 6. A face carrying only a mesh is boxed by its nodes; a shape
+         * with nothing to bound is refused.
+         * @param inputs - The shape
+         * @returns The box as `min`, `max`, `center` and `size`
+         * @group boxes
+         * @shortname tight bbox
+         * @drawable false
+         * @example
+         * ```typescript
+         * const box = await bitbybit.occt.analysis.measure.tightBoundingBox({ shape: part });
+         * console.log(box.size, box.center);
+         * ```
+         */
+        tightBoundingBox(inputs: Inputs.OCCT.ShapeDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.BoundingBoxPropsDto>;
+        /**
+         * Finds the box that just holds a shape with its sides along a frame's axes instead of the
+         * world's.
+         *
+         * The box's x runs along the frame's direction and its z along the normal. It comes back as a
+         * frame at its center and half its size along each axis; `orientedBoundingBox` turns the box to
+         * fit instead.
+         * @param inputs - The shape and the frame whose axes the box follows
+         * @returns The frame at the box's center and the half sizes along its direction, y axis and normal
+         * @group boxes
+         * @shortname bbox in frame
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { frame, halfSizes } = await bitbybit.occt.analysis.measure.boundingBoxInFrame({
+         *     shape: part,
+         *     frame: { origin: [0, 0, 0], normal: [0, 0, 1], direction: [1, 1, 0] },
+         * });
+         * ```
+         */
+        boundingBoxInFrame(inputs: Inputs.OCCT.BoundingBoxInFrameDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.OrientedBoundingBox>;
+        /**
+         * Finds the smallest box that fits around a shape, turned to follow it rather than the axes: a
+         * frame at the box's centre, its direction along the longest side and its normal along the
+         * shortest, with half the box's size along each.
+         *
+         * `boundingBoxInFrame` keeps the axes of a frame you give instead.
+         * @param inputs - The shape
+         * @returns The frame and the half sizes along its direction, y axis and normal
+         * @group boxes
+         * @shortname oriented bounding box
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { frame, halfSizes } = await bitbybit.occt.analysis.measure.orientedBoundingBox({ shape: part });
+         * ```
+         */
+        orientedBoundingBox(inputs: Inputs.OCCT.ShapeDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.OrientedBoundingBox>;
+        /**
+         * Finds a shape's principal axes of inertia as a frame at its centre of mass: the direction is
+         * the axis it turns about most easily, the normal the one it resists most.
+         *
+         * Solids are measured by volume, even inside out, else faces by area, else edges by length, at
+         * a density of 1. Each axis's largest coordinate is positive.
+         * @param inputs - The shape
+         * @returns The frame and the moments about its direction, y axis and normal
+         * @group frames
+         * @shortname principal frame
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { frame, moments } = await bitbybit.occt.analysis.measure.principalFrame({ shape: part });
+         * ```
+         */
+        principalFrame(inputs: Inputs.OCCT.ShapeDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.PrincipalFrame>;
+        /**
+         * Finds every nearest pair of points between two shapes, with the vertex, edge or face each point
+         * lies on and where on it.
+         *
+         * Touching, overlapping and nested shapes are 0 apart; a shape inside another gives one pair on
+         * one of its vertices, with -1 as the containing side's index.
+         * `operations.closestPointsBetweenTwoShapes` gives one pair alone.
+         * @param inputs - The two shapes
+         * @returns The nearest pairs
+         * @group distances
+         * @shortname extrema
+         * @drawable false
+         * @example
+         * ```typescript
+         * const [nearest] = await bitbybit.occt.analysis.measure.extrema({ shapeA: box, shapeB: ball });
+         * console.log(nearest.distance, nearest.supportA, nearest.indexA);
+         * ```
+         */
+        extrema(inputs: Inputs.OCCT.TwoShapesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.ShapeExtremum[]>;
+        /**
+         * Measures the angle in degrees between two faces or edges where they come nearest each other.
+         *
+         * Faces compare their normals, 0 when they look the same way and 180 when opposite; edges compare
+         * their tangents; a face and an edge compare the normal with the tangent, so the edge meets the
+         * face's plane at 90 minus the angle.
+         * @param inputs - The two faces or edges
+         * @returns The angle in degrees, with the points and directions it was read at
+         * @group angles
+         * @shortname angle between
+         * @drawable false
+         * @example
+         * ```typescript
+         * const top = await bitbybit.occt.shapes.face.getFace({ shape: box, index: 5 });
+         * const side = await bitbybit.occt.shapes.face.getFace({ shape: box, index: 0 });
+         * const { angle } = await bitbybit.occt.analysis.measure.angleBetween({ shapeA: top, shapeB: side });
+         * ```
+         */
+        angleBetween(inputs: Inputs.OCCT.TwoShapesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.AngleBetween>;
+        /**
+         * Measures the angle through the material between the two faces that meet at an edge.
+         *
+         * A box's edges read 90 degrees, a smooth join 180 and an L's inner edge 270; up to 180 the edge
+         * is convex. `param` is a share of the edge's parameter range, and of its length only on lines and
+         * circles.
+         * @param inputs - The shape, the edge as `shapes.edge.getEdges` counts it and the place along it
+         * @returns The angle in degrees, with the point, the two faces and their normals
+         * @group angles
+         * @shortname dihedral angle
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { angle, isConvex } = await bitbybit.occt.analysis.measure.dihedralAngle({ shape: part, index: 3, param: 0.5 });
+         * ```
+         */
+        dihedralAngle(inputs: Inputs.OCCT.DihedralAngleDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.DihedralAngle>;
+        /**
+         * Finds the tightest bend of a shape, sampled over its faces and edges, and where it is.
+         *
+         * Each face is read on a grid of `samples` by `samples` places inside its trims and each edge at
+         * `samples` places, so a tighter bend between them can be missed. A sharp edge between faces is no
+         * bend; `dihedralAngle` measures it.
+         * @param inputs - The shape, the sample count and whether only concave bends count
+         * @returns The smallest radius found, where, and on which face or edge
+         * @group curvature
+         * @shortname min curvature radius
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { radius, support, index } = await bitbybit.occt.analysis.measure.minCurvatureRadius({ shape: part, samples: 16, concaveOnly: true });
+         * ```
+         */
+        minCurvatureRadius(inputs: Inputs.OCCT.MinCurvatureRadiusDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.MinCurvatureRadius>;
+    }
+    /**
+     * Questions asked of faces, answered with points and numbers: the closest point with its (u, v), the
+     * principal, mean and Gaussian curvature at (u, v) values, and the kind of surface a face lies on.
+     * (u, v) values are fractions of the face's UV bounds, from 0 at the start to 1 at the end, the
+     * values `shapes.face.pointOnUV` and the other face samplers take.
+     */
+    declare class OCCTAnalysisSurfaces {
+        private readonly occWorkerManager;
+        /**
+         * Finds the point of a face nearest each given point, with its (u, v) and the face's normal there.
+         *
+         * The face is bounded, so a point beyond its edges comes to its boundary, which `isOnBoundary`
+         * says. `u` and `v` are fractions of the face's UV bounds, as `shapes.face.pointOnUV` takes them;
+         * `operations.closestPointsOnShapeFromPoints` gives the points alone, for any shape.
+         * @param inputs - The face and the points to measure from
+         * @returns One closest point per given point, in the same order
+         * @group points
+         * @shortname closest points
+         * @drawable false
+         * @example
+         * ```typescript
+         * const [nearest] = await bitbybit.occt.analysis.surfaces.closestPoints({ shape: face, points: [[3, 4, 15]] });
+         * const normal = await bitbybit.occt.shapes.face.normalOnUV({ shape: face, paramU: nearest.u, paramV: nearest.v });
+         * ```
+         */
+        closestPoints(inputs: Inputs.OCCT.ClosestPointsOnShapeFromPointsDto<Inputs.OCCT.TopoDSFacePointer>): Promise<Models.OCCT.FaceClosestPoint[]>;
+        /**
+         * Reads how a face bends at (u, v) pairs: its largest and smallest curvature with their
+         * directions, their mean and product, and the normal.
+         *
+         * U and V are fractions of the face's UV bounds. A curvature is 1 over a radius, positive where the
+         * face bulges out along its normal, so the inside of a hole reads negative.
+         * @param inputs - The face and the U and V fraction pairs
+         * @returns One curvature per pair, in the same order
+         * @group curvature
+         * @shortname curvatures on uvs
+         * @drawable false
+         * @example
+         * ```typescript
+         * const [middle] = await bitbybit.occt.analysis.surfaces.curvaturesOnUVs({ shape: face, paramsUV: [[0.5, 0.5]] });
+         * console.log(middle.maxCurvature, middle.gaussianCurvature);
+         * ```
+         */
+        curvaturesOnUVs(inputs: Inputs.OCCT.DataOnUVsDto<Inputs.OCCT.TopoDSFacePointer>): Promise<Models.OCCT.FaceCurvature[]>;
+        /**
+         * Tells what kind of surface a face lies on, such as a plane, a cylinder or a B-spline.
+         *
+         * A surface trimmed to a rectangle reads as the surface it trims, as `select.faces.ofType` reads
+         * it, and a face without a surface, as an imported mesh has, reads as `other`. A shape that is not
+         * a face is refused.
+         * @param inputs - The face
+         * @returns The kind of surface
+         * @group shape
+         * @shortname surface type
+         * @drawable false
+         * @example
+         * ```typescript
+         * const type = await bitbybit.occt.analysis.surfaces.surfaceType({ shape: face });
+         * const isFlat = type === Bit.Inputs.OCCT.surfaceTypeEnum.plane;
+         * ```
+         */
+        surfaceType(inputs: Inputs.OCCT.ShapeDto<Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.surfaceTypeEnum>;
+    }
+    /**
      * Assemblies as OpenCascade documents: a document holds parts, the sub-assemblies that group them
      * and the instances that place them, with names, colors and placements, the way a STEP assembly
-     * does. `manager` builds documents step by step from parts and nodes, loads STEP files into them,
-     * changes labels and exports to STEP and glTF; `query` reads parts, shapes, colors, placements and
-     * the hierarchy back out. Every label in a document is addressed by its label id string. A document
-     * stays in memory until it is deleted.
+     * does. `manager` builds documents step by step from parts and nodes, loads STEP, glTF and OBJ files
+     * into them, changes labels and exports to STEP, glTF, OBJ and PLY; `query` reads parts, shapes,
+     * colors, placements, the hierarchy and the dimensions and tolerances back out. Every label in a
+     * document is addressed by its label id string. A document stays in memory until it is deleted.
      * @example
      * ```typescript
      * const box = await bitbybit.occt.shapes.solid.createBox({ width: 10, length: 10, height: 10, center: [0, 0, 0] });
@@ -32817,10 +36708,10 @@ declare namespace Bit {
     }
     /**
      * Building and changing assembly documents: describe parts, assembly nodes and instance nodes one
-     * object at a time, combine them into a structure, and build a document from it; or load a STEP
-     * file into a document. Then recolor and rename labels, update or remove parts, and export to STEP
-     * or glTF. A document is an in-memory handle that stays alive until it is deleted, so build once
-     * and query or export as often as needed.
+     * object at a time, combine them into a structure, and build a document from it; or load a STEP,
+     * glTF or OBJ file into a document. Then recolor and rename labels, update or remove parts, and
+     * export to STEP, glTF, OBJ or PLY. A document is an in-memory handle that stays alive until it is
+     * deleted, so build once and query or export as often as needed.
      */
     declare class OCCTAssemblyManager {
         private readonly occWorkerManager;
@@ -32981,6 +36872,43 @@ declare namespace Bit {
          */
         loadStepToDoc(inputs: Inputs.OCCT.LoadStepToDocDto): Promise<Inputs.OCCT.TDocStdDocumentPointer>;
         /**
+         * Loads a glTF file into a new assembly document, with its hierarchy, names and colors, the
+         * meshes becoming faces that carry triangles.
+         *
+         * `gltfData` is a binary `.glb` or a `.gltf` with its buffers embedded; the file's header tells
+         * which. glTF's Y-up becomes the document's Z-up, as `exportDocumentToGltf` writes it, and a file
+         * that holds no mesh is refused.
+         * @param inputs - The glTF file
+         * @returns The document handle
+         * @group assembly
+         * @shortname load glTF to document
+         * @drawable false
+         * @example
+         * ```typescript
+         * const doc = await bitbybit.occt.assembly.manager.loadGltfToDoc({ gltfData: glbBytes });
+         * const parts = await bitbybit.occt.assembly.query.getDocumentParts({ document: doc });
+         * ```
+         */
+        loadGltfToDoc(inputs: Inputs.OCCT.LoadGltfToDocDto): Promise<Inputs.OCCT.TDocStdDocumentPointer>;
+        /**
+         * Loads an OBJ file into a new assembly document, its meshes becoming faces that carry
+         * triangles, named as the file names them.
+         *
+         * Coordinates are taken as they are, since OBJ has no agreed up axis. A material library the
+         * file names is not read, and a file that holds no mesh is refused.
+         * @param inputs - The OBJ file
+         * @returns The document handle
+         * @group assembly
+         * @shortname load OBJ to document
+         * @drawable false
+         * @example
+         * ```typescript
+         * const doc = await bitbybit.occt.assembly.manager.loadObjToDoc({ objData: objText });
+         * const tree = await bitbybit.occt.assembly.query.getAssemblyHierarchy({ document: doc });
+         * ```
+         */
+        loadObjToDoc(inputs: Inputs.OCCT.LoadObjToDocDto): Promise<Inputs.OCCT.TDocStdDocumentPointer>;
+        /**
          * Colors a label of a document, a part, instance or assembly, with red, green, blue and alpha
          * from 0 to 1.
          *
@@ -33066,6 +36994,43 @@ declare namespace Bit {
          */
         exportDocumentToGltfWithDraco(inputs: Inputs.OCCT.ExportDocumentToGltfWithDracoDto<Inputs.OCCT.TDocStdDocumentPointer>): Promise<Uint8Array>;
         /**
+         * Triangulates an assembly document and writes it as OBJ, returning the file's text and the
+         * text of the material library its `mtllib` line names.
+         *
+         * The file name without its extension names the library, which holds the parts' colors and is
+         * empty for a document without any. Coordinates keep six decimals. `meshDeflection` sets how
+         * finely curved surfaces are triangulated.
+         * @param inputs - The document, the meshing tolerance, the file name and the download option
+         * @returns The OBJ text and the material library text
+         * @group export
+         * @shortname export document OBJ
+         * @drawable false
+         * @example
+         * ```typescript
+         * const files = await bitbybit.occt.assembly.manager.exportDocumentToObj({ document: doc, meshDeflection: 0.1, fileName: "assembly.obj", tryDownload: false });
+         * console.log(files.obj, files.mtl);
+         * ```
+         */
+        exportDocumentToObj(inputs: Inputs.OCCT.ExportDocumentToObjDto<Inputs.OCCT.TDocStdDocumentPointer>): Promise<Models.OCCT.ObjFiles>;
+        /**
+         * Triangulates an assembly document and writes it as ASCII PLY with a normal per vertex and the
+         * parts' colors, returning the file's text.
+         *
+         * Coordinates keep six significant digits, so a model more than about 1000 units across loses
+         * detail below 0.01. `meshDeflection` sets how finely curved surfaces are triangulated.
+         * @param inputs - The document, the meshing tolerance, the file name and the download option
+         * @returns The PLY file as text
+         * @group export
+         * @shortname export document PLY
+         * @drawable false
+         * @example
+         * ```typescript
+         * const ply = await bitbybit.occt.assembly.manager.exportDocumentToPly({ document: doc, meshDeflection: 0.1, fileName: "assembly.ply", tryDownload: false });
+         * ```
+         */
+        exportDocumentToPly(inputs: Inputs.OCCT.ExportDocumentToPlyDto<Inputs.OCCT.TDocStdDocumentPointer>): Promise<string>;
+        private downloadFile;
+        /**
          * Deletes an assembly document and frees the memory it holds.
          *
          * A document built with `buildAssemblyDocument` or loaded with `loadStepToDoc` stays in memory
@@ -33086,10 +37051,10 @@ declare namespace Bit {
     }
     /**
      * Reading an assembly document: the parts and sub-assemblies it holds, the shape behind a label, a
-     * label's color, placement and details, and the whole hierarchy as a tree. Labels are the ids the
-     * document gives every part, instance and assembly, such as `0:1:1:1`; `getDocumentParts` and
-     * `getAssemblyHierarchy` list them, the other methods take one. The document itself is not changed
-     * by any query.
+     * label's color, placement and details, the whole hierarchy as a tree, and the dimensions and
+     * tolerances it carries. Labels are the ids the document gives every part, instance and assembly,
+     * such as `0:1:1:1`; `getDocumentParts` and `getAssemblyHierarchy` list them, the other methods take
+     * one. The document itself is not changed by any query.
      */
     declare class OCCTAssemblyQuery {
         private readonly occWorkerManager;
@@ -33190,6 +37155,25 @@ declare namespace Bit {
          * ```
          */
         getAssemblyHierarchy(inputs: Inputs.OCCT.DocumentQueryDto<Inputs.OCCT.TDocStdDocumentPointer>): Promise<Models.OCCT.AssemblyHierarchyResult>;
+        /**
+         * Reads the product manufacturing information a document holds, as a STEP AP242 file brings it:
+         * dimensions, geometric tolerances and the datums they refer to.
+         *
+         * Each entry names its shapes by label, which `getShapeFromLabel` reads. Lengths are in the
+         * document's unit, millimeters for a loaded STEP file, and angles in degrees; a document without
+         * any gives empty lists.
+         * @param inputs - The document
+         * @returns The dimensions, the tolerances and the datums
+         * @group query
+         * @shortname get PMI
+         * @drawable false
+         * @example
+         * ```typescript
+         * const pmi = await bitbybit.occt.assembly.query.getDocumentPmi({ document: doc });
+         * const measured = await bitbybit.occt.assembly.query.getShapeFromLabel({ document: doc, label: pmi.dimensions[0].shapes[0] });
+         * ```
+         */
+        getDocumentPmi(inputs: Inputs.OCCT.DocumentQueryDto<Inputs.OCCT.TDocStdDocumentPointer>): Promise<Models.OCCT.DocumentPmi>;
     }
     /**
      * Combining OpenCascade shapes with each other: union fuses them into one, difference cuts one away
@@ -33204,9 +37188,9 @@ declare namespace Bit {
         /**
          * Fuses several shapes into one, the way two overlapping blobs of clay become one lump.
          *
-         * The shapes are fused one after another in list order. With `keepEdges` false, the default,
-         * faces that end up on one surface are merged and the seams removed; true keeps every edge of
-         * the inputs.
+         * A compound counts as its pieces, so overlapping pieces of one compound merge too. `strategy`
+         * sets how many shapes go into each step, and `keepEdges` false, the default, merges faces left
+         * on one surface.
          * @param inputs - The shapes to fuse and whether to keep the seam edges
          * @returns The fused shape
          * @group booleans
@@ -33219,12 +37203,26 @@ declare namespace Bit {
          */
         union(inputs: Inputs.OCCT.UnionDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
         /**
+         * Fuses shapes as `union` does, and reports for each shape given, in order, what became of its
+         * faces, edges and vertices in the result, as indexes the selectors and fillets take.
+         * @param inputs - The shapes to fuse, the strategy and whether to keep the seam edges
+         * @returns The fused shape and one history per shape given
+         * @group booleans
+         * @shortname union with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, histories } = await bitbybit.occt.booleans.unionWithHistory({ shapes: [box, cylinder], keepEdges: false });
+         * ```
+         */
+        unionWithHistory(inputs: Inputs.OCCT.UnionDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.ShapeWithHistories<Inputs.OCCT.TopoDSShapePointer>>;
+        /**
          * Cuts shapes away from a main shape, the way a drill removes material: what remains is the
          * main shape minus every shape in the list.
          *
-         * The shapes are subtracted one after another. With `keepEdges` false, the default, faces left
-         * on one surface are merged; when exactly one solid remains it is returned on its own rather
-         * than inside a compound.
+         * `strategy` sets how many shapes are cut away in each step. With `keepEdges` false, the
+         * default, faces left on one surface are merged, and a lone remaining solid is returned
+         * without a compound.
          * @param inputs - The main shape, the shapes to subtract and whether to keep the seam edges
          * @returns What is left of the main shape
          * @group booleans
@@ -33236,6 +37234,22 @@ declare namespace Bit {
          * ```
          */
         difference(inputs: Inputs.OCCT.DifferenceDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Cuts shapes away as `difference` does, and reports what became of the faces, edges and
+         * vertices of the main shape and of each cutting shape, in that order: a drill's side becomes
+         * the wall of its hole.
+         * @param inputs - The main shape, the shapes to subtract, the strategy and whether to keep the seam edges
+         * @returns What is left of the main shape and one history per shape given, the main shape first
+         * @group booleans
+         * @shortname difference with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, histories } = await bitbybit.occt.booleans.differenceWithHistory({ shape: plate, shapes: [drill], keepEdges: false });
+         * const holeWalls = histories[1].faces.flat();
+         * ```
+         */
+        differenceWithHistory(inputs: Inputs.OCCT.DifferenceDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.ShapeWithHistories<Inputs.OCCT.TopoDSShapePointer>>;
         /**
          * Keeps only the volume the first shape shares with each of the others.
          *
@@ -33486,7 +37500,7 @@ declare namespace Bit {
          * Checks the structure of a shape's graph for problems such as dangling references or
          * inconsistent links, and lists every issue found with its severity.
          *
-         * This checks the bookkeeping, not the geometry; `shapes.shape.isValid` and
+         * This checks the bookkeeping, not the geometry; `shapeFix.isValid` and
          * `shapeFix.basicShapeRepair` deal with geometric validity.
          * @param inputs - The shape to analyze
          * @returns Whether the graph is sound and the issues found
@@ -33818,6 +37832,292 @@ declare namespace Bit {
         makeDraftToShape(inputs: Inputs.OCCT.MakeDraftToShapeDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
     }
     /**
+     * Local modelling features on solids: holes drilled at frames, bosses and pockets from a profile
+     * sketched on a face, tapered and revolved ones, ribs and grooves from a wire, and faces removed or
+     * pushed and pulled. Each method returns a new shape and leaves the one it was given as it is; faces
+     * are counted from 0 as `shapes.face.getFaces` and the face selectors count them. Sweeps that need no
+     * base, such as `operations.sweepEvolved`, live in `operations`.
+     */
+    declare class OCCTFeatures {
+        private readonly occWorkerManager;
+        /**
+         * Drills plain holes into a shape, one at each frame: its origin is where the hole enters and its
+         * normal points out of the material.
+         *
+         * `depth` 0 drills through the whole shape; `tipAngle` 0 leaves a flat bottom and 118 the point of
+         * a twist drill, in degrees. Holes that meet are cut as one.
+         * @param inputs - The shape, the frames and the size of the holes
+         * @returns The drilled shape
+         * @group holes
+         * @shortname holes
+         * @drawable true
+         * @example
+         * ```typescript
+         * const plate = await bitbybit.occt.shapes.solid.createBox({ width: 20, length: 20, height: 5, center: [0, 2.5, 0] });
+         * const drilled = await bitbybit.occt.features.holes({
+         *     shape: plate,
+         *     frames: [
+         *         { origin: [5, 5, 5], normal: [0, 1, 0], direction: [1, 0, 0] },
+         *         { origin: [-5, 5, -5], normal: [0, 1, 0], direction: [1, 0, 0] },
+         *     ],
+         *     diameter: 3,
+         *     depth: 0,
+         *     tipAngle: 0,
+         * });
+         * ```
+         */
+        holes(inputs: Inputs.OCCT.HolesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Drills holes as `holes` does, each with a wider, flat-bottomed counterbore at its mouth that
+         * sinks a screw head below the surface.
+         *
+         * The counterbore must be wider than the hole and, in a hole of a given `depth`, shallower than
+         * it; a hole that breaks either rule is refused.
+         * @param inputs - The shape, the frames, the size of the holes and the size of the counterbores
+         * @returns The drilled shape
+         * @group holes
+         * @shortname counterbored holes
+         * @drawable true
+         * @example
+         * ```typescript
+         * const drilled = await bitbybit.occt.features.counterboredHoles({
+         *     shape: plate,
+         *     frames: [{ origin: [0, 5, 0], normal: [0, 1, 0], direction: [1, 0, 0] }],
+         *     diameter: 3.4,
+         *     depth: 0,
+         *     tipAngle: 0,
+         *     counterboreDiameter: 6.5,
+         *     counterboreDepth: 3.4,
+         * });
+         * ```
+         */
+        counterboredHoles(inputs: Inputs.OCCT.CounterboredHolesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Drills holes as `holes` does, each with a cone-shaped countersink at its mouth that sinks a
+         * flat screw head flush with the surface.
+         *
+         * `countersinkAngle` is the cone's full angle in degrees. The countersink must be wider than the
+         * hole and end above the bottom of a hole of a given `depth`.
+         * @param inputs - The shape, the frames, the size of the holes and the size of the countersinks
+         * @returns The drilled shape
+         * @group holes
+         * @shortname countersunk holes
+         * @drawable true
+         * @example
+         * ```typescript
+         * const drilled = await bitbybit.occt.features.countersunkHoles({
+         *     shape: plate,
+         *     frames: [{ origin: [0, 5, 0], normal: [0, 1, 0], direction: [1, 0, 0] }],
+         *     diameter: 3.4,
+         *     depth: 0,
+         *     tipAngle: 0,
+         *     countersinkDiameter: 6.5,
+         *     countersinkAngle: 90,
+         * });
+         * ```
+         */
+        countersunkHoles(inputs: Inputs.OCCT.CountersunkHolesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Removes faces from a solid and closes the gap by extending the faces around them, as when a
+         * hole or a rounded edge is deleted from a part.
+         *
+         * The shape must hold solids only; a gap its neighbours cannot close, such as the top of a box
+         * leaves, is refused rather than left open.
+         * @param inputs - The shape and the faces to remove
+         * @returns The shape without the faces
+         * @group faces
+         * @shortname remove faces
+         * @drawable true
+         * @example
+         * ```typescript
+         * const walls = await bitbybit.occt.select.faces.ofType({ shape: drilled, type: Bit.Inputs.OCCT.surfaceTypeEnum.cylinder });
+         * const filled = await bitbybit.occt.features.removeFaces({ shape: drilled, indexes: walls });
+         * ```
+         */
+        removeFaces(inputs: Inputs.OCCT.RemoveFacesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Moves faces of a shape along their outward normals and stretches the faces around them to
+         * follow, such as raising the top of a block.
+         *
+         * `distance` moves every chosen face, a negative one inward; `distances` gives one per index
+         * instead. Each solid of a compound moves on its own and stays a solid.
+         * @param inputs - The shape, the faces and how far to move them
+         * @returns The shape with the faces moved
+         * @group faces
+         * @shortname push pull faces
+         * @drawable true
+         * @example
+         * ```typescript
+         * const top = await bitbybit.occt.select.faces.facing({ shape: block, direction: [0, 1, 0], angle: 0 });
+         * const taller = await bitbybit.occt.features.pushPullFaces({ shape: block, indexes: top, distance: 2 });
+         * ```
+         */
+        pushPullFaces(inputs: Inputs.OCCT.PushPullFacesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Grows a boss out of a base by sweeping a profile face that lies on one of its faces along
+         * `direction`.
+         *
+         * `extent` stops it after `length`, at the face `untilFaceIndex` names, such as the underside of
+         * an overhang, or through all of the base in its way, which needs base ahead of it.
+         * @param inputs - The base, the profile, its sketch face, the direction and how far to go
+         * @returns The base with the boss
+         * @group forms
+         * @shortname boss
+         * @drawable true
+         * @example
+         * ```typescript
+         * const block = await bitbybit.occt.shapes.solid.createBox({ width: 10, length: 10, height: 10, center: [0, 5, 0] });
+         * const [top] = await bitbybit.occt.select.faces.facing({ shape: block, direction: [0, 1, 0], angle: 0 });
+         * const profile = await bitbybit.occt.shapes.face.createSquareFace({ size: 2, center: [0, 10, 0], direction: [0, 1, 0] });
+         * const bossed = await bitbybit.occt.features.boss({ shape: block, profile, sketchFaceIndex: top, direction: [0, 1, 0], length: 3 });
+         * ```
+         */
+        boss(inputs: Inputs.OCCT.PrismFeatureDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Cuts a pocket into a base by sweeping a profile face that lies on one of its faces along
+         * `direction`, which points into the base.
+         *
+         * `extent` stops it after `length`, at the face `untilFaceIndex` names, such as the ceiling of a
+         * void or the far side of the base, or through all of it.
+         * @param inputs - The base, the profile, its sketch face, the direction and how far to go
+         * @returns The base with the pocket
+         * @group forms
+         * @shortname pocket
+         * @drawable true
+         * @example
+         * ```typescript
+         * const [top] = await bitbybit.occt.select.faces.facing({ shape: block, direction: [0, 1, 0], angle: 0 });
+         * const profile = await bitbybit.occt.shapes.face.createSquareFace({ size: 2, center: [0, 10, 0], direction: [0, 1, 0] });
+         * const pocketed = await bitbybit.occt.features.pocket({ shape: block, profile, sketchFaceIndex: top, direction: [0, -1, 0], length: 3 });
+         * ```
+         */
+        pocket(inputs: Inputs.OCCT.PrismFeatureDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Grows a boss out of a base as `boss` does, straight out of the sketch face, with its sides
+         * leaning by `angle` degrees.
+         *
+         * A positive angle narrows the boss as it rises from the sketch face, a negative one widens it
+         * and rounds its outer corners. `extent` works as for `boss`.
+         * @param inputs - The base, the profile, its sketch face, the draft angle in degrees and how far to go
+         * @returns The base with the tapered boss
+         * @group forms
+         * @shortname tapered boss
+         * @drawable true
+         * @example
+         * ```typescript
+         * const [top] = await bitbybit.occt.select.faces.facing({ shape: block, direction: [0, 1, 0], angle: 0 });
+         * const profile = await bitbybit.occt.shapes.face.createSquareFace({ size: 2, center: [0, 10, 0], direction: [0, 1, 0] });
+         * const bossed = await bitbybit.occt.features.taperedBoss({ shape: block, profile, sketchFaceIndex: top, angle: 10, length: 3 });
+         * ```
+         */
+        taperedBoss(inputs: Inputs.OCCT.TaperedPrismFeatureDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Cuts a pocket into a base as `pocket` does, straight in from the sketch face, with its sides
+         * leaning by `angle` degrees.
+         *
+         * A positive angle narrows the pocket as it deepens, a negative one widens it. The kernel cannot
+         * stop a tapered pocket at the far side of the base; run it through all instead.
+         * @param inputs - The base, the profile, its sketch face, the draft angle in degrees and how far to go
+         * @returns The base with the tapered pocket
+         * @group forms
+         * @shortname tapered pocket
+         * @drawable true
+         * @example
+         * ```typescript
+         * const [top] = await bitbybit.occt.select.faces.facing({ shape: block, direction: [0, 1, 0], angle: 0 });
+         * const profile = await bitbybit.occt.shapes.face.createSquareFace({ size: 2, center: [0, 10, 0], direction: [0, 1, 0] });
+         * const pocketed = await bitbybit.occt.features.taperedPocket({ shape: block, profile, sketchFaceIndex: top, angle: 5, length: 3 });
+         * ```
+         */
+        taperedPocket(inputs: Inputs.OCCT.TaperedPrismFeatureDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Adds a ring to a base by turning a profile face about an axis, such as a collar round a shaft:
+         * the profile lies on a face of the base, in a plane through the axis.
+         *
+         * `angle` is in degrees and follows the right-hand rule about `axisDirection`; 360 makes a whole
+         * ring.
+         * @param inputs - The base, the profile, its sketch face, the axis and the angle in degrees
+         * @returns The base with the ring
+         * @group forms
+         * @shortname revolved boss
+         * @drawable true
+         * @example
+         * ```typescript
+         * const shaft = await bitbybit.occt.shapes.solid.createCylinder({ radius: 5, height: 10, center: [0, 0, 0], direction: [0, 1, 0] });
+         * const [side] = await bitbybit.occt.select.faces.ofType({ shape: shaft, type: Bit.Inputs.OCCT.surfaceTypeEnum.cylinder });
+         * const profile = await bitbybit.occt.shapes.face.createRectangleFace({ width: 2, length: 1, center: [5.5, 5, 0], direction: [0, 0, 1] });
+         * const collared = await bitbybit.occt.features.revolvedBoss({ shape: shaft, profile, sketchFaceIndex: side, axisOrigin: [0, 0, 0], axisDirection: [0, 1, 0], angle: 360 });
+         * ```
+         */
+        revolvedBoss(inputs: Inputs.OCCT.RevolvedFeatureDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Cuts a groove round a base by turning a profile face about an axis, such as the seat of a
+         * circlip on a shaft: the profile lies on a face of the base, in a plane through the axis.
+         *
+         * `angle` is in degrees and follows the right-hand rule about `axisDirection`; 360 cuts all the
+         * way round.
+         * @param inputs - The base, the profile, its sketch face, the axis and the angle in degrees
+         * @returns The base with the groove
+         * @group forms
+         * @shortname revolved pocket
+         * @drawable true
+         * @example
+         * ```typescript
+         * const [side] = await bitbybit.occt.select.faces.ofType({ shape: shaft, type: Bit.Inputs.OCCT.surfaceTypeEnum.cylinder });
+         * const profile = await bitbybit.occt.shapes.face.createRectangleFace({ width: 2, length: 1, center: [4.5, 5, 0], direction: [0, 0, 1] });
+         * const grooved = await bitbybit.occt.features.revolvedPocket({ shape: shaft, profile, sketchFaceIndex: side, axisOrigin: [0, 0, 0], axisDirection: [0, 1, 0], angle: 360 });
+         * ```
+         */
+        revolvedPocket(inputs: Inputs.OCCT.RevolvedFeatureDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Adds a rib to a base: the region between a wire and the base's faces, on the wire's left as it
+         * runs seen from the side the frame's normal points to, filled and thickened across the plane.
+         *
+         * A wire across the inside corner of an L fills the corner; an edge is made into a wire first.
+         * @param inputs - The base, the wire, the plane it lies in and the thickness on each side
+         * @returns The base with the rib
+         * @group forms
+         * @shortname rib
+         * @drawable true
+         * @example
+         * ```typescript
+         * const wire = await bitbybit.occt.shapes.wire.createPolylineWire({ points: [[12, 2, 0], [2, 12, 0]] });
+         * const ribbed = await bitbybit.occt.features.rib({
+         *     shape: bracket,
+         *     wire,
+         *     frame: { origin: [0, 0, 0], normal: [0, 0, 1], direction: [1, 0, 0] },
+         *     thickness: 0.5,
+         *     otherSideThickness: 0.5,
+         * });
+         * ```
+         */
+        rib(inputs: Inputs.OCCT.RibFeatureDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSWirePointer | Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Cuts a groove into a base: the part of the base's section on the left of a wire as it runs,
+         * seen from the side the frame's normal points to, removed across the plane.
+         *
+         * A wire bent round a corner keeps the region inside the bend and cuts the rest; an edge is made
+         * into a wire first.
+         * @param inputs - The base, the wire, the plane it lies in and the thickness on each side
+         * @returns The base with the groove
+         * @group forms
+         * @shortname groove
+         * @drawable true
+         * @example
+         * ```typescript
+         * const wire = await bitbybit.occt.shapes.wire.createPolylineWire({ points: [[10, 12, 0], [10, 5, 0], [22, 5, 0]] });
+         * const grooved = await bitbybit.occt.features.groove({
+         *     shape: block,
+         *     wire,
+         *     frame: { origin: [0, 0, 0], normal: [0, 0, -1], direction: [1, 0, 0] },
+         *     thickness: 0.5,
+         *     otherSideThickness: 0.5,
+         * });
+         * ```
+         */
+        groove(inputs: Inputs.OCCT.RibFeatureDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSWirePointer | Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+    }
+    /**
      * Rounding and beveling the edges of OpenCascade shapes: a fillet replaces a sharp edge with a
      * rounded surface of a given radius, a chamfer with a flat bevel of a given distance. Edges are
      * chosen by 0-based index in the order `shapes.edge.getEdges` lists them, or passed in directly;
@@ -33846,6 +38146,22 @@ declare namespace Bit {
          * ```
          */
         filletEdges(inputs: Inputs.OCCT.FilletDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Rounds edges as `filletEdges` does, and reports what became of every face, edge and vertex
+         * of the shape: `history.facesFromEdges` holds the round made along each edge, and
+         * `history.faces` what each face was trimmed to, all as indexes the selectors and fillets take.
+         * @param inputs - The shape, the radius or the radius list, and the optional 0-based edge indexes
+         * @returns The shape with rounded edges and its history
+         * @group 3d fillets
+         * @shortname fillet edges with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, history } = await bitbybit.occt.fillets.filletEdgesWithHistory({ shape: box, radius: 1, indexes: [0] });
+         * const round = history.facesFromEdges[0];
+         * ```
+         */
+        filletEdgesWithHistory(inputs: Inputs.OCCT.FilletDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.ShapeWithHistory<Inputs.OCCT.TopoDSShapePointer>>;
         /**
          * Rounds the given edges of a shape, each with its own radius.
          *
@@ -33938,33 +38254,33 @@ declare namespace Bit {
          */
         filletEdgesVariableRadius(inputs: Inputs.OCCT.FilletEdgesVariableRadiusDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
         /**
-         * Rounds the corners of a wire that does not lie in one plane.
+         * Rounds the corners of a wire, flat or not, each with an arc in the plane of the two edges
+         * that meet there, as a bent rod would be.
          *
-         * The kernel has no direct 3D wire fillet, so the wire is extruded along `direction` into a
-         * shell, the shell is filleted and the rounded wire is read back off it; `direction` must not
-         * be parallel to the wire and must leave room for the fillets.
-         * @param inputs - The wire, the radius or radius list, the optional 0-based corner indexes and the extrusion direction
+         * Corner `i` joins edge `i` to the next, counted from 0; a closed wire's last corner joins its
+         * last edge to its first. Smooth corners stay; `direction` is unused.
+         * @param inputs - The wire, the radius or radius list and the optional 0-based corner indexes
          * @returns The rounded wire
          * @group 3d fillets
          * @shortname fillet 3d wire
          * @drawable true
          * @example
          * ```typescript
-         * const rounded = await bitbybit.occt.fillets.fillet3DWire({ shape: zigzagWire, radius: 0.5, direction: [0, 5, 0] });
+         * const rounded = await bitbybit.occt.fillets.fillet3DWire({ shape: zigzagWire, radius: 0.5 });
          * ```
          */
         fillet3DWire(inputs: Inputs.OCCT.Fillet3DWireDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
         /**
-         * Rounds the corners of several wires that do not lie in one plane, as `fillet3DWire` does for
-         * one, with the same radius, indexes and direction for all.
-         * @param inputs - The wires, the radius or radius list, the optional corner indexes and the extrusion direction
+         * Rounds the corners of several wires, as `fillet3DWire` does for one, with the same radius and
+         * indexes for all.
+         * @param inputs - The wires, the radius or radius list and the optional corner indexes
          * @returns The rounded wires, in the same order
          * @group 3d fillets
          * @shortname fillet 3d wires
          * @drawable true
          * @example
          * ```typescript
-         * const rounded = await bitbybit.occt.fillets.fillet3DWires({ shapes: [wireA, wireB], radius: 0.5, direction: [0, 5, 0] });
+         * const rounded = await bitbybit.occt.fillets.fillet3DWires({ shapes: [wireA, wireB], radius: 0.5 });
          * ```
          */
         fillet3DWires(inputs: Inputs.OCCT.Fillet3DWiresDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer[]>;
@@ -33972,9 +38288,9 @@ declare namespace Bit {
          * Bevels the edges of a shape by a distance, in model units, cutting each sharp edge back to a
          * flat strip.
          *
-         * Without `indexes` every edge is beveled with `distance`. With `indexes`, counted from 0 in
-         * the order `shapes.edge.getEdges` lists them, only those edges are beveled, each with
-         * `distance` or the matching entry of `distanceList`, in edge order.
+         * Without `indexes` every edge is beveled. With `indexes`, counted from 0 as
+         * `shapes.edge.getEdges` lists them, only those are, each with `distance` or, in edge order,
+         * its entry of `distanceList`. Indexes naming no edge change nothing.
          * @param inputs - The shape, the distance or the distance list, and the optional 0-based edge indexes
          * @returns The shape with beveled edges
          * @group 3d chamfers
@@ -33986,6 +38302,21 @@ declare namespace Bit {
          * ```
          */
         chamferEdges(inputs: Inputs.OCCT.ChamferDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Bevels edges as `chamferEdges` does, and reports what became of every face, edge and vertex of
+         * the shape: `history.facesFromEdges` holds the bevel made along each edge, and `history.faces`
+         * what each face was trimmed to.
+         * @param inputs - The shape, the distance or the distance list, and the optional 0-based edge indexes
+         * @returns The beveled shape and its history
+         * @group 3d chamfers
+         * @shortname chamfer edges with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, history } = await bitbybit.occt.fillets.chamferEdgesWithHistory({ shape: box, distance: 1, indexes: [0] });
+         * ```
+         */
+        chamferEdgesWithHistory(inputs: Inputs.OCCT.ChamferDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.ShapeWithHistory<Inputs.OCCT.TopoDSShapePointer>>;
         /**
          * Bevels the given edges of a shape, each by its own distance.
          *
@@ -34350,11 +38681,11 @@ declare namespace Bit {
         surfaceFromFace(inputs: Inputs.OCCT.ShapeDto<Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.GeomSurfacePointer>;
     }
     /**
-     * Reading and writing OpenCascade shapes in exchange formats: STEP and IGES in, STEP, STL and DXF
-     * out, STEP to glTF conversion with the assembly tree, colors and names preserved, and a STEP
-     * assembly structure as JSON. Files travel as text or binary data, never as paths. OpenCascade
-     * treats Z as up while this library treats Y as up, so the `adjustYtoZ` and `adjustZtoY` flags swap
-     * the axes on the way out and in.
+     * Reading and writing OpenCascade shapes in exchange formats: STEP, IGES, STL and BREP in; STEP, STL,
+     * BREP, OBJ, PLY, SVG and DXF out; STEP to glTF conversion with the assembly tree, colors and names
+     * preserved, and a STEP assembly structure as JSON. Files travel as text or binary data, never as
+     * paths. OpenCascade treats Z as up while this library treats Y as up, so the `adjustYtoZ` and
+     * `adjustZtoY` flags swap the axes on the way out and in.
      */
     declare class OCCTIO {
         readonly occWorkerManager: OCCTWorkerManager;
@@ -34398,40 +38729,223 @@ declare namespace Bit {
          * Triangulates a shape, writes it as STL, the mesh format 3D printers read, and starts a browser
          * download of the file.
          *
-         * `precision` is the meshing tolerance in model units; smaller values follow curved surfaces more
-         * closely and make a bigger file. `adjustYtoZ` turns Y-up into Z-up. `fileName` names the
-         * download, `tryDownload` false skips it. `saveShapeStlAndReturn` gives the text instead.
-         * @param inputs - The shape, the file name, the meshing precision, the axis adjustment and the download options
+         * `precision` is the meshing tolerance in model units, `adjustYtoZ` turns Y-up into Z-up and
+         * `binary` writes the smaller binary form. `fileName` names the download, `tryDownload` false
+         * skips it. `saveShapeStlAndReturn` gives the file instead.
+         * @param inputs - The shape, the file name, the meshing precision, the axis adjustment, the form and the download options
          * @returns Nothing; the download starts when the file is ready
          * @group io
          * @shortname save stl
          * @drawable false
          * @example
          * ```typescript
-         * await bitbybit.occt.io.saveShapeStl({ shape: box, fileName: "box.stl", precision: 0.01, adjustYtoZ: true, tryDownload: true });
+         * await bitbybit.occt.io.saveShapeStl({ shape: box, fileName: "box.stl", precision: 0.01, adjustYtoZ: true, tryDownload: true, binary: true });
          * ```
          */
         saveShapeStl(inputs: Inputs.OCCT.SaveStlDto<Inputs.OCCT.TopoDSShapePointer>): Promise<void>;
         /**
          * Triangulates a shape and writes it as STL, the mesh format 3D printers and slicers read,
-         * returning the file's text.
+         * returning the file's text, or its bytes when `binary` is true.
          *
          * `precision` is the meshing tolerance in model units; smaller values follow curved surfaces
-         * more closely and make a bigger file. `adjustYtoZ` turns the shape so Y-up becomes Z-up.
-         * `fileName` and `tryDownload` only matter where a download can start.
-         * @param inputs - The shape, the file name, the meshing precision, the axis adjustment and the download options
-         * @returns The STL file as text
+         * more closely. `adjustYtoZ` turns Y-up into Z-up. `fileName` and `tryDownload` only matter
+         * where a download can start.
+         * @param inputs - The shape, the file name, the meshing precision, the axis adjustment, the form and the download options
+         * @returns The STL file as text, or as bytes when `binary` is true
          * @group io
          * @shortname save stl return
          * @drawable false
          * @example
          * ```typescript
          * const stl = await bitbybit.occt.io.saveShapeStlAndReturn({ shape: box, fileName: "box.stl", precision: 0.01, adjustYtoZ: true, tryDownload: false });
+         * const bytes = await bitbybit.occt.io.saveShapeStlAndReturn({ shape: box, fileName: "box.stl", precision: 0.01, adjustYtoZ: true, tryDownload: false, binary: true });
          * ```
          */
-        saveShapeStlAndReturn(inputs: Inputs.OCCT.SaveStlDto<Inputs.OCCT.TopoDSShapePointer>): Promise<string>;
-        private saveSTEP;
-        private saveStl;
+        saveShapeStlAndReturn(inputs: Inputs.OCCT.SaveStlDto<Inputs.OCCT.TopoDSShapePointer>): Promise<string | Uint8Array>;
+        private downloadStep;
+        private downloadStl;
+        /**
+         * Writes a shape as BREP, the text format that keeps its exact geometry and topology, and starts
+         * a browser download of the file.
+         *
+         * `io.loadBrep` reads the file back into the same shape. `fileName` names the download and
+         * `tryDownload` false skips it; `saveShapeBrepAndReturn` gives the text instead.
+         * @param inputs - The shape, the file name and the download option
+         * @returns Nothing; the download starts when the file is ready
+         * @group io
+         * @shortname save brep
+         * @drawable false
+         * @example
+         * ```typescript
+         * await bitbybit.occt.io.saveShapeBrep({ shape: box, fileName: "box.brep", tryDownload: true });
+         * ```
+         */
+        saveShapeBrep(inputs: Inputs.OCCT.SaveBrepDto<Inputs.OCCT.TopoDSShapePointer>): Promise<void>;
+        /**
+         * Writes a shape as BREP, the text format that keeps its exact geometry and topology, and
+         * returns the file's text.
+         *
+         * `io.loadBrep` reads the text back into the same shape, placement and orientation included.
+         * `fileName` and `tryDownload` only matter where a download can start.
+         * @param inputs - The shape, the file name and the download option
+         * @returns The BREP file as text
+         * @group io
+         * @shortname save brep and return
+         * @drawable false
+         * @example
+         * ```typescript
+         * const brep = await bitbybit.occt.io.saveShapeBrepAndReturn({ shape: box, fileName: "box.brep", tryDownload: false });
+         * const copy = await bitbybit.occt.io.loadBrep({ brepData: brep });
+         * ```
+         */
+        saveShapeBrepAndReturn(inputs: Inputs.OCCT.SaveBrepDto<Inputs.OCCT.TopoDSShapePointer>): Promise<string>;
+        /**
+         * Triangulates a shape, writes it as OBJ, the mesh format most 3D programs read, and starts a
+         * browser download of the file.
+         *
+         * `precision` is the meshing tolerance in model units and `adjustYtoZ` turns Y-up into Z-up. The
+         * file name may hold no spaces or slashes; `tryDownload` false skips the download, and
+         * `saveShapeObjAndReturn` gives the text instead.
+         * @param inputs - The shape, the file name, the meshing precision, the axis adjustment and the download option
+         * @returns Nothing; the download starts when the file is ready
+         * @group io
+         * @shortname save obj
+         * @drawable false
+         * @example
+         * ```typescript
+         * await bitbybit.occt.io.saveShapeObj({ shape: box, fileName: "box.obj", precision: 0.01, adjustYtoZ: false, tryDownload: true });
+         * ```
+         */
+        saveShapeObj(inputs: Inputs.OCCT.SaveObjDto<Inputs.OCCT.TopoDSShapePointer>): Promise<void>;
+        /**
+         * Triangulates a shape and writes it as OBJ, the mesh format most 3D programs read, returning
+         * the file's text.
+         *
+         * `precision` is the meshing tolerance in model units, `adjustYtoZ` turns Y-up into Z-up, and
+         * coordinates keep six decimals. `mtl` stays empty, since a shape carries no colors;
+         * `assembly.manager.exportDocumentToObj` writes colored parts.
+         * @param inputs - The shape, the file name, the meshing precision, the axis adjustment and the download option
+         * @returns The OBJ text, with an empty material library text
+         * @group io
+         * @shortname save obj and return
+         * @drawable false
+         * @example
+         * ```typescript
+         * const files = await bitbybit.occt.io.saveShapeObjAndReturn({ shape: box, fileName: "box.obj", precision: 0.01, adjustYtoZ: false, tryDownload: false });
+         * console.log(files.obj);
+         * ```
+         */
+        saveShapeObjAndReturn(inputs: Inputs.OCCT.SaveObjDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.ObjFiles>;
+        /**
+         * Triangulates a shape, writes it as ASCII PLY with a normal per vertex, and starts a browser
+         * download of the file.
+         *
+         * `precision` is the meshing tolerance in model units and `adjustYtoZ` turns Y-up into Z-up.
+         * `fileName` names the download and `tryDownload` false skips it; `saveShapePlyAndReturn` gives
+         * the text instead.
+         * @param inputs - The shape, the file name, the meshing precision, the axis adjustment and the download option
+         * @returns Nothing; the download starts when the file is ready
+         * @group io
+         * @shortname save ply
+         * @drawable false
+         * @example
+         * ```typescript
+         * await bitbybit.occt.io.saveShapePly({ shape: box, fileName: "box.ply", precision: 0.01, adjustYtoZ: false, tryDownload: true });
+         * ```
+         */
+        saveShapePly(inputs: Inputs.OCCT.SavePlyDto<Inputs.OCCT.TopoDSShapePointer>): Promise<void>;
+        /**
+         * Triangulates a shape and writes it as ASCII PLY with a normal per vertex, a mesh format
+         * scanning tools read, returning the file's text.
+         *
+         * Coordinates keep six significant digits, so past 1000 units they keep two decimals.
+         * `precision` is the meshing tolerance in model units and `adjustYtoZ` turns Y-up into Z-up.
+         * @param inputs - The shape, the file name, the meshing precision, the axis adjustment and the download option
+         * @returns The PLY file as text
+         * @group io
+         * @shortname save ply and return
+         * @drawable false
+         * @example
+         * ```typescript
+         * const ply = await bitbybit.occt.io.saveShapePlyAndReturn({ shape: box, fileName: "box.ply", precision: 0.01, adjustYtoZ: false, tryDownload: false });
+         * ```
+         */
+        saveShapePlyAndReturn(inputs: Inputs.OCCT.SavePlyDto<Inputs.OCCT.TopoDSShapePointer>): Promise<string>;
+        /**
+         * Draws the edges a view of a shape sees as an SVG drawing, with the hidden edges dashed when
+         * asked, and starts a browser download of the file.
+         *
+         * The drawing shows the view from the frame's normal side, x running right along its direction.
+         * `tryDownload` false skips the download; `saveShapeSvgAndReturn` gives the text instead.
+         * @param inputs - The shape, the view, whether to draw hidden edges, the precision and the download options
+         * @returns Nothing; the download starts when the file is ready
+         * @group io
+         * @shortname save svg
+         * @drawable false
+         * @example
+         * ```typescript
+         * const view = { origin: [0, 0, 0], normal: [0, 1, 0], direction: [1, 0, 0] };
+         * await bitbybit.occt.io.saveShapeSvg({ shape: part, frame: view, drawHidden: true, precision: 0.01, fileName: "top.svg", tryDownload: true });
+         * ```
+         */
+        saveShapeSvg(inputs: Inputs.OCCT.SaveSvgDto<Inputs.OCCT.TopoDSShapePointer>): Promise<void>;
+        /**
+         * Draws the edges a view of a shape sees as an SVG drawing, with the hidden edges dashed when
+         * asked, and returns the file's text.
+         *
+         * It shows the view from the frame's normal side in model units, x running right along the
+         * frame's direction and y up, so the file holds each point as x and minus y.
+         * @param inputs - The shape, the view, whether to draw hidden edges, the precision and the download options
+         * @returns The SVG file as text
+         * @group io
+         * @shortname save svg and return
+         * @drawable false
+         * @example
+         * ```typescript
+         * const view = { origin: [0, 0, 0], normal: [1, 1, 1], direction: [1, -1, 0] };
+         * const svg = await bitbybit.occt.io.saveShapeSvgAndReturn({ shape: box, frame: view, drawHidden: true, precision: 0.01, fileName: "box.svg", tryDownload: false });
+         * ```
+         */
+        saveShapeSvgAndReturn(inputs: Inputs.OCCT.SaveSvgDto<Inputs.OCCT.TopoDSShapePointer>): Promise<string>;
+        private downloadObj;
+        private downloadFile;
+        /**
+         * Reads an STL file, ASCII or binary, into a shape: one planar face per triangle, or one face
+         * that carries the whole mesh.
+         *
+         * With `asFaces` true the faces share their corners' edges in a compound that
+         * `shapeFix.sewWithReport` can join into a shell. `adjustZtoY` turns Z-up into Y-up, and a file
+         * without triangles is refused.
+         * @param inputs - The STL file, the face option and the axis adjustment
+         * @returns A compound of triangular faces, or one face that carries the mesh
+         * @group io
+         * @shortname load stl
+         * @drawable true
+         * @example
+         * ```typescript
+         * const mesh = await bitbybit.occt.io.loadStl({ stlData: stlText, asFaces: true, adjustZtoY: true });
+         * const sewn = await bitbybit.occt.shapeFix.sewWithReport({ shapes: [mesh], tolerance: 1e-6 });
+         * ```
+         */
+        loadStl(inputs: Inputs.OCCT.LoadStlDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Reads a BREP file, the text format that keeps a shape's exact geometry and topology, back into
+         * the shape `io.saveShapeBrep` wrote.
+         *
+         * The shape keeps its placement and orientation. Text that is not a whole BREP file, such as
+         * one cut short, is refused, and so is a damaged one, with where it is damaged.
+         * @param inputs - The BREP file
+         * @returns The shape the file holds
+         * @group io
+         * @shortname load brep
+         * @drawable true
+         * @example
+         * ```typescript
+         * const brep = await bitbybit.occt.io.saveShapeBrepAndReturn({ shape: box, fileName: "box.brep", tryDownload: false });
+         * const copy = await bitbybit.occt.io.loadBrep({ brepData: brep });
+         * ```
+         */
+        loadBrep(inputs: Inputs.OCCT.LoadBrepDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
         /**
          * Turns the wires of a shape into DXF path records, the first step of a 2D DXF export.
          *
@@ -34605,11 +39119,13 @@ declare namespace Bit {
     /**
      * The entry point to the OpenCascade kernel: every OCCT feature is reached through one of its
      * properties. `shapes` builds and reads vertices, edges, wires, faces, shells, solids and
-     * compounds; `operations`, `booleans`, `fillets`, `transforms`, `corners` and `draft` change
-     * shapes; `geom` handles curves and surfaces; `io` reads and writes STEP, IGES, STL and other
-     * files; `assembly`, `dimensions`, `brepGraph`, `path` and `svg` cover documents, annotations,
-     * topology graphs, machining paths and SVG. The methods on the service itself turn shapes into
-     * triangle meshes for drawing.
+     * compounds; `operations`, `booleans`, `fillets`, `transforms`, `corners`, `draft` and `features`
+     * change shapes; `select` picks faces and edges by what they are and where they lie; `analysis`
+     * answers questions about shapes with points and numbers; `geom` handles
+     * curves and surfaces; `io` reads and writes STEP, IGES, STL and other files; `assembly`,
+     * `dimensions`, `brepGraph`, `path` and `svg` cover documents, annotations, topology graphs,
+     * machining paths and SVG. The methods on the service itself turn shapes into triangle meshes for
+     * drawing.
      */
     declare class OCCT {
         readonly occWorkerManager: OCCTWorkerManager;
@@ -34625,6 +39141,9 @@ declare namespace Bit {
         readonly brepGraph: OCCTBrepGraph;
         readonly corners: OCCTCorners;
         readonly draft: OCCTDraft;
+        readonly features: OCCTFeatures;
+        readonly select: OCCTSelect;
+        readonly analysis: OCCTAnalysis;
         readonly io: OCCTIO;
         readonly path: OCCTPath;
         readonly svg: OCCTSVG;
@@ -34650,23 +39169,43 @@ declare namespace Bit {
          * Triangulates a shape into a mesh for drawing: one entry per face with its vertices, normals,
          * UVs and triangle indexes, one per edge with its points, and the vertex points.
          *
-         * `precision` is the meshing tolerance in model units; smaller values follow curved surfaces
-         * more closely and cost more triangles. `adjustYtoZ` swaps Y and Z. A null shape gives empty
-         * lists.
+         * `precision` is the meshing tolerance in model units. `isoCurvesU` and `isoCurvesV` add each
+         * face's iso curves as polylines, and `surfaceAnalysis` a value per vertex. A null shape gives
+         * empty lists.
          * @param inputs - The shape, the meshing precision and the options
-         * @returns The mesh as face, edge and point lists
+         * @returns The mesh as face, edge and point lists, with iso curves and analysis values when asked for
          * @group convert
          * @shortname shape to mesh
          * @drawable false
          * @example
          * ```typescript
-         * const mesh = await bitbybit.occt.shapeToMesh({ shape: sphere, precision: 0.01, adjustYtoZ: false });
-         * console.log(mesh.faceList.length, mesh.edgeList.length);
+         * const mesh = await bitbybit.occt.shapeToMesh({ shape: sphere, precision: 0.01, isoCurvesU: 4, isoCurvesV: 4, surfaceAnalysis: Bit.Inputs.OCCT.surfaceAnalysisEnum.gaussian });
+         * console.log(mesh.isoCurveList?.length, mesh.faceList[0]?.analysisValues);
          * ```
          */
         shapeToMesh(inputs: Inputs.OCCT.ShapeToMeshDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.DecomposedMeshDto>;
         /**
-         * Triangulates several shapes with the same settings, as `shapeToMesh` does for one.
+         * Meshes a shape into one indexed triangle mesh whose faces share vertices where they meet, the
+         * form `manifold.shapes.manifoldFromMesh` takes, so an OCCT solid can carry on as a Manifold
+         * solid.
+         *
+         * Vertices are shared through the shape's own edges, not by matching coordinates, so a closed
+         * solid gives a closed mesh. `precision` is the meshing tolerance.
+         * @param inputs - The shape and the meshing precision
+         * @returns The mesh: three numbers per vertex and three vertex indexes per triangle
+         * @group convert
+         * @shortname shape to manifold mesh
+         * @drawable false
+         * @example
+         * ```typescript
+         * const mesh = await bitbybit.occt.shapeToManifoldMesh({ shape: solid, precision: 0.01 });
+         * const manifold = await bitbybit.manifold.manifold.shapes.manifoldFromMesh({ mesh });
+         * ```
+         */
+        shapeToManifoldMesh(inputs: Inputs.OCCT.ShapeToManifoldMeshDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.DecomposedManifoldMeshDto>;
+        /**
+         * Triangulates several shapes with the same settings, as `shapeToMesh` does for one, iso curves
+         * and surface analysis included.
          * @param inputs - The shapes, the meshing precision and the options
          * @returns One mesh per shape, in the same order
          * @group convert
@@ -34674,7 +39213,7 @@ declare namespace Bit {
          * @drawable false
          * @example
          * ```typescript
-         * const meshes = await bitbybit.occt.shapesToMeshes({ shapes: [box, sphere], precision: 0.01, adjustYtoZ: false });
+         * const meshes = await bitbybit.occt.shapesToMeshes({ shapes: [box, sphere], precision: 0.01, isoCurvesU: 2, isoCurvesV: 2 });
          * ```
          */
         shapesToMeshes(inputs: Inputs.OCCT.ShapesToMeshesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.DecomposedMeshDto[]>;
@@ -34738,9 +39277,11 @@ declare namespace Bit {
     /**
      * The modeling operations that turn OpenCascade wires and faces into surfaces and solids and
      * measure shapes: lofting through sections, extruding and revolving, sweeping profiles along paths,
-     * offsetting, thickening shells into solids, slicing and splitting, plus bounding boxes, bounding
-     * spheres and closest-point queries. Distances are in model units and angles in degrees; every
-     * operation returns a new shape. Booleans live in `booleans`, rounding in `fillets`.
+     * offsetting, thickening shells into solids, slicing, sectioning and splitting, and hidden-line
+     * drawings, plus bounding boxes, bounding spheres and closest-point queries, which move to
+     * `analysis.measure` in the next major version. Distances are in model units and angles in degrees;
+     * every operation returns a new shape. Booleans live in `booleans`, rounding in `fillets` and local
+     * features such as holes in `features`.
      */
     declare class OCCTOperations {
         private readonly occWorkerManager;
@@ -34798,9 +39339,13 @@ declare namespace Bit {
          * Finds the pair of points, one on each shape, that are closest to each other.
          *
          * The distance between them is the gap between the shapes; it is 0 when they touch or overlap.
-         * Throws an error when no pair can be found.
+         * Throws an error when no pair can be found. `analysis.measure.extrema` gives every closest pair,
+         * with the sub-shapes the points lie on.
+         *
+         * It moves to `analysis.measure` in the next major version, with the same inputs and result.
          * @param inputs - The two shapes
          * @returns The point on the first shape and the point on the second
+         * @deprecated Moves to `analysis.measure.closestPointsBetweenTwoShapes` in the next major version; it works here until then.
          * @group closest pts
          * @shortname two shapes
          * @drawable true
@@ -34814,8 +39359,11 @@ declare namespace Bit {
          * Finds, for each point in a list, the closest point on a shape.
          *
          * A point already on the shape maps to itself. Useful for snapping points onto a surface.
+         *
+         * It moves to `analysis.measure` in the next major version, with the same inputs and result.
          * @param inputs - The shape and the points
          * @returns One point on the shape per input point, in the same order
+         * @deprecated Moves to `analysis.measure.closestPointsOnShapeFromPoints` in the next major version; it works here until then.
          * @group closest pts
          * @shortname on shape
          * @drawable true
@@ -34830,8 +39378,11 @@ declare namespace Bit {
          *
          * The result is one flat list: all the points for the first shape, in point order, then all the
          * points for the second shape, and so on.
+         *
+         * It moves to `analysis.measure` in the next major version, with the same inputs and result.
          * @param inputs - The shapes and the points
          * @returns The closest points, grouped shape by shape
+         * @deprecated Moves to `analysis.measure.closestPointsOnShapesFromPoints` in the next major version; it works here until then.
          * @group closest pts
          * @shortname on shapes
          * @drawable true
@@ -34847,8 +39398,11 @@ declare namespace Bit {
          *
          * The distance is to the shape's surface, so a point inside a solid still reports its distance
          * to the skin.
+         *
+         * It moves to `analysis.measure` in the next major version, with the same inputs and result.
          * @param inputs - The shape and the points
          * @returns One distance per point, in the same order
+         * @deprecated Moves to `analysis.measure.distancesToShapeFromPoints` in the next major version; it works here until then.
          * @group measure
          * @shortname distances points to shape
          * @drawable false
@@ -34863,9 +39417,13 @@ declare namespace Bit {
          * center and its size along X, Y and Z.
          *
          * On curved shapes the box can be a little larger than the shape itself, because the kernel
-         * bounds the control geometry rather than the exact surface.
+         * bounds the control geometry rather than the exact surface. `analysis.measure.tightBoundingBox`
+         * follows the exact geometry.
+         *
+         * It moves to `analysis.measure` in the next major version, with the same inputs and result.
          * @param inputs - The shape
          * @returns The box as `min`, `max`, `center` and `size`
+         * @deprecated Moves to `analysis.measure.boundingBoxOfShape` in the next major version; it works here until then.
          * @group measure
          * @shortname bbox of shape
          * @drawable false
@@ -34879,8 +39437,11 @@ declare namespace Bit {
         /**
          * Reads the minimum corner of a shape's axis-aligned bounding box, the point with the smallest
          * X, Y and Z.
+         *
+         * It moves to `analysis.measure` in the next major version, with the same inputs and result.
          * @param inputs - The shape
          * @returns The minimum corner
+         * @deprecated Moves to `analysis.measure.boundingBoxMinOfShape` in the next major version; it works here until then.
          * @group measure
          * @shortname bbox min of shape
          * @drawable true
@@ -34893,8 +39454,11 @@ declare namespace Bit {
         /**
          * Reads the maximum corner of a shape's axis-aligned bounding box, the point with the largest
          * X, Y and Z.
+         *
+         * It moves to `analysis.measure` in the next major version, with the same inputs and result.
          * @param inputs - The shape
          * @returns The maximum corner
+         * @deprecated Moves to `analysis.measure.boundingBoxMaxOfShape` in the next major version; it works here until then.
          * @group measure
          * @shortname bbox max of shape
          * @drawable true
@@ -34909,8 +39473,11 @@ declare namespace Bit {
          *
          * This is not the center of mass; `shapes.solid.getSolidCenterOfMass` and its siblings give
          * that.
+         *
+         * It moves to `analysis.measure` in the next major version, with the same inputs and result.
          * @param inputs - The shape
          * @returns The center of the box
+         * @deprecated Moves to `analysis.measure.boundingBoxCenterOfShape` in the next major version; it works here until then.
          * @group measure
          * @shortname bbox center of shape
          * @drawable true
@@ -34922,8 +39489,11 @@ declare namespace Bit {
         boundingBoxCenterOfShape(inputs: Inputs.OCCT.ShapeDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.Base.Point3>;
         /**
          * Reads the size of a shape's axis-aligned bounding box along X, Y and Z, in model units.
+         *
+         * It moves to `analysis.measure` in the next major version, with the same inputs and result.
          * @param inputs - The shape
          * @returns The width, height and length of the box
+         * @deprecated Moves to `analysis.measure.boundingBoxSizeOfShape` in the next major version; it works here until then.
          * @group measure
          * @shortname bbox size of shape
          * @drawable false
@@ -34936,8 +39506,11 @@ declare namespace Bit {
         /**
          * Builds the axis-aligned bounding box of a shape as a box solid, handy for drawing it or using
          * it in a boolean.
+         *
+         * It moves to `analysis.measure` in the next major version, with the same inputs and result.
          * @param inputs - The shape
          * @returns The box solid
+         * @deprecated Moves to `analysis.measure.boundingBoxShapeOfShape` in the next major version; it works here until then.
          * @group measure
          * @shortname bbox shape of shape
          * @drawable true
@@ -34950,8 +39523,11 @@ declare namespace Bit {
         /**
          * Computes a sphere that encloses a shape: it is centered on the bounding box and reaches its
          * corners, so it always contains the shape but is not the smallest possible sphere.
+         *
+         * It moves to `analysis.measure` in the next major version, with the same inputs and result.
          * @param inputs - The shape
          * @returns The sphere as `center` and `radius`
+         * @deprecated Moves to `analysis.measure.boundingSphereOfShape` in the next major version; it works here until then.
          * @group measure
          * @shortname bsphere of shape
          * @drawable false
@@ -34964,8 +39540,11 @@ declare namespace Bit {
         boundingSphereOfShape(inputs: Inputs.OCCT.ShapeDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.BoundingSpherePropsDto>;
         /**
          * Reads the center of a shape's bounding sphere, which is the center of its bounding box.
+         *
+         * It moves to `analysis.measure` in the next major version, with the same inputs and result.
          * @param inputs - The shape
          * @returns The center of the sphere
+         * @deprecated Moves to `analysis.measure.boundingSphereCenterOfShape` in the next major version; it works here until then.
          * @group measure
          * @shortname bsphere center of shape
          * @drawable false
@@ -34978,8 +39557,11 @@ declare namespace Bit {
         /**
          * Reads the radius of a shape's bounding sphere, the distance from the bounding box center to
          * its corner, in model units.
+         *
+         * It moves to `analysis.measure` in the next major version, with the same inputs and result.
          * @param inputs - The shape
          * @returns The radius
+         * @deprecated Moves to `analysis.measure.boundingSphereRadiusOfShape` in the next major version; it works here until then.
          * @group measure
          * @shortname bsphere radius of shape
          * @drawable false
@@ -34991,8 +39573,11 @@ declare namespace Bit {
         boundingSphereRadiusOfShape(inputs: Inputs.OCCT.ShapeDto<Inputs.OCCT.TopoDSShapePointer>): Promise<number>;
         /**
          * Builds the bounding sphere of a shape as a sphere solid.
+         *
+         * It moves to `analysis.measure` in the next major version, with the same inputs and result.
          * @param inputs - The shape
          * @returns The sphere solid
+         * @deprecated Moves to `analysis.measure.boundingSphereShapeOfShape` in the next major version; it works here until then.
          * @group measure
          * @shortname bsphere shape of shape
          * @drawable true
@@ -35007,7 +39592,7 @@ declare namespace Bit {
          * becomes a solid, a wire a shell, an edge a face.
          *
          * The shape itself stays at the start of the extrusion; the vector is in model units, so `[0,
-         * 10, 0]` extrudes 10 units up.
+         * 10, 0]` extrudes 10 units up. A solid, or a vector of length 0, is refused.
          * @param inputs - The shape and the direction vector, whose length is the distance
          * @returns The extruded shape
          * @group extrusions
@@ -35020,6 +39605,23 @@ declare namespace Bit {
          * ```
          */
         extrude(inputs: Inputs.OCCT.ExtrudeDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Extrudes a shape as `extrude` does, and reports what each part of the profile became:
+         * `history.firstFaces` and `lastFaces` are the caps of a face profile (a wire has none),
+         * `history.facesFromEdges` the side swept from each profile edge and
+         * `history.edgesFromVertices` the edge swept from each vertex.
+         * @param inputs - The profile and the direction and length of the extrusion
+         * @returns The extruded shape and its history
+         * @group extrusions
+         * @shortname extrude with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, history } = await bitbybit.occt.operations.extrudeWithHistory({ shape: squareFace, direction: [0, 0, 5] });
+         * const top = history.lastFaces;
+         * ```
+         */
+        extrudeWithHistory(inputs: Inputs.OCCT.ExtrudeDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.ShapeWithHistory<Inputs.OCCT.TopoDSShapePointer>>;
         /**
          * Sweeps several shapes along the same vector, as `extrude` does for one.
          * @param inputs - The shapes and the direction vector, whose length is the distance
@@ -35055,8 +39657,8 @@ declare namespace Bit {
          * Spins a shape around an axis through the origin to sweep out a surface or solid: a face gives
          * a solid, a wire a shell.
          *
-         * `angle` is in degrees; 360 or more gives a full turn. The axis runs along `direction`: a
-         * profile beside the Y axis revolved about it gives a vase. The profile must not cross it.
+         * `angle` is in degrees and may be negative to spin the other way; 360 or more either way makes
+         * a full turn, and 0 throws. The profile must not cross the axis along `direction`.
          * @param inputs - The profile shape, the angle in degrees, the axis direction and whether to copy the geometry
          * @returns The revolved shape
          * @group revolutions
@@ -35069,6 +39671,21 @@ declare namespace Bit {
          * ```
          */
         revolve(inputs: Inputs.OCCT.RevolveDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Revolves a shape as `revolve` does, and reports what each part of the profile became:
+         * `history.firstFaces` and `lastFaces` are the ends of a partial turn, `history.facesFromEdges`
+         * the surface swept from each profile edge, a whole turn included.
+         * @param inputs - The profile, the angle in degrees, the axis direction and the copy flag
+         * @returns The revolved shape and its history
+         * @group revolutions
+         * @shortname revolve with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, history } = await bitbybit.occt.operations.revolveWithHistory({ shape: profile, angle: 90, direction: [0, 0, 1], copy: false });
+         * ```
+         */
+        revolveWithHistory(inputs: Inputs.OCCT.RevolveDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.ShapeWithHistory<Inputs.OCCT.TopoDSShapePointer>>;
         /**
          * Extrudes a flat shape up along Y by `height` while twisting it by `angle` degrees about the Y
          * axis, like a twisted column.
@@ -35172,6 +39789,43 @@ declare namespace Bit {
          */
         pipeWireCylindrical(inputs: Inputs.OCCT.PipeWireCylindricalDto<Inputs.OCCT.TopoDSWirePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
         /**
+         * Sweeps a profile along a flat spine, keeping its place beside it, as a moulding follows a wall.
+         *
+         * Draw the profile about the origin: x along the spine, y to the left of travel, inside a
+         * counter-clockwise loop, and z up from the spine's plane. A spine out of plane is refused.
+         * @param inputs - The flat spine, the profile and whether to make a solid
+         * @returns The swept shell or solid
+         * @group pipeing
+         * @shortname sweep evolved
+         * @drawable true
+         * @example
+         * ```typescript
+         * const spine = await bitbybit.occt.shapes.wire.createSquareWire({ size: 10, center: [0, 0, 0], direction: [0, 1, 0] });
+         * const profile = await bitbybit.occt.shapes.wire.createPolygonWire({ points: [[0, 0, 0], [0, 1, 0], [0, 1, 3], [0, 0, 3]] });
+         * const wall = await bitbybit.occt.operations.sweepEvolved({ spine, profile, makeSolid: true });
+         * ```
+         */
+        sweepEvolved(inputs: Inputs.OCCT.SweepEvolvedDto<Inputs.OCCT.TopoDSWirePointer | Inputs.OCCT.TopoDSFacePointer, Inputs.OCCT.TopoDSWirePointer | Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Sweeps a profile along a spine while scaling it, such as a tube that widens toward one end.
+         *
+         * `params` are places along the spine from 0 to 1, each scaled by the entry of `scales` at the
+         * same position; between them the scale changes smoothly. Place the profile across the start of
+         * the spine; `makeSolid` needs it closed.
+         * @param inputs - The spine, the profile, the places and their scales, and whether to make a solid
+         * @returns The swept solid or shell
+         * @group pipeing
+         * @shortname pipe with scaling
+         * @drawable true
+         * @example
+         * ```typescript
+         * const spine = await bitbybit.occt.shapes.edge.line({ start: [0, 0, 0], end: [0, 10, 0] });
+         * const profile = await bitbybit.occt.shapes.wire.createCircleWire({ radius: 1, center: [0, 0, 0], direction: [0, 1, 0] });
+         * const horn = await bitbybit.occt.operations.pipeWithScaling({ spine, profile, params: [0, 1], scales: [1, 2], makeSolid: true });
+         * ```
+         */
+        pipeWithScaling(inputs: Inputs.OCCT.PipeWithScalingDto<Inputs.OCCT.TopoDSWirePointer | Inputs.OCCT.TopoDSEdgePointer, Inputs.OCCT.TopoDSWirePointer | Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
          * Moves the boundary of a shape outward, or inward for a negative distance, by a fixed
          * distance: a wire grows into a parallel outline, a face or solid into a bigger one.
          *
@@ -35214,8 +39868,9 @@ declare namespace Bit {
          * Gives a face or shell a thickness, turning it into a solid slab or wall of the given
          * `offset`.
          *
-         * A positive offset thickens toward the surface normal, a negative one the other way. Use it to
-         * turn a lofted or swept skin into something printable.
+         * A positive offset thickens along the surface normal, a negative one against it. Faces are
+         * offset one by one, so walls meeting at a sharp edge leave a gap of up to 1.4 times `offset`,
+         * bridged by tolerance.
          * @param inputs - The face or shell and the thickness
          * @returns The thick solid
          * @group offsets
@@ -35260,8 +39915,8 @@ declare namespace Bit {
          * Cuts a solid into parallel slices along a direction, like a loaf of bread, every `step` model
          * units from the bottom of the shape up.
          *
-         * Each slice is the flat section where a cutting plane meets the solid; they come back together
-         * in one compound. The shape must be or contain solids, or an error is thrown.
+         * Each slice is the flat section where a cutting plane meets the solid, all in one compound. The
+         * shape must contain solids, and a step giving more than 100000 slices is refused.
          * @param inputs - The shape, the distance between slices and the slicing direction
          * @returns A compound of the section faces
          * @group divisions
@@ -35277,7 +39932,8 @@ declare namespace Bit {
          * Cuts a solid into parallel slices like `slice`, but with a repeating pattern of gaps between
          * them, such as 0.1, 0.5, 0.1, 0.5.
          *
-         * The pattern is applied from the bottom of the shape up and repeats until the top is reached.
+         * The pattern repeats from the bottom of the shape up to its top. Steps must add up to more than
+         * 0 and give at most 100000 slices.
          * @param inputs - The shape, the pattern of gaps and the slicing direction
          * @returns A compound of the section faces
          * @group divisions
@@ -35290,13 +39946,95 @@ declare namespace Bit {
          */
         sliceInStepPattern(inputs: Inputs.OCCT.SliceInStepPatternDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSCompoundPointer>;
         /**
-         * Offsets a wire that does not lie in one plane, by extruding it along `direction`, thickening
-         * the result and reading the offset edge back off it.
+         * Finds the curves where two shapes meet and joins them end to end into wires, such as the
+         * outline a plane cuts from a solid.
          *
-         * It works best on smooth wires; fillet sharp corners first with `fillets.fillet3DWire`. When
-         * the offset edges cannot be joined into one wire they come back as a list of edges.
-         * @param inputs - The wire, the offset distance and the direction to extrude along
-         * @returns The offset wire, or the loose edges when they could not be joined
+         * A loop comes back as a closed wire, branches or loose ends as open wires, and shapes that do
+         * not meet give an empty list.
+         * @param inputs - The two shapes and the joining tolerance
+         * @returns The wires where the shapes meet
+         * @group divisions
+         * @shortname section wires
+         * @drawable true
+         * @example
+         * ```typescript
+         * const box = await bitbybit.occt.shapes.solid.createBox({ width: 10, length: 10, height: 10, center: [0, 5, 0] });
+         * const plane = await bitbybit.occt.shapes.face.createSquareFace({ size: 20, center: [0, 3, 0], direction: [0, 1, 0] });
+         * const outline = await bitbybit.occt.operations.sectionWires({ shapeA: box, shapeB: plane, tolerance: 1e-7 });
+         * ```
+         */
+        sectionWires(inputs: Inputs.OCCT.SectionWiresDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSWirePointer[]>;
+        /**
+         * Slices a shape with the plane of each frame, which passes through the frame's origin square to
+         * its normal.
+         *
+         * With `makeFaces` true a slice holds the faces where the plane passes through the solids, holes
+         * included; with false, the section wires. A plane that misses the shape gives an empty compound.
+         * @param inputs - The shape, the frames, whether to make faces and the joining tolerance
+         * @returns One compound per frame, in the order of the frames
+         * @group divisions
+         * @shortname slice by frames
+         * @drawable true
+         * @example
+         * ```typescript
+         * const slices = await bitbybit.occt.operations.sliceByFrames({
+         *     shape: vase,
+         *     frames: [
+         *         { origin: [0, 2, 0], normal: [0, 1, 0], direction: [1, 0, 0] },
+         *         { origin: [0, 4, 0], normal: [0, 1, 0], direction: [1, 0, 0] },
+         *     ],
+         *     makeFaces: true,
+         *     tolerance: 1e-7,
+         * });
+         * ```
+         */
+        sliceByFrames(inputs: Inputs.OCCT.SliceByFramesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSCompoundPointer[]>;
+        /**
+         * Splits a shape in two with the plane of a frame: what lies on the side the frame's normal
+         * points to comes back as `front`, the rest as `back`.
+         *
+         * The pieces are solids when the shape has any, else faces, else edges. A shape the plane misses
+         * comes back whole on its side.
+         * @param inputs - The shape and the frame whose plane splits it
+         * @returns The pieces in front of the plane and behind it, each in a compound
+         * @group divisions
+         * @shortname split by frame
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { front, back } = await bitbybit.occt.operations.splitByFrame({
+         *     shape: box,
+         *     frame: { origin: [2, 0, 0], normal: [1, 0, 0], direction: [0, 1, 0] },
+         * });
+         * ```
+         */
+        splitByFrame(inputs: Inputs.OCCT.SplitByFrameDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.SplitByFrameResult<Inputs.OCCT.TopoDSCompoundPointer>>;
+        /**
+         * Cuts a face into pieces along edges or wires lying on it, like scoring a sheet.
+         *
+         * A cutter cuts only where it lies on the face, and a closed loop inside it cuts out the region it
+         * encloses. With no cutters the face comes back whole.
+         * @param inputs - The face and the edges or wires to cut it along
+         * @returns The pieces of the face
+         * @group divisions
+         * @shortname split face by wires
+         * @drawable true
+         * @example
+         * ```typescript
+         * const square = await bitbybit.occt.shapes.face.createSquareFace({ size: 10, center: [0, 0, 0], direction: [0, 1, 0] });
+         * const line = await bitbybit.occt.shapes.edge.line({ start: [0, 0, -6], end: [0, 0, 6] });
+         * const halves = await bitbybit.occt.operations.splitFaceByWires({ shape: square, wires: [line] });
+         * ```
+         */
+        splitFaceByWires(inputs: Inputs.OCCT.SplitFaceByWiresDto<Inputs.OCCT.TopoDSFacePointer, Inputs.OCCT.TopoDSWirePointer | Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.OCCT.TopoDSFacePointer[]>;
+        /**
+         * Offsets a wire that does not lie in one plane: every point moves by `offset` at right angles to
+         * both the wire and `direction`, keeping its height along `direction`.
+         *
+         * Best on smooth wires; round sharp corners first with `fillets.fillet3DWire`, since at one the
+         * offset edges do not meet and come back as a list of edges.
+         * @param inputs - The wire, the offset distance and the direction to offset across
+         * @returns The offset wire, or its edges in order when they do not meet
          * @group offsets
          * @shortname offset 3d wire
          * @drawable true
@@ -35306,6 +40044,31 @@ declare namespace Bit {
          * ```
          */
         offset3DWire(inputs: Inputs.OCCT.Offset3DWireDto<Inputs.OCCT.TopoDSWirePointer>): Promise<Inputs.OCCT.TopoDSWirePointer>;
+        /**
+         * Draws a shape seen from a view frame as a technical drawing does, flat on the XZ plane: the
+         * edges the eye sees and those that faces hide.
+         *
+         * The eye looks back along the frame's normal. Its origin lands on the world origin, its direction
+         * on x and the normal crossed with the direction on z. Both compounds hold edges.
+         * @param inputs - The shape, the view frame and the drawing options
+         * @returns The visible and the hidden edges, each a compound on the XZ plane
+         * @group views
+         * @shortname hidden lines
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { visible, hidden } = await bitbybit.occt.operations.hiddenLines({
+         *     shape: part,
+         *     frame: { origin: [0, 0, 0], normal: [1, 1, 1], direction: [1, 0, -1] },
+         *     exact: true,
+         *     smoothEdges: false,
+         *     hiddenEdges: true,
+         *     focus: 0,
+         *     precision: 0.01,
+         * });
+         * ```
+         */
+        hiddenLines(inputs: Inputs.OCCT.HiddenLinesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.HiddenLinesResult<Inputs.OCCT.TopoDSCompoundPointer>>;
     }
     /**
      * A generic 2D path builder: describe an outline as subpaths of line, quadratic, cubic and arc
@@ -35343,11 +40106,446 @@ declare namespace Bit {
         shapeFromPath(inputs: Inputs.OCCT.ShapeFromPathDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
     }
     /**
-     * Repairs for OpenCascade shapes that came out of a file or an operation with small defects: gaps
-     * between edges, edges too short to matter, wires whose edges point different ways, tolerances that
-     * drifted. Run `basicShapeRepair` on a shape that fails `shapes.shape.isValid` or refuses a
-     * boolean; the wire fixes clean up outlines before they become faces. Every method returns a new
-     * shape.
+     * Choosing the edges of an OpenCascade shape by what they are, where they lie and how they meet,
+     * so that "the edges round the top" still names the right edges after a parameter changes. Every
+     * method returns edge indexes as `shapes.edge.getEdges` counts them, from 0, which `fillets`, the
+     * getters and the other selectors take as they are. `indexes` limits a filter to edges chosen
+     * before, keeping their order; left out, every edge is a candidate, and an empty list chooses
+     * nothing. Degenerate edges, the poles of a sphere, are never chosen.
+     */
+    declare class OCCTSelectEdges {
+        private readonly occWorkerManager;
+        /**
+         * Chooses the edges that run along one kind of curve, such as the straight edges of a part or
+         * the circular rims of its holes.
+         * @param inputs - The shape, the curve type and the edges to choose among
+         * @returns The indexes of the chosen edges
+         * @group by geometry
+         * @shortname edges of type
+         * @drawable false
+         * @example
+         * ```typescript
+         * const rims = await bitbybit.occt.select.edges.ofType({ shape: part, type: Bit.Inputs.OCCT.curveTypeEnum.circle });
+         * ```
+         */
+        ofType(inputs: Inputs.OCCT.SelectEdgesOfTypeDto<Inputs.OCCT.TopoDSShapePointer>): Promise<number[]>;
+        /**
+         * Chooses the straight edges that run within `angle` degrees of `direction`, either way along
+         * it: an angle of 0 finds the edges parallel to it.
+         * @param inputs - The shape, the direction, the angle in degrees and the edges to choose among
+         * @returns The indexes of the chosen edges
+         * @group by geometry
+         * @shortname edges along
+         * @drawable false
+         * @example
+         * ```typescript
+         * const upright = await bitbybit.occt.select.edges.along({ shape: part, direction: [0, 0, 1], angle: 0 });
+         * ```
+         */
+        along(inputs: Inputs.OCCT.SelectByDirectionDto<Inputs.OCCT.TopoDSShapePointer>): Promise<number[]>;
+        /**
+         * Chooses the edges whose centres lie furthest along `direction`, with any others within
+         * `tolerance` of them: the edges round the top along z.
+         * @param inputs - The shape, the direction, the tolerance and the edges to choose among
+         * @returns The indexes of the chosen edges
+         * @group by position
+         * @shortname extreme edges
+         * @drawable false
+         * @example
+         * ```typescript
+         * const topEdges = await bitbybit.occt.select.edges.extreme({ shape: part, direction: [0, 0, 1], tolerance: 1e-7 });
+         * ```
+         */
+        extreme(inputs: Inputs.OCCT.SelectExtremeDto<Inputs.OCCT.TopoDSShapePointer>): Promise<number[]>;
+        /**
+         * Chooses the edges whose centres lie inside a box lined up with the axes, given by two opposite
+         * corners in either order.
+         * @param inputs - The shape, the two corners and the edges to choose among
+         * @returns The indexes of the chosen edges
+         * @group by position
+         * @shortname edges in box
+         * @drawable false
+         * @example
+         * ```typescript
+         * const near = await bitbybit.occt.select.edges.inBox({ shape: part, corner: [0, 0, 9], oppositeCorner: [10, 10, 11] });
+         * ```
+         */
+        inBox(inputs: Inputs.OCCT.SelectInBoxDto<Inputs.OCCT.TopoDSShapePointer>): Promise<number[]>;
+        /**
+         * Chooses the edges whose centres lie within `radius` of `center`.
+         * @param inputs - The shape, the center, the radius and the edges to choose among
+         * @returns The indexes of the chosen edges
+         * @group by position
+         * @shortname edges in sphere
+         * @drawable false
+         * @example
+         * ```typescript
+         * const around = await bitbybit.occt.select.edges.inSphere({ shape: part, center: [5, 5, 10], radius: 6 });
+         * ```
+         */
+        inSphere(inputs: Inputs.OCCT.SelectInSphereDto<Inputs.OCCT.TopoDSShapePointer>): Promise<number[]>;
+        /**
+         * Chooses the `count` edges whose centres lie nearest `point`, nearest first; edges as near as
+         * each other keep their order.
+         * @param inputs - The shape, the point, how many and the edges to choose among
+         * @returns The indexes of the chosen edges, nearest first
+         * @group by position
+         * @shortname nearest edges
+         * @drawable false
+         * @example
+         * ```typescript
+         * const [picked] = await bitbybit.occt.select.edges.nearest({ shape: part, point: [5, 0, 10], count: 1 });
+         * ```
+         */
+        nearest(inputs: Inputs.OCCT.SelectNearestDto<Inputs.OCCT.TopoDSShapePointer>): Promise<number[]>;
+        /**
+         * Chooses the edges that lie in a plane, given by a point on it and its normal: every point of an
+         * edge within `tolerance` of the plane.
+         * @param inputs - The shape, the plane, the tolerance and the edges to choose among
+         * @returns The indexes of the chosen edges
+         * @group by position
+         * @shortname edges on plane
+         * @drawable false
+         * @example
+         * ```typescript
+         * const outline = await bitbybit.occt.select.edges.onPlane({ shape: part, origin: [0, 0, 0], normal: [0, 0, 1] });
+         * ```
+         */
+        onPlane(inputs: Inputs.OCCT.SelectOnPlaneDto<Inputs.OCCT.TopoDSShapePointer>): Promise<number[]>;
+        /**
+         * Chooses the edges whose length lies between `min` and `max`, both included.
+         * @param inputs - The shape, the range of lengths and the edges to choose among
+         * @returns The indexes of the chosen edges
+         * @group by geometry
+         * @shortname edges by length
+         * @drawable false
+         * @example
+         * ```typescript
+         * const short = await bitbybit.occt.select.edges.byLength({ shape: part, min: 0, max: 2 });
+         * ```
+         */
+        byLength(inputs: Inputs.OCCT.SelectInRangeDto<Inputs.OCCT.TopoDSShapePointer>): Promise<number[]>;
+        /**
+         * Chooses the circular edges whose radius lies between `min` and `max`, both included.
+         * @param inputs - The shape, the range of radii and the edges to choose among
+         * @returns The indexes of the chosen edges
+         * @group by geometry
+         * @shortname edges by radius
+         * @drawable false
+         * @example
+         * ```typescript
+         * const rims = await bitbybit.occt.select.edges.byRadius({ shape: part, min: 1.9, max: 2.1 });
+         * ```
+         */
+        byRadius(inputs: Inputs.OCCT.SelectInRangeDto<Inputs.OCCT.TopoDSShapePointer>): Promise<number[]>;
+        /**
+         * Chooses the edges that bound any of the given faces, counted as `shapes.face.getFaces` counts
+         * them.
+         * @param inputs - The shape and the faces to start from
+         * @returns The indexes of the edges, in order
+         * @group by relation
+         * @shortname edges of faces
+         * @drawable false
+         * @example
+         * ```typescript
+         * const rim = await bitbybit.occt.select.edges.ofFaces({ shape: part, indexes: [5] });
+         * ```
+         */
+        ofFaces(inputs: Inputs.OCCT.SelectFromIndexesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<number[]>;
+        /**
+         * Chooses the edges where a face of `indexes` meets a different face of `otherIndexes`, such as
+         * the edges round a top face where it meets the sides.
+         * @param inputs - The shape and the two sets of faces
+         * @returns The indexes of the edges, in order
+         * @group by relation
+         * @shortname edges between faces
+         * @drawable false
+         * @example
+         * ```typescript
+         * const seam = await bitbybit.occt.select.edges.between({ shape: part, indexes: [5], otherIndexes: [0, 1, 2, 3] });
+         * ```
+         */
+        between(inputs: Inputs.OCCT.SelectBetweenDto<Inputs.OCCT.TopoDSShapePointer>): Promise<number[]>;
+        /**
+         * Grows the given edges into the chains they continue smoothly: two edges meeting where their
+         * tangents turn by no more than `angle` degrees are one chain, as a fillet runs along.
+         * @param inputs - The shape, the edges to start from and the angle in degrees
+         * @returns The indexes of the edges in the chains, in order
+         * @group by relation
+         * @shortname tangent chain
+         * @drawable false
+         * @example
+         * ```typescript
+         * const loop = await bitbybit.occt.select.edges.tangentChain({ shape: rounded, indexes: [3], angle: 1 });
+         * ```
+         */
+        tangentChain(inputs: Inputs.OCCT.SelectTangentChainDto<Inputs.OCCT.TopoDSShapePointer>): Promise<number[]>;
+        /**
+         * Chooses the edges where two faces meet at an outside corner, the ridges a fillet rounds off;
+         * faces meeting within `tangentAngle` degrees of smooth count as neither.
+         * @param inputs - The shape, the angle in degrees and the edges to choose among
+         * @returns The indexes of the chosen edges
+         * @group by geometry
+         * @shortname convex edges
+         * @drawable false
+         * @example
+         * ```typescript
+         * const ridges = await bitbybit.occt.select.edges.convex({ shape: part, tangentAngle: 1 });
+         * ```
+         */
+        convex(inputs: Inputs.OCCT.SelectConvexityDto<Inputs.OCCT.TopoDSShapePointer>): Promise<number[]>;
+        /**
+         * Chooses the edges where two faces meet at an inside corner, the valleys a fillet fills; faces
+         * meeting within `tangentAngle` degrees of smooth count as neither.
+         * @param inputs - The shape, the angle in degrees and the edges to choose among
+         * @returns The indexes of the chosen edges
+         * @group by geometry
+         * @shortname concave edges
+         * @drawable false
+         * @example
+         * ```typescript
+         * const valleys = await bitbybit.occt.select.edges.concave({ shape: part, tangentAngle: 1 });
+         * ```
+         */
+        concave(inputs: Inputs.OCCT.SelectConvexityDto<Inputs.OCCT.TopoDSShapePointer>): Promise<number[]>;
+        /**
+         * Orders edges by how far along `direction` their centres lie, from the lowest to the highest;
+         * edges level with each other keep their order.
+         * @param inputs - The shape, the direction and the edges to sort
+         * @returns The indexes of the edges, sorted
+         * @group order
+         * @shortname sort edges along
+         * @drawable false
+         * @example
+         * ```typescript
+         * const leftToRight = await bitbybit.occt.select.edges.sortAlong({ shape: part, direction: [1, 0, 0] });
+         * ```
+         */
+        sortAlong(inputs: Inputs.OCCT.SelectSortAlongDto<Inputs.OCCT.TopoDSShapePointer>): Promise<number[]>;
+        /**
+         * Sorts edges along `direction` and groups them by level: a group ends where the next centre lies
+         * more than `tolerance` beyond the group's first.
+         * @param inputs - The shape, the direction, the tolerance and the edges to group
+         * @returns One list of edge indexes per level, from the lowest
+         * @group order
+         * @shortname group edges along
+         * @drawable false
+         * @example
+         * ```typescript
+         * const levels = await bitbybit.occt.select.edges.groupAlong({ shape: part, direction: [0, 0, 1], tolerance: 0.01 });
+         * ```
+         */
+        groupAlong(inputs: Inputs.OCCT.SelectGroupAlongDto<Inputs.OCCT.TopoDSShapePointer>): Promise<number[][]>;
+    }
+    /**
+     * Choosing the faces of an OpenCascade shape by what they are and where they lie, so that "the top
+     * face" still names the right face after a parameter changes. Every method returns face indexes as
+     * `shapes.face.getFaces` counts them, from 0, which the getters and the other selectors take as they
+     * are. `indexes` limits a filter to faces chosen before, keeping their order; left out, every face is
+     * a candidate, and an empty list chooses nothing. Positions are read at each face's centre of mass.
+     */
+    declare class OCCTSelectFaces {
+        private readonly occWorkerManager;
+        /**
+         * Chooses the faces that lie on one kind of surface, such as the planar faces of a part or the
+         * cylindrical walls of its holes.
+         * @param inputs - The shape, the surface type and the faces to choose among
+         * @returns The indexes of the chosen faces
+         * @group by geometry
+         * @shortname faces of type
+         * @drawable false
+         * @example
+         * ```typescript
+         * const walls = await bitbybit.occt.select.faces.ofType({ shape: part, type: Bit.Inputs.OCCT.surfaceTypeEnum.cylinder });
+         * ```
+         */
+        ofType(inputs: Inputs.OCCT.SelectFacesOfTypeDto<Inputs.OCCT.TopoDSShapePointer>): Promise<number[]>;
+        /**
+         * Chooses the faces whose normal, read at the middle of each face, points within `angle`
+         * degrees of `direction`: an angle of 0 finds the faces looking straight that way.
+         * @param inputs - The shape, the direction, the angle in degrees and the faces to choose among
+         * @returns The indexes of the chosen faces
+         * @group by geometry
+         * @shortname faces facing
+         * @drawable false
+         * @example
+         * ```typescript
+         * const up = await bitbybit.occt.select.faces.facing({ shape: part, direction: [0, 0, 1], angle: 0 });
+         * ```
+         */
+        facing(inputs: Inputs.OCCT.SelectByDirectionDto<Inputs.OCCT.TopoDSShapePointer>): Promise<number[]>;
+        /**
+         * Chooses the faces whose centres lie furthest along `direction`, with any others within
+         * `tolerance` of them: the top faces along z, the lowest along minus z.
+         * @param inputs - The shape, the direction, the tolerance and the faces to choose among
+         * @returns The indexes of the chosen faces
+         * @group by position
+         * @shortname extreme faces
+         * @drawable false
+         * @example
+         * ```typescript
+         * const top = await bitbybit.occt.select.faces.extreme({ shape: part, direction: [0, 0, 1], tolerance: 1e-7 });
+         * ```
+         */
+        extreme(inputs: Inputs.OCCT.SelectExtremeDto<Inputs.OCCT.TopoDSShapePointer>): Promise<number[]>;
+        /**
+         * Chooses the faces whose centres lie inside a box lined up with the axes, given by two
+         * opposite corners in either order.
+         * @param inputs - The shape, the two corners and the faces to choose among
+         * @returns The indexes of the chosen faces
+         * @group by position
+         * @shortname faces in box
+         * @drawable false
+         * @example
+         * ```typescript
+         * const near = await bitbybit.occt.select.faces.inBox({ shape: part, corner: [0, 0, 9], oppositeCorner: [10, 10, 11] });
+         * ```
+         */
+        inBox(inputs: Inputs.OCCT.SelectInBoxDto<Inputs.OCCT.TopoDSShapePointer>): Promise<number[]>;
+        /**
+         * Chooses the faces whose centres lie within `radius` of `center`.
+         * @param inputs - The shape, the center, the radius and the faces to choose among
+         * @returns The indexes of the chosen faces
+         * @group by position
+         * @shortname faces in sphere
+         * @drawable false
+         * @example
+         * ```typescript
+         * const around = await bitbybit.occt.select.faces.inSphere({ shape: part, center: [5, 5, 10], radius: 2 });
+         * ```
+         */
+        inSphere(inputs: Inputs.OCCT.SelectInSphereDto<Inputs.OCCT.TopoDSShapePointer>): Promise<number[]>;
+        /**
+         * Chooses the `count` faces whose centres lie nearest `point`, nearest first; faces as near as
+         * each other keep their order.
+         * @param inputs - The shape, the point, how many and the faces to choose among
+         * @returns The indexes of the chosen faces, nearest first
+         * @group by position
+         * @shortname nearest faces
+         * @drawable false
+         * @example
+         * ```typescript
+         * const [picked] = await bitbybit.occt.select.faces.nearest({ shape: part, point: [5, 5, 12], count: 1 });
+         * ```
+         */
+        nearest(inputs: Inputs.OCCT.SelectNearestDto<Inputs.OCCT.TopoDSShapePointer>): Promise<number[]>;
+        /**
+         * Chooses the planar faces that lie in a plane, given by a point on it and its normal; a face
+         * counts from either side, within `tolerance`.
+         * @param inputs - The shape, the plane, the tolerance and the faces to choose among
+         * @returns The indexes of the chosen faces
+         * @group by position
+         * @shortname faces on plane
+         * @drawable false
+         * @example
+         * ```typescript
+         * const bottom = await bitbybit.occt.select.faces.onPlane({ shape: part, origin: [0, 0, 0], normal: [0, 0, 1] });
+         * ```
+         */
+        onPlane(inputs: Inputs.OCCT.SelectOnPlaneDto<Inputs.OCCT.TopoDSShapePointer>): Promise<number[]>;
+        /**
+         * Chooses the faces whose area lies between `min` and `max`, both included.
+         * @param inputs - The shape, the range of areas and the faces to choose among
+         * @returns The indexes of the chosen faces
+         * @group by geometry
+         * @shortname faces by size
+         * @drawable false
+         * @example
+         * ```typescript
+         * const small = await bitbybit.occt.select.faces.bySize({ shape: part, min: 0, max: 10 });
+         * ```
+         */
+        bySize(inputs: Inputs.OCCT.SelectInRangeDto<Inputs.OCCT.TopoDSShapePointer>): Promise<number[]>;
+        /**
+         * Chooses the faces on cylinders and spheres whose radius lies between `min` and `max`, and the
+         * faces on tori whose tube radius does, the rounds a fillet makes along a curved edge.
+         * @param inputs - The shape, the range of radii and the faces to choose among
+         * @returns The indexes of the chosen faces
+         * @group by geometry
+         * @shortname faces by radius
+         * @drawable false
+         * @example
+         * ```typescript
+         * const holes = await bitbybit.occt.select.faces.byRadius({ shape: part, min: 1.9, max: 2.1 });
+         * ```
+         */
+        byRadius(inputs: Inputs.OCCT.SelectInRangeDto<Inputs.OCCT.TopoDSShapePointer>): Promise<number[]>;
+        /**
+         * Chooses the faces that share an edge with any of the given faces, leaving out the given faces
+         * themselves.
+         * @param inputs - The shape and the faces to start from
+         * @returns The indexes of the neighbouring faces, in order
+         * @group by relation
+         * @shortname adjacent faces
+         * @drawable false
+         * @example
+         * ```typescript
+         * const sides = await bitbybit.occt.select.faces.adjacentTo({ shape: part, indexes: [5] });
+         * ```
+         */
+        adjacentTo(inputs: Inputs.OCCT.SelectFromIndexesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<number[]>;
+        /**
+         * Chooses the faces bounded by any of the given edges, counted as `shapes.edge.getEdges` counts
+         * them: the two faces that meet along each.
+         * @param inputs - The shape and the edges to start from
+         * @returns The indexes of the faces, in order
+         * @group by relation
+         * @shortname faces of edges
+         * @drawable false
+         * @example
+         * ```typescript
+         * const beside = await bitbybit.occt.select.faces.ofEdges({ shape: part, indexes: [0] });
+         * ```
+         */
+        ofEdges(inputs: Inputs.OCCT.SelectFromIndexesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<number[]>;
+        /**
+         * Orders faces by how far along `direction` their centres lie, from the lowest to the highest;
+         * faces level with each other keep their order.
+         * @param inputs - The shape, the direction and the faces to sort
+         * @returns The indexes of the faces, sorted
+         * @group order
+         * @shortname sort faces along
+         * @drawable false
+         * @example
+         * ```typescript
+         * const bottomToTop = await bitbybit.occt.select.faces.sortAlong({ shape: part, direction: [0, 0, 1] });
+         * ```
+         */
+        sortAlong(inputs: Inputs.OCCT.SelectSortAlongDto<Inputs.OCCT.TopoDSShapePointer>): Promise<number[]>;
+        /**
+         * Sorts faces along `direction` and groups them by level: a group ends where the next centre lies
+         * more than `tolerance` beyond the group's first.
+         * @param inputs - The shape, the direction, the tolerance and the faces to group
+         * @returns One list of face indexes per level, from the lowest
+         * @group order
+         * @shortname group faces along
+         * @drawable false
+         * @example
+         * ```typescript
+         * const levels = await bitbybit.occt.select.faces.groupAlong({ shape: part, direction: [0, 0, 1], tolerance: 0.01 });
+         * ```
+         */
+        groupAlong(inputs: Inputs.OCCT.SelectGroupAlongDto<Inputs.OCCT.TopoDSShapePointer>): Promise<number[][]>;
+    }
+    /**
+     * Choosing faces and edges of OpenCascade shapes by what they are, where they lie and how they
+     * meet, rather than by an index that shifts whenever the model changes. `faces` and `edges` return
+     * index lists in the getters' numbering, which fillets, chamfers and the getters take as they are,
+     * and which the selectors narrow further through their `indexes` input. A choice of nothing stays
+     * empty through the selectors, but `fillets.filletEdges` and `fillets.chamferEdges` read an empty
+     * `indexes` as every edge, and hand out `radiusList` and `distanceList` in the getters' order.
+     */
+    declare class OCCTSelect {
+        readonly faces: OCCTSelectFaces;
+        readonly edges: OCCTSelectEdges;
+    }
+    /**
+     * Checks and repairs for OpenCascade shapes that came out of a file or an operation with defects:
+     * gaps between edges, edges too short to matter, faces turned the wrong way, shells left open,
+     * tolerances that drifted. `isValid` tells whether a shape is well formed, `validityReport` says what
+     * is wrong and where, and `freeBoundaries` shows the rims of openings; `basicShapeRepair` is the
+     * general fix, the shell, solid and sewing fixes and the wire fixes handle the rest. Every repair
+     * returns a new shape.
      */
     declare class OCCTShapeFix {
         private readonly occWorkerManager;
@@ -35357,7 +40555,7 @@ declare namespace Bit {
          *
          * `precision` is the size of defect to look for, `minTolerance` and `maxTolerance` bound the
          * tolerances the repaired shape may carry, all in model units. Try it first on any shape that
-         * fails `shapes.shape.isValid`.
+         * fails `isValid`.
          * @param inputs - The shape and the precision and tolerance bounds
          * @returns The repaired shape
          * @group shape
@@ -35402,6 +40600,133 @@ declare namespace Bit {
          * ```
          */
         fixEdgeOrientationsAlongWire(inputs: Inputs.OCCT.ShapeDto<Inputs.OCCT.TopoDSWirePointer>): Promise<Inputs.OCCT.TopoDSWirePointer>;
+        /**
+         * Tells whether the shape is well formed, which a successful operation does not always guarantee.
+         *
+         * It checks that edges lie on their faces, wires and shells close, and tolerances agree. A fillet
+         * too large for its faces fails; a shape passing through itself, such as a pipe wider than its
+         * bends, passes. Large parts take a few hundred milliseconds.
+         * @param inputs - The shape
+         * @returns True when the shape is well formed
+         * @group shape
+         * @shortname is valid
+         * @drawable false
+         * @example
+         * ```typescript
+         * const box = await bitbybit.occt.shapes.solid.createBox({ width: 10, length: 10, height: 10 });
+         * const rounded = await bitbybit.occt.fillets.filletEdges({ shape: box, radius: 6 });
+         * const wellFormed = await bitbybit.occt.shapeFix.isValid({ shape: rounded });
+         * ```
+         */
+        isValid(inputs: Inputs.OCCT.ShapeDto<Inputs.OCCT.TopoDSShapePointer>): Promise<boolean>;
+        /**
+         * Checks a shape as `isValid` does and reports each faulty sub-shape with the checks
+         * it fails, and the spread of its tolerances.
+         *
+         * A fault's index is the one the getter of its kind uses: `shapes.face.getFace` with a face
+         * fault's index gives that face. Overlapping faces are not looked for;
+         * `analysis.clashes.selfIntersections` finds those.
+         * @param inputs - The shape to check
+         * @returns Whether the shape is valid, its faults and its smallest, largest and average tolerance
+         * @group shape
+         * @shortname validity report
+         * @drawable false
+         * @example
+         * ```typescript
+         * const report = await bitbybit.occt.shapeFix.validityReport({ shape: imported });
+         * const badFaces = report.faults.filter(fault => fault.type === Bit.Inputs.OCCT.shapeTypeEnum.face).map(fault => fault.index);
+         * ```
+         */
+        validityReport(inputs: Inputs.OCCT.ShapeDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.ValidityReport>;
+        /**
+         * Finds the edges of a shape that bound only one face, joined into wires: the rims of an open
+         * shell's openings, or a lone face's outline and holes.
+         *
+         * Wires that close on themselves come back in `closed`, the rest in `open`; a closed solid has
+         * none. Edges closer than `tolerance`, in model units, count as one.
+         * @param inputs - The shape and the tolerance
+         * @returns Two compounds of wires, the closed and the open ones
+         * @group shape
+         * @shortname free boundaries
+         * @drawable false
+         * @example
+         * ```typescript
+         * const rims = await bitbybit.occt.shapeFix.freeBoundaries({ shape: openShell, tolerance: 1e-7 });
+         * const holes = await bitbybit.occt.shapes.wire.getWires({ shape: rims.closed });
+         * ```
+         */
+        freeBoundaries(inputs: Inputs.OCCT.ShapeWithToleranceDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.FreeBoundaries<Inputs.OCCT.TopoDSCompoundPointer>>;
+        /**
+         * Repairs a shell: turns its faces so they all face the same way and fixes its faces and edges.
+         *
+         * When the faces cannot all be turned one way, as on a strip given a half twist, the result is
+         * a compound of shells. A shape that is not a shell is refused.
+         * @param inputs - The shell to repair
+         * @returns The repaired shell, or a compound of shells
+         * @group shell
+         * @shortname fix shell
+         * @drawable true
+         * @example
+         * ```typescript
+         * const shell = await bitbybit.occt.shapes.shell.sewFaces({ shapes: faces, tolerance: 1e-7 });
+         * const fixed = await bitbybit.occt.shapeFix.fixShell({ shape: shell });
+         * ```
+         */
+        fixShell(inputs: Inputs.OCCT.ShapeDto<Inputs.OCCT.TopoDSShellPointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Repairs a solid, or makes one from a closed shell, with its shells fixed and turned so the
+         * material is inside.
+         *
+         * A shell that encloses nothing comes back fixed but still a shell, and shells that fix into
+         * separate solids come back as a compound of them. Other kinds of shape are refused.
+         * @param inputs - The solid or shell to repair
+         * @returns The repaired solid, or a shell or a compound when no single solid can be made
+         * @group solid
+         * @shortname fix solid
+         * @drawable true
+         * @example
+         * ```typescript
+         * const shell = await bitbybit.occt.shapes.shell.sewFaces({ shapes: faces, tolerance: 1e-7 });
+         * const solid = await bitbybit.occt.shapeFix.fixSolid({ shape: shell });
+         * ```
+         */
+        fixSolid(inputs: Inputs.OCCT.ShapeDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Turns a closed solid so its material is inside, which gives an inside-out solid its positive
+         * volume back; only the orientation changes.
+         *
+         * A shape that is not a solid, a solid without a shell and a solid whose shell has an opening
+         * are refused.
+         * @param inputs - The closed solid
+         * @returns The solid, oriented with its material inside
+         * @group solid
+         * @shortname orient closed solid
+         * @drawable true
+         * @example
+         * ```typescript
+         * const oriented = await bitbybit.occt.shapeFix.orientClosedSolid({ shape: insideOut });
+         * const volume = await bitbybit.occt.shapes.solid.getSolidVolume({ shape: oriented });
+         * ```
+         */
+        orientClosedSolid(inputs: Inputs.OCCT.ShapeDto<Inputs.OCCT.TopoDSSolidPointer>): Promise<Inputs.OCCT.TopoDSSolidPointer>;
+        /**
+         * Sews the faces of shapes together along edges that lie within `tolerance` of each other, as
+         * `shapes.shell.sewFaces` does, and reports what it joined and what it left open.
+         *
+         * `freeEdges` holds the edges left bounding only one face; with `nonManifold` true an edge may
+         * join more than two faces. The shapes given are left as they were.
+         * @param inputs - The shapes, the tolerance and whether an edge may join more than two faces
+         * @returns The sewn shape, the free edges and the counts of free, multiple, sewn and degenerate edges
+         * @group shape
+         * @shortname sew with report
+         * @drawable false
+         * @example
+         * ```typescript
+         * const sewn = await bitbybit.occt.shapeFix.sewWithReport({ shapes: faces, tolerance: 1e-4, nonManifold: false });
+         * const closed = sewn.freeEdgeCount === 0;
+         * ```
+         */
+        sewWithReport(inputs: Inputs.OCCT.SewWithReportDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.SewReport<Inputs.OCCT.TopoDSShapePointer>>;
     }
     /**
      * Compounds in OpenCascade: a loose collection of shapes of any kind kept together as one shape, so
@@ -35442,10 +40767,11 @@ declare namespace Bit {
     }
     /**
      * Edges in OpenCascade: single curves between two vertices, straight, circular, elliptical or
-     * free-form. Build them from points and lines, as arcs, circles and ellipses, or as tangent
-     * constructions against circles; read them back as points, lengths, tangents and centers; and pick
-     * edges out of any shape. Edges join end to end into wires, which `shapes.wire` handles. Parameters
-     * along an edge run from 0 at its start to 1 at its end; angles are in degrees.
+     * free-form. Build them from points and lines, as arcs, circles and ellipses, or as lines and circles
+     * tangent to other curves in a plane; cut, lengthen and blend them; read them back as points,
+     * lengths, tangents and centers; and pick edges out of any shape. Edges join end to end into wires,
+     * which `shapes.wire` handles. Parameters along an edge run from 0 at its start to 1 at its end;
+     * angles are in degrees.
      */
     declare class OCCTEdge {
         private readonly occWorkerManager;
@@ -36122,6 +41448,65 @@ declare namespace Bit {
          */
         tangentsOnEdgesAtLength(inputs: Inputs.OCCT.DataOnGeometryesAtLengthDto<Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.Base.Vector3[]>;
         /**
+         * Finds a frame on an edge at a parameter, from 0 where the edge starts in its own direction.
+         * `kind` sets how it follows: carried from the start without twisting, across the edge level with
+         * `up`, or in the plane it bends in; Frenet frames throw where the edge runs straight, level
+         * ones where it runs along `up`.
+         * @param inputs - The edge, the fraction along it, the kind of frame and the up vector
+         * @returns The frame at that place
+         * @group frames
+         * @shortname frame on edge at param
+         * @drawable true
+         * @example
+         * ```typescript
+         * const frame = await bitbybit.occt.shapes.edge.frameOnEdgeAtParam({ shape: edge, param: 0.5, kind: Bit.Inputs.OCCT.curveFrameEnum.perpendicular, up: [0, 0, 1] });
+         * ```
+         */
+        frameOnEdgeAtParam(inputs: Inputs.OCCT.FrameOnCurveAtParamDto<Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.Base.Frame>;
+        /**
+         * Finds a frame on an edge at a length from its start, as `frameOnEdgeAtParam` finds it at a
+         * parameter.
+         * @param inputs - The edge, the length along it, the kind of frame and the up vector
+         * @returns The frame at that place
+         * @group frames
+         * @shortname frame on edge at length
+         * @drawable true
+         * @example
+         * ```typescript
+         * const frame = await bitbybit.occt.shapes.edge.frameOnEdgeAtLength({ shape: edge, length: 2, kind: Bit.Inputs.OCCT.curveFrameEnum.perpendicular, up: [0, 0, 1] });
+         * ```
+         */
+        frameOnEdgeAtLength(inputs: Inputs.OCCT.FrameOnCurveAtLengthDto<Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.Base.Frame>;
+        /**
+         * Finds frames on an edge at several parameters in one pass. Rotation-minimizing frames are
+         * carried along the whole edge from its start, so each is the frame a swept profile would ride
+         * on there.
+         * @param inputs - The edge, the fractions along it, the kind of frame and the up vector
+         * @returns One frame per parameter, in the same order
+         * @group frames
+         * @shortname frames on edge at params
+         * @drawable true
+         * @example
+         * ```typescript
+         * const frames = await bitbybit.occt.shapes.edge.framesOnEdgeAtParams({ shape: edge, params: [0, 0.5, 1], kind: Bit.Inputs.OCCT.curveFrameEnum.rotationMinimizing, up: [0, 0, 1] });
+         * ```
+         */
+        framesOnEdgeAtParams(inputs: Inputs.OCCT.FramesOnCurveAtParamsDto<Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.Base.Frame[]>;
+        /**
+         * Finds frames on an edge at several lengths from its start in one pass, as
+         * `framesOnEdgeAtParams` finds them at parameters.
+         * @param inputs - The edge, the lengths along it, the kind of frame and the up vector
+         * @returns One frame per length, in the same order
+         * @group frames
+         * @shortname frames on edge at lengths
+         * @drawable true
+         * @example
+         * ```typescript
+         * const frames = await bitbybit.occt.shapes.edge.framesOnEdgeAtLengths({ shape: edge, lengths: [0, 1, 2], kind: Bit.Inputs.OCCT.curveFrameEnum.rotationMinimizing, up: [0, 0, 1] });
+         * ```
+         */
+        framesOnEdgeAtLengths(inputs: Inputs.OCCT.FramesOnCurveAtLengthsDto<Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.Base.Frame[]>;
+        /**
          * Reads the point where an edge starts, in the edge's own direction.
          * @param inputs - The edge
          * @returns The start point
@@ -36234,13 +41619,85 @@ declare namespace Bit {
          */
         divideEdgesByEqualDistanceToPoints(inputs: Inputs.OCCT.DivideShapesDto<Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.Base.Point3[][]>;
         /**
+         * Cuts an edge into pieces at places given as fractions from 0 at its start to 1 at its end.
+         *
+         * The pieces keep the edge's curve and direction, so the pieces of an arc are arcs. Fractions
+         * follow the parameter, not the length; ends and repeats are skipped, so n places inside the edge
+         * give n + 1 pieces.
+         * @param inputs - The edge and the fractions to cut at
+         * @returns The pieces, in order from the start
+         * @group edit
+         * @shortname split edge at params
+         * @drawable true
+         * @example
+         * ```typescript
+         * const [firstHalf, secondHalf] = await bitbybit.occt.shapes.edge.splitEdgeAtParams({ shape: arc, params: [0.5] });
+         * ```
+         */
+        splitEdgeAtParams(inputs: Inputs.OCCT.DataOnGeometryAtParamsDto<Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.OCCT.TopoDSEdgePointer[]>;
+        /**
+         * Cuts an edge into pieces at places given as lengths along it from its start, in model units.
+         *
+         * Each piece runs along the edge's own curve and keeps its direction. Lengths at or past the
+         * ends and repeats are skipped, so n lengths inside the edge give n + 1 pieces.
+         * @param inputs - The edge and the lengths to cut at
+         * @returns The pieces, in order from the start
+         * @group edit
+         * @shortname split edge at lengths
+         * @drawable true
+         * @example
+         * ```typescript
+         * const pieces = await bitbybit.occt.shapes.edge.splitEdgeAtLengths({ shape: edge, lengths: [2, 5] });
+         * ```
+         */
+        splitEdgeAtLengths(inputs: Inputs.OCCT.DataOnGeometryAtLengthsDto<Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.OCCT.TopoDSEdgePointer[]>;
+        /**
+         * Lengthens an edge before its start and past its end, carrying its curve on the way it runs.
+         *
+         * A line stays a line and an arc an arc, up to a full circle. Other curves become B-splines
+         * ending that far along the end's tangent, bending smoothly across the join; one still turning
+         * there gains a little more.
+         * @param inputs - The edge and the lengths to add at its start and its end
+         * @returns A new, longer edge running the same way
+         * @group edit
+         * @shortname extend edge
+         * @drawable true
+         * @example
+         * ```typescript
+         * const longer = await bitbybit.occt.shapes.edge.extendEdge({ shape: edge, atStart: 0, atEnd: 2 });
+         * ```
+         */
+        extendEdge(inputs: Inputs.OCCT.ExtendEdgeDto<Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.OCCT.TopoDSEdgePointer>;
+        /**
+         * Bridges the gap from the end of one edge to the start of another with a smooth Bezier edge
+         * that leaves and arrives along their tangents.
+         *
+         * With `matchCurvature` it also bends as each edge bends at its end. `bulge` sets how long it
+         * holds each tangent; edges whose ends already meet are refused.
+         * @param inputs - The edge to leave, the edge to reach and how the blend joins them
+         * @returns The blend edge
+         * @group edit
+         * @shortname blend between edges
+         * @drawable true
+         * @example
+         * ```typescript
+         * const bridge = await bitbybit.occt.shapes.edge.blendBetweenEdges({ from: first, to: second, matchCurvature: true, bulge: 1 });
+         * const path = await bitbybit.occt.shapes.wire.combineEdgesAndWiresIntoAWire({ shapes: [first, bridge, second] });
+         * ```
+         */
+        blendBetweenEdges(inputs: Inputs.OCCT.BlendBetweenEdgesDto<Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.OCCT.TopoDSEdgePointer>;
+        /**
          * Draws the straight lines from two points that just touch a circle, one tangent line from each
          * point.
          *
          * `positionResult` keeps the solutions on one side of the circle or all of them, and
-         * `circleRemainder` adds the piece of the circle between the touching points.
+         * `circleRemainder` adds the piece of the circle between the touching points. It is replaced
+         * by `linesTangentToTwo`, which takes curves other than circles too.
          * @param inputs - The circle edge, the two points, the tolerance and which solutions to keep
          * @returns The tangent lines, and the circle piece when asked for
+         * @deprecated Use `linesTangentToTwo` once per point, with the point as a vertex
+         * (`shapes.vertex.vertexFromPoint`) and a frame in the circle's plane; it gives no circle piece.
+         * It is removed in a future major version and works until then.
          * @group constraint
          * @shortname tan lines from 2 pts to circle
          * @drawable true
@@ -36261,9 +41718,12 @@ declare namespace Bit {
          * Draws the two straight lines from a point that just touch a circle.
          *
          * `positionResult` keeps the solution on one side of the circle or both, and `circleRemainder`
-         * adds the piece of the circle between the touching points.
+         * adds the piece of the circle between the touching points. It is replaced by
+         * `linesTangentToTwo`, which takes curves other than circles too.
          * @param inputs - The circle edge, the point, the tolerance and which solutions to keep
          * @returns The tangent lines, and the circle piece when asked for
+         * @deprecated Use `linesTangentToTwo` with the point as a vertex (`shapes.vertex.vertexFromPoint`)
+         * and a frame in the circle's plane; it gives no circle piece. It is removed in a future major version and works until then.
          * @group constraint
          * @shortname tan lines from pt to circle
          * @drawable true
@@ -36284,9 +41744,11 @@ declare namespace Bit {
          *
          * `positionResult` keeps the lines on one side or all of them, and `circleRemainders` adds the
          * outside or inside pieces of the circles between the touching points, which completes the belt
-         * shape.
+         * shape. It is replaced by `linesTangentToTwo`, which takes curves other than circles too.
          * @param inputs - The two circle edges, the tolerance and which solutions and circle pieces to keep
          * @returns The tangent lines, and the circle pieces when asked for
+         * @deprecated Use `linesTangentToTwo` with the two circles and a frame in their plane; it gives no
+         * circle pieces. It is removed in a future major version and works until then.
          * @group constraint
          * @shortname tan lines on two circles
          * @drawable true
@@ -36304,8 +41766,12 @@ declare namespace Bit {
         constraintTanLinesOnTwoCircles(inputs: Inputs.OCCT.ConstraintTanLinesOnTwoCirclesDto<Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.OCCT.TopoDSShapePointer[]>;
         /**
          * Draws the circles of a given radius that just touch two circles at once.
+         *
+         * It is replaced by `circlesTangentToTwoWithRadius`, which takes curves other than circles too.
          * @param inputs - The two circle edges, the tolerance and the radius of the new circles
          * @returns The tangent circles
+         * @deprecated Use `circlesTangentToTwoWithRadius` with the two circles and a frame in their plane.
+         * It is removed in a future major version and works until then.
          * @group constraint
          * @shortname tan circles on two circles
          * @drawable true
@@ -36317,8 +41783,13 @@ declare namespace Bit {
         constraintTanCirclesOnTwoCircles(inputs: Inputs.OCCT.ConstraintTanCirclesOnTwoCirclesDto<Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.OCCT.TopoDSShapePointer[]>;
         /**
          * Draws the circles of a given radius that pass through a point and just touch a circle.
+         *
+         * It is replaced by `circlesTangentToTwoWithRadius`, which takes a vertex and a curve other than a
+         * circle too.
          * @param inputs - The circle edge, the point, the tolerance and the radius of the new circles
          * @returns The tangent circles
+         * @deprecated Use `circlesTangentToTwoWithRadius` with the circle, the point as a vertex
+         * (`shapes.vertex.vertexFromPoint`) and a frame in the circle's plane. It is removed in a future major version and works until then.
          * @group constraint
          * @shortname tan circles on circle and pnt
          * @drawable true
@@ -36328,6 +41799,123 @@ declare namespace Bit {
          * ```
          */
         constraintTanCirclesOnCircleAndPnt(inputs: Inputs.OCCT.ConstraintTanCirclesOnCircleAndPntDto<Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.OCCT.TopoDSShapePointer[]>;
+        /**
+         * Draws every circle that touches three edges, or passes through the vertices among them, in the
+         * plane of a frame.
+         *
+         * Straight edges count as endless lines and arcs as whole circles unless `onArgumentsOnly` is
+         * set; other curves are touched within their ends. A circle that is one of the edges is left out.
+         * @param inputs - The three edges or vertices, the plane, the tolerance and whether the circles must touch the edges themselves
+         * @returns One whole circle per solution
+         * @group constraint
+         * @shortname circles tangent to three
+         * @drawable true
+         * @example
+         * ```typescript
+         * const circles = await bitbybit.occt.shapes.edge.circlesTangentToThree({
+         *     shapes: [sideA, sideB, sideC],
+         *     frame: { origin: [0, 0, 0], normal: [0, 1, 0], direction: [1, 0, 0] },
+         *     tolerance: 1e-7,
+         *     onArgumentsOnly: true,
+         * });
+         * ```
+         */
+        circlesTangentToThree(inputs: Inputs.OCCT.CirclesTangentToThreeDto<Inputs.OCCT.TopoDSEdgePointer | Inputs.OCCT.TopoDSVertexPointer>): Promise<Inputs.OCCT.TopoDSEdgePointer[]>;
+        /**
+         * Draws every circle of a given radius that touches two edges, or passes through the vertices
+         * among them, in the plane of a frame.
+         *
+         * Straight edges count as endless lines and arcs as whole circles unless `onArgumentsOnly` is
+         * set; other curves are touched within their ends. A circle that is one of the given edges is
+         * left out.
+         * @param inputs - The two edges or vertices, the plane, the radius, the tolerance and whether the circles must touch the edges themselves
+         * @returns One whole circle per solution
+         * @group constraint
+         * @shortname circles tangent to two with radius
+         * @drawable true
+         * @example
+         * ```typescript
+         * const fillets = await bitbybit.occt.shapes.edge.circlesTangentToTwoWithRadius({
+         *     shapes: [wall, floor],
+         *     frame: { origin: [0, 0, 0], normal: [0, 1, 0], direction: [1, 0, 0] },
+         *     radius: 2,
+         *     tolerance: 1e-7,
+         *     onArgumentsOnly: true,
+         * });
+         * ```
+         */
+        circlesTangentToTwoWithRadius(inputs: Inputs.OCCT.CirclesTangentToTwoWithRadiusDto<Inputs.OCCT.TopoDSEdgePointer | Inputs.OCCT.TopoDSVertexPointer>): Promise<Inputs.OCCT.TopoDSEdgePointer[]>;
+        /**
+         * Draws every circle centered on an edge that touches two other edges, or passes through the
+         * vertices among them, in the plane of a frame.
+         *
+         * Straight edges count as endless lines and arcs as whole circles, the edge of centers too,
+         * unless `onArgumentsOnly` is set, which also keeps each center within `centerOn`. Other curves
+         * are touched within their ends.
+         * @param inputs - The two edges or vertices, the edge of centers, the plane, the tolerance and whether the circles must touch the edges themselves
+         * @returns One whole circle per solution
+         * @group constraint
+         * @shortname circles tangent to two centered on
+         * @drawable true
+         * @example
+         * ```typescript
+         * const circles = await bitbybit.occt.shapes.edge.circlesTangentToTwoCenteredOn({
+         *     shapes: [top, bottom],
+         *     centerOn: axis,
+         *     frame: { origin: [0, 0, 0], normal: [0, 1, 0], direction: [1, 0, 0] },
+         *     tolerance: 1e-7,
+         *     onArgumentsOnly: false,
+         * });
+         * ```
+         */
+        circlesTangentToTwoCenteredOn(inputs: Inputs.OCCT.CirclesTangentToTwoCenteredOnDto<Inputs.OCCT.TopoDSEdgePointer | Inputs.OCCT.TopoDSVertexPointer>): Promise<Inputs.OCCT.TopoDSEdgePointer[]>;
+        /**
+         * Draws every straight line that touches two curved edges, or touches one and passes through a
+         * vertex, in the plane of a frame.
+         *
+         * Each line runs from the first shape to the second, like a belt between two wheels. Arcs count
+         * as whole circles unless `onArgumentsOnly` is set; straight edges and two vertices are refused.
+         * @param inputs - The two shapes, the plane, the angular tolerance and whether the lines must touch the edges themselves
+         * @returns One line per solution, from contact to contact
+         * @group constraint
+         * @shortname lines tangent to two
+         * @drawable true
+         * @example
+         * ```typescript
+         * const belt = await bitbybit.occt.shapes.edge.linesTangentToTwo({
+         *     shapes: [wheelA, wheelB],
+         *     frame: { origin: [0, 0, 0], normal: [0, 1, 0], direction: [1, 0, 0] },
+         *     angularTolerance: 1e-6,
+         *     onArgumentsOnly: false,
+         * });
+         * ```
+         */
+        linesTangentToTwo(inputs: Inputs.OCCT.LinesTangentToTwoDto<Inputs.OCCT.TopoDSEdgePointer | Inputs.OCCT.TopoDSVertexPointer>): Promise<Inputs.OCCT.TopoDSEdgePointer[]>;
+        /**
+         * Draws every straight line that touches a curved edge at an angle to a straight reference edge,
+         * in the plane of a frame.
+         *
+         * The angle, in degrees, turns counterclockwise about the frame's normal. Each line runs from its
+         * touch to the reference's line; a parallel one is centered on its touch, as long as the
+         * reference.
+         * @param inputs - The curve, the reference, the plane, the angle in degrees, the tolerance and whether the lines must touch the edges themselves
+         * @returns One line per solution, from the touch to the reference
+         * @group constraint
+         * @shortname lines tangent at angle
+         * @drawable true
+         * @example
+         * ```typescript
+         * const tangents = await bitbybit.occt.shapes.edge.linesTangentAtAngle({
+         *     shape: arc,
+         *     reference: baseLine,
+         *     frame: { origin: [0, 0, 0], normal: [0, 1, 0], direction: [1, 0, 0] },
+         *     angle: 30,
+         *     angularTolerance: 1e-6,
+         *     onArgumentsOnly: false,
+         * });
+         * ```
+         */
+        linesTangentAtAngle(inputs: Inputs.OCCT.LinesTangentAtAngleDto<Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.OCCT.TopoDSEdgePointer[]>;
         /**
          * Tells whether an edge is a straight line.
          * @param inputs - The edge
@@ -36357,12 +41945,13 @@ declare namespace Bit {
     }
     /**
      * Faces in OpenCascade: bounded pieces of a surface, flat or curved, with an outer boundary wire
-     * and optional inner wires that make holes. Build them from wires or surfaces, or as ready-made
-     * flat shapes (circles, rectangles, stars, beam profiles) that lie on the ground plane unless
-     * `direction` says otherwise; walk their surface through UV parameters to get points, normals and
-     * grids of wires; cut hole patterns into them; and measure area and center of mass. U and V are the
-     * two directions of a surface, given here as fractions from 0 to 1 of the face's own range. Faces
-     * join edge to edge into shells, which `shapes.shell` handles.
+     * and optional inner wires that make holes. Build them from wires or surfaces, through point grids,
+     * between or inside edges, or as ready-made flat shapes (circles, rectangles, stars, beam profiles)
+     * that lie on the ground plane unless `direction` says otherwise; walk their surface through UV
+     * parameters to get points, normals, iso curves and grids of wires; cut hole patterns into them, lay
+     * them flat, and measure area and center of mass. U and V are the two directions of a surface, given
+     * here as fractions from 0 to 1 of the face's own range. Faces join edge to edge into shells, which
+     * `shapes.shell` handles.
      */
     declare class OCCTFace {
         private readonly occWorkerManager;
@@ -36655,6 +42244,113 @@ declare namespace Bit {
          * ```
          */
         faceFromSurfaceAndWire(inputs: Inputs.OCCT.FaceFromSurfaceAndWireDto<Inputs.OCCT.GeomSurfacePointer, Inputs.OCCT.TopoDSWirePointer>): Promise<Inputs.OCCT.TopoDSFacePointer>;
+        /**
+         * Creates a B-spline face through a grid of points, or near them.
+         *
+         * The rows step along u and each row runs along v. Interpolating passes through every point at
+         * degree 3, closed in u when `periodic`; approximating keeps within `tolerance` at a degree from
+         * `degreeMin` to `degreeMax`. Neighbouring rows or columns holding the same points are refused.
+         * @param inputs - The rows of points, whether to interpolate, and the degrees and tolerance of an approximation
+         * @returns The face
+         * @group from
+         * @shortname face from point grid
+         * @drawable true
+         * @example
+         * ```typescript
+         * const face = await bitbybit.occt.shapes.face.fromPointGrid({
+         *     points: [
+         *         [[0, 0, 0], [0, 1, 5], [0, 0, 10]],
+         *         [[5, 2, 0], [5, 3, 5], [5, 2, 10]],
+         *         [[10, 0, 0], [10, 1, 5], [10, 0, 10]],
+         *     ],
+         *     interpolate: true,
+         * });
+         * ```
+         */
+        fromPointGrid(inputs: Inputs.OCCT.FaceFromPointGridDto): Promise<Inputs.OCCT.TopoDSFacePointer>;
+        /**
+         * Creates the ruled surface between two edges, or two wires edge by edge: straight lines from one
+         * to the other.
+         *
+         * Each line joins the points at the same share of the two curves, so reversing one twists the
+         * surface. Wires need as many edges each, paired as each wire runs. The shapes given are left
+         * unchanged.
+         * @param inputs - Two edges or two wires
+         * @returns A face for two edges, a shell of one face per pair of edges for two wires
+         * @group from
+         * @shortname ruled between
+         * @drawable true
+         * @example
+         * ```typescript
+         * const bottom = await bitbybit.occt.shapes.edge.line({ start: [0, 0, 0], end: [10, 0, 0] });
+         * const top = await bitbybit.occt.shapes.edge.arcThroughThreePoints({ start: [0, 5, 0], middle: [5, 5, 3], end: [10, 5, 0] });
+         * const face = await bitbybit.occt.shapes.face.ruledBetween({ shapeA: bottom, shapeB: top });
+         * ```
+         */
+        ruledBetween(inputs: Inputs.OCCT.TwoShapesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Creates a B-spline face bounded by two, three or four edges.
+         *
+         * Four edges, in any order and direction, must close up. Of three, one must meet the other two,
+         * and a straight side closes their free ends. Two are opposite sides joined start to start; the
+         * curved style instead sweeps one along the other from a shared corner.
+         * @param inputs - The boundary edges and the filling style
+         * @returns The face
+         * @group from
+         * @shortname boundary patch
+         * @drawable true
+         * @example
+         * ```typescript
+         * const edges = await bitbybit.occt.shapes.edge.fromPoints({ points: [[0, 0, 0], [10, 0, 2], [10, 10, 0], [0, 10, 2], [0, 0, 0]] });
+         * const patch = await bitbybit.occt.shapes.face.boundaryPatch({ edges, style: Bit.Inputs.OCCT.fillingStyleEnum.coons });
+         * ```
+         */
+        boundaryPatch(inputs: Inputs.OCCT.BoundaryPatchDto<Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.OCCT.TopoDSFacePointer>;
+        /**
+         * Creates a face that fills a closed loop of edges and passes near given points.
+         *
+         * The edges may come in any order and direction. Each continuity says whether the patch passes
+         * through its edge, meets the face beside it at a tangent, or also bends as it does; an edge that
+         * stores no face takes that face in `supports`.
+         * @param inputs - The boundary edges, their continuities and support faces, the points and the fit's settings
+         * @returns The face
+         * @group from
+         * @shortname fill patch
+         * @drawable true
+         * @example
+         * ```typescript
+         * const cylinder = await bitbybit.occt.shapes.solid.createCylinder({ radius: 2, height: 5, center: [0, 0, 0], direction: [0, 1, 0] });
+         * const side = await bitbybit.occt.shapes.face.getFace({ shape: cylinder, index: 0 });
+         * const rim = await bitbybit.occt.shapes.edge.getEdge({ shape: cylinder, index: 0 });
+         * const dome = await bitbybit.occt.shapes.face.fillPatch({
+         *     edges: [rim],
+         *     continuities: [Bit.Inputs.OCCT.continuityEnum.tangent],
+         *     supports: [side],
+         *     points: [[0, 7, 0]],
+         * });
+         * ```
+         */
+        fillPatch(inputs: Inputs.OCCT.FillPatchDto<Inputs.OCCT.TopoDSEdgePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSFacePointer>;
+        /**
+         * Lays a plane, cylinder or cone face out flat without stretching it, as the pattern a sheet is
+         * cut from.
+         *
+         * Lengths and areas are kept, holes and notches included, and a closed face opens along its seam.
+         * The flat face lies on the ground plane facing +Y, as the other flat shapes do, ready for a DXF
+         * export.
+         * @param inputs - The face and the tolerance of the flat edges
+         * @returns The flat face on the XZ plane
+         * @group develop
+         * @shortname unroll
+         * @drawable true
+         * @example
+         * ```typescript
+         * const cylinder = await bitbybit.occt.shapes.solid.createCylinder({ radius: 2, height: 5, center: [0, 0, 0], direction: [0, 1, 0] });
+         * const wall = await bitbybit.occt.shapes.face.getFace({ shape: cylinder, index: 0 });
+         * const pattern = await bitbybit.occt.shapes.face.unroll({ shape: wall, tolerance: 1e-4 });
+         * ```
+         */
+        unroll(inputs: Inputs.OCCT.UnrollFaceDto<Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSFacePointer>;
         /**
          * Creates a flat face from a list of corner points, closing the outline from the last point
          * back to the first.
@@ -37087,9 +42783,9 @@ declare namespace Bit {
          * Lays rectangular wires over a face, one per cell of an `nrRectanglesU` by `nrRectanglesV`
          * division of its UV range, following the surface.
          *
-         * The border offsets trim the range at each end. Each rectangle sits centered in its cell,
-         * sized by the scale patterns as a fraction of it; the fillet pattern rounds corners, the
-         * inclusion pattern skips cells.
+         * Border offsets trim the range; each rectangle is centered in its cell, sized by the scale
+         * patterns, rounded by the fillet pattern, skipped by the inclusion pattern. One crossing a trim
+         * or hole is left out.
          * @param inputs - The face, the cell counts, the border offsets and the optional patterns
          * @returns The rectangle wires, cell by cell
          * @group patterns
@@ -37114,9 +42810,9 @@ declare namespace Bit {
         /**
          * Cuts a grid of rectangular holes into a face and returns the perforated face.
          *
-         * The holes follow the same cells and patterns as `subdivideToRectangleWires`; when no scale
-         * pattern is given each hole covers half its cell. With `holesToFaces` true the result also
-         * carries one face per hole, after the perforated face, which is handy for lids or fillers.
+         * The holes follow the cells and patterns of `subdivideToRectangleWires`; with no scale pattern
+         * each covers half its cell, and existing holes stay. With `holesToFaces` true one face per hole
+         * follows the perforated face.
          * @param inputs - The face, the cell counts, the border offsets, the optional patterns and whether to return the hole faces
          * @returns The perforated face, followed by the hole faces when asked for
          * @group patterns
@@ -37143,9 +42839,9 @@ declare namespace Bit {
          * Lays a honeycomb of hexagonal wires over a face, `nrHexagonsU` by `nrHexagonsV` of them
          * fitted into its UV range, each following the surface.
          *
-         * The border offsets trim a fraction of the range at each end; `flatU` turns a flat side toward
-         * U, the extend flags stretch the outer rows past the edges. Scale, fillet and inclusion
-         * patterns repeat per hexagon.
+         * Border offsets trim the range; `flatU` turns a flat side toward U, the extend flags stretch
+         * the outer rows past the edges, and patterns repeat per hexagon. One crossing a trim or hole is
+         * left out.
          * @param inputs - The face, the hexagon counts, the orientation, the border offsets, the extend flags and the optional patterns
          * @returns The hexagon wires, row by row
          * @group patterns
@@ -37171,9 +42867,9 @@ declare namespace Bit {
         /**
          * Cuts a honeycomb of hexagonal holes into a face and returns the perforated face.
          *
-         * The holes follow the same layout and patterns as `subdivideToHexagonWires`; when no scale
-         * pattern is given each hole is half the size of its hexagon. With `holesToFaces` true the
-         * result also carries one face per hole, after the perforated face.
+         * The holes follow the layout and patterns of `subdivideToHexagonWires`; with no scale pattern
+         * each is half its hexagon, and existing holes stay. With `holesToFaces` true one face per hole
+         * follows the perforated face.
          * @param inputs - The face, the hexagon counts, the orientation, the border offsets, the optional patterns and whether to return the hole faces
          * @returns The perforated face, followed by the hole faces when asked for
          * @group patterns
@@ -37335,8 +43031,8 @@ declare namespace Bit {
          * Finds the surface normals of a face at several UV fraction pairs at once.
          *
          * Each pair holds U then V, both from 0 to 1 over the face's range. The normals are unit
-         * vectors of the underlying surface; unlike `normalOnUV`, they are not flipped for a reversed
-         * face.
+         * vectors and follow the face's orientation, as `normalOnUV` does, so a reversed face gives them
+         * flipped.
          * @param inputs - The face and the list of U and V fraction pairs
          * @returns One unit normal per pair, in the same order
          * @group extract
@@ -37348,6 +43044,92 @@ declare namespace Bit {
          * ```
          */
         normalsOnUVs(inputs: Inputs.OCCT.DataOnUVsDto<Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.Base.Vector3[]>;
+        /**
+         * Finds the frame of a face at a UV fraction pair, where a profile or a copy would sit: at the
+         * surface point, normal as `normalOnUV` gives it, direction along U.
+         *
+         * U and V run from 0 to 1 over the face's range. Where the surface has no normal, as at a cone's
+         * point, it is read inside the face.
+         * @param inputs - The face and the U and V fractions
+         * @returns The frame at that place
+         * @group frames
+         * @shortname frame on uv
+         * @drawable true
+         * @example
+         * ```typescript
+         * const frame = await bitbybit.occt.shapes.face.frameOnUV({ shape: face, paramU: 0.5, paramV: 0.5 });
+         * ```
+         */
+        frameOnUV(inputs: Inputs.OCCT.DataOnUVDto<Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.Base.Frame>;
+        /**
+         * Finds the frames of a face at several UV fraction pairs at once, each as `frameOnUV` finds it.
+         * @param inputs - The face and the list of U and V fraction pairs
+         * @returns One frame per pair, in the same order
+         * @group frames
+         * @shortname frames on uvs
+         * @drawable true
+         * @example
+         * ```typescript
+         * const frames = await bitbybit.occt.shapes.face.framesOnUVs({ shape: face, paramsUV: [[0.25, 0.5], [0.75, 0.5]] });
+         * ```
+         */
+        framesOnUVs(inputs: Inputs.OCCT.DataOnUVsDto<Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.Base.Frame[]>;
+        /**
+         * Places frames on a face in a grid, one at each point `subdivideToPoints` gives for the same
+         * inputs, each turned as `frameOnUV` turns it.
+         *
+         * The frames come in the order of the points, their normals match `subdivideToNormals` and
+         * their X axes run along the face's U direction.
+         * @param inputs - The face, the number of points in U and V, and the shift and removal options
+         * @returns One frame per point of the grid, in order
+         * @group frames
+         * @shortname subdivide to frames
+         * @drawable true
+         * @example
+         * ```typescript
+         * const frames = await bitbybit.occt.shapes.face.subdivideToFrames({
+         *     shape: face,
+         *     nrDivisionsU: 5,
+         *     nrDivisionsV: 5,
+         *     shiftHalfStepU: false,
+         *     removeStartEdgeU: false,
+         *     removeEndEdgeU: false,
+         *     shiftHalfStepV: false,
+         *     removeStartEdgeV: false,
+         *     removeEndEdgeV: false,
+         * });
+         * const studs = await bitbybit.occt.transforms.placeOnFrames({ shape: stud, frames });
+         * ```
+         */
+        subdivideToFrames(inputs: Inputs.OCCT.FaceSubdivisionDto<Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.Base.Frame[]>;
+        /**
+         * Finds the frame of a face at the place nearest a point, as `frameOnUV` finds it there; a point
+         * beyond the face's edge comes to the edge.
+         * @param inputs - The face and the point
+         * @returns The frame at the nearest place
+         * @group frames
+         * @shortname frame nearest point
+         * @drawable true
+         * @example
+         * ```typescript
+         * const frame = await bitbybit.occt.shapes.face.frameNearestPoint({ shape: face, point: [1, 2, 10] });
+         * ```
+         */
+        frameNearestPoint(inputs: Inputs.OCCT.FrameNearestPointDto<Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.Base.Frame>;
+        /**
+         * Finds the frames of a face at the places nearest several points at once, each as
+         * `frameNearestPoint` finds it.
+         * @param inputs - The face and the points
+         * @returns One frame per point, in the same order
+         * @group frames
+         * @shortname frames nearest points
+         * @drawable true
+         * @example
+         * ```typescript
+         * const frames = await bitbybit.occt.shapes.face.framesNearestPoints({ shape: face, points: [[1, 2, 10], [4, 5, 10]] });
+         * ```
+         */
+        framesNearestPoints(inputs: Inputs.OCCT.FramesNearestPointsDto<Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.Base.Frame[]>;
         /**
          * Places evenly spaced points along one straight line across a face's UV range.
          *
@@ -37386,7 +43168,8 @@ declare namespace Bit {
          * Draws several wires across a face, one per parameter value, following the surface.
          *
          * With `isU` true each wire sits at its fraction of the U range and runs over the whole V
-         * range; with false the roles swap.
+         * range; with false the roles swap. The wires ignore the face's trims; `isoCurves` gives the
+         * exact curves trimmed to the face.
          * @param inputs - The face, the direction and the fractions along it
          * @returns One wire per fraction, in the same order
          * @group extract
@@ -37398,6 +43181,22 @@ declare namespace Bit {
          * ```
          */
         wiresAlongParams(inputs: Inputs.OCCT.WiresAlongParamsDto<Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSWirePointer[]>;
+        /**
+         * Finds a face's exact iso curves at fractions of its UV range, trimmed to the face.
+         *
+         * With `isU` true each curve holds u at its fraction and runs along v; false swaps them. A curve
+         * stops at a hole and goes on past it; 0 and 1 give the boundary, and values outside give none.
+         * @param inputs - The face, the direction and the fractions
+         * @returns The edges, value after value, each value's pieces in order along the curve
+         * @group extract
+         * @shortname iso curves
+         * @drawable true
+         * @example
+         * ```typescript
+         * const curves = await bitbybit.occt.shapes.face.isoCurves({ shape: face, isU: true, params: [0.25, 0.5, 0.75] });
+         * ```
+         */
+        isoCurves(inputs: Inputs.OCCT.WiresAlongParamsDto<Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSEdgePointer[]>;
         /**
          * Reads the smallest U parameter value of a face, in the surface's own units.
          *
@@ -37564,7 +43363,7 @@ declare namespace Bit {
     }
     /**
      * Questions and repairs that apply to any OpenCascade shape whatever its kind: what type it is,
-     * which way it is oriented, whether it is closed, valid or the same object as another, and
+     * which way it is oriented, whether it is closed or the same object as another, and
      * `unifySameDomain`, which merges faces and edges that lie on one surface after a boolean. For work
      * specific to one kind, use the vertex, edge, wire, face, shell, solid and compound classes beside
      * this one.
@@ -37796,10 +43595,11 @@ declare namespace Bit {
         /**
          * Joins faces into a shell by sewing their edges together where they meet within the tolerance.
          *
-         * Faces whose edges are further apart than the tolerance stay unjoined, so a shell meant to be
-         * closed may come out open; a larger tolerance sews more, a smaller one is more precise.
+         * Faces further apart than the tolerance stay unjoined, so a closed shell may come out open; a
+         * larger tolerance sews more. A lone face comes back as that face, and faces that do not all
+         * join as a compound of what did.
          * @param inputs - The faces and the sewing tolerance
-         * @returns The shell made from the faces
+         * @returns The shell, or the face or compound when the faces do not join into one
          * @group create
          * @shortname sew
          * @drawable true
@@ -38523,10 +44323,10 @@ declare namespace Bit {
      * outline. Build them from points and curves (polylines, B-splines, Beziers, interpolations,
      * helices, spirals), as ready-made flat outlines (circles, rectangles, stars, beam profiles, text)
      * that lie on the ground plane unless `direction` says otherwise, or by joining and splitting
-     * existing edges and wires; read them back as points, tangents, lengths and centers; map them onto
-     * faces or project them onto shapes. Parameters along a wire run from 0 at its start to 1 at its
-     * end and follow each edge's own parameter, not distance. A closed wire is what `shapes.face` fills
-     * to make a face.
+     * existing edges and wires; read them back as points, tangents, lengths and centers; offset an open
+     * one to one side; map, wrap or project them onto faces and shapes. Parameters along a wire run from
+     * 0 at its start to 1 at its end and follow each edge's own parameter, not distance. A closed wire is
+     * what `shapes.face` fills to make a face.
      */
     declare class OCCTWire {
         private readonly occWorkerManager;
@@ -38811,6 +44611,57 @@ declare namespace Bit {
          * ```
          */
         splitOnPoints(inputs: Inputs.OCCT.SplitWireOnPointsDto<Inputs.OCCT.TopoDSWirePointer>): Promise<Inputs.OCCT.TopoDSWirePointer[]>;
+        /**
+         * Cuts a wire into pieces at places given as fractions from 0 at its start to 1 at its end, every
+         * edge an equal share.
+         *
+         * A piece running across a corner holds an edge on each side. Ends and repeats are skipped, so n
+         * places inside give n + 1 pieces; an edge is cut as a one-edge wire.
+         * @param inputs - The wire and the fractions to cut at
+         * @returns The pieces as wires, in order from the start
+         * @group edit
+         * @shortname split wire at params
+         * @drawable true
+         * @example
+         * ```typescript
+         * const [first, second] = await bitbybit.occt.shapes.wire.splitWireAtParams({ shape: wire, params: [0.5] });
+         * ```
+         */
+        splitWireAtParams(inputs: Inputs.OCCT.DataOnGeometryAtParamsDto<Inputs.OCCT.TopoDSWirePointer>): Promise<Inputs.OCCT.TopoDSWirePointer[]>;
+        /**
+         * Cuts a wire into pieces at places given as lengths along it from its start, in model units.
+         *
+         * A piece running across a corner holds an edge on each side. Lengths at or past the ends and
+         * repeats are skipped, so n lengths inside give n + 1 pieces; an edge is cut as a wire of that one
+         * edge.
+         * @param inputs - The wire and the lengths to cut at
+         * @returns The pieces as wires, in order from the start
+         * @group edit
+         * @shortname split wire at lengths
+         * @drawable true
+         * @example
+         * ```typescript
+         * const dashes = await bitbybit.occt.shapes.wire.splitWireAtLengths({ shape: wire, lengths: [1, 2, 3, 4] });
+         * ```
+         */
+        splitWireAtLengths(inputs: Inputs.OCCT.DataOnGeometryAtLengthsDto<Inputs.OCCT.TopoDSWirePointer>): Promise<Inputs.OCCT.TopoDSWirePointer[]>;
+        /**
+         * Draws the offset of an open wire or an edge on one side of it, not the loop
+         * `operations.offset` draws around it.
+         *
+         * A positive distance lies to the right of the wire's direction, seen from the side `face` looks
+         * to, or from above on the ground plane. A straight wire needs a flat `face` to give it a plane.
+         * @param inputs - The open wire or edge, an optional flat face, the distance and the corner style
+         * @returns The offset curve as a wire
+         * @group offsets
+         * @shortname offset open
+         * @drawable true
+         * @example
+         * ```typescript
+         * const alongside = await bitbybit.occt.shapes.wire.offsetOpen({ shape: path, distance: 1, joinType: Bit.Inputs.OCCT.joinTypeEnum.arc });
+         * ```
+         */
+        offsetOpen(inputs: Inputs.OCCT.OffsetOpenDto<Inputs.OCCT.TopoDSWirePointer | Inputs.OCCT.TopoDSEdgePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSWirePointer>;
         /**
          * Turns every wire of a shape into a run of points that follows its curves closely enough to
          * draw it, one list per wire.
@@ -39279,9 +45130,9 @@ declare namespace Bit {
          * Places points along a wire at a repeating pattern of gaps, such as 1, 3, 1, 3, until the wire
          * runs out.
          *
-         * `lengths` is the pattern of gaps in model units, repeated from the start; `includeFirst`
-         * keeps the start point, `includeLast` appends the end point, and `tryNext` asks for one more
-         * point at the next gap past the last.
+         * `lengths` holds the gaps in model units, repeated from the start, and must add up to more
+         * than 0 or it throws. `includeFirst` adds the start point, `includeLast` the end, and
+         * `tryNext` one point past the last gap.
          * @param inputs - The wire, the pattern of gaps and which end points to include
          * @returns The points along the wire, in order
          * @group extract
@@ -39366,6 +45217,83 @@ declare namespace Bit {
             Inputs.Base.Vector3,
             Inputs.Base.Vector3
         ]>;
+        /**
+         * Finds a frame on a wire at a parameter, from 0 where the wire starts in its own direction.
+         * `kind` sets how it follows: carried from the start without twisting, across the wire level with
+         * `up`, or in the plane it bends in; Frenet frames throw where the wire runs straight, level
+         * ones where it runs along `up`.
+         * @param inputs - The wire, the fraction along it, the kind of frame and the up vector
+         * @returns The frame at that place
+         * @group frames
+         * @shortname frame on wire at param
+         * @drawable true
+         * @example
+         * ```typescript
+         * const frame = await bitbybit.occt.shapes.wire.frameOnWireAtParam({ shape: wire, param: 0.5, kind: Bit.Inputs.OCCT.curveFrameEnum.perpendicular, up: [0, 0, 1] });
+         * ```
+         */
+        frameOnWireAtParam(inputs: Inputs.OCCT.FrameOnCurveAtParamDto<Inputs.OCCT.TopoDSWirePointer>): Promise<Inputs.Base.Frame>;
+        /**
+         * Finds a frame on a wire at a length from its start, as `frameOnWireAtParam` finds it at a
+         * parameter.
+         * @param inputs - The wire, the length along it, the kind of frame and the up vector
+         * @returns The frame at that place
+         * @group frames
+         * @shortname frame on wire at length
+         * @drawable true
+         * @example
+         * ```typescript
+         * const frame = await bitbybit.occt.shapes.wire.frameOnWireAtLength({ shape: wire, length: 2, kind: Bit.Inputs.OCCT.curveFrameEnum.perpendicular, up: [0, 0, 1] });
+         * ```
+         */
+        frameOnWireAtLength(inputs: Inputs.OCCT.FrameOnCurveAtLengthDto<Inputs.OCCT.TopoDSWirePointer>): Promise<Inputs.Base.Frame>;
+        /**
+         * Finds frames on a wire at several parameters in one pass. Rotation-minimizing frames are
+         * carried along the whole wire from its start, so each is the frame a swept profile would ride on
+         * there.
+         * @param inputs - The wire, the fractions along it, the kind of frame and the up vector
+         * @returns One frame per parameter, in the same order
+         * @group frames
+         * @shortname frames on wire at params
+         * @drawable true
+         * @example
+         * ```typescript
+         * const frames = await bitbybit.occt.shapes.wire.framesOnWireAtParams({ shape: wire, params: [0, 0.5, 1], kind: Bit.Inputs.OCCT.curveFrameEnum.rotationMinimizing, up: [0, 0, 1] });
+         * ```
+         */
+        framesOnWireAtParams(inputs: Inputs.OCCT.FramesOnCurveAtParamsDto<Inputs.OCCT.TopoDSWirePointer>): Promise<Inputs.Base.Frame[]>;
+        /**
+         * Finds frames on a wire at several lengths from its start in one pass, as
+         * `framesOnWireAtParams` finds them at parameters.
+         * @param inputs - The wire, the lengths along it, the kind of frame and the up vector
+         * @returns One frame per length, in the same order
+         * @group frames
+         * @shortname frames on wire at lengths
+         * @drawable true
+         * @example
+         * ```typescript
+         * const frames = await bitbybit.occt.shapes.wire.framesOnWireAtLengths({ shape: wire, lengths: [0, 1, 2], kind: Bit.Inputs.OCCT.curveFrameEnum.rotationMinimizing, up: [0, 0, 1] });
+         * ```
+         */
+        framesOnWireAtLengths(inputs: Inputs.OCCT.FramesOnCurveAtLengthsDto<Inputs.OCCT.TopoDSWirePointer>): Promise<Inputs.Base.Frame[]>;
+        /**
+         * Spreads `count` frames evenly by length along a wire, the first at its start, to place copies
+         * along a path or to carry a profile along it.
+         *
+         * On an open wire the last sits at the end; on a closed wire they go around the loop without
+         * repeating the first, unless `skipEndOnClosed` is off.
+         * @param inputs - The wire, how many frames, the kind of frame, the up vector and the closed-wire rule
+         * @returns The frames from the start onward
+         * @group frames
+         * @shortname frames along wire
+         * @drawable true
+         * @example
+         * ```typescript
+         * const circle = await bitbybit.occt.shapes.wire.createCircleWire({ radius: 5, center: [0, 0, 0], direction: [0, 1, 0] });
+         * const frames = await bitbybit.occt.shapes.wire.framesAlongWire({ shape: circle, count: 10, kind: Bit.Inputs.OCCT.curveFrameEnum.rotationMinimizing, up: [0, 0, 1], skipEndOnClosed: true });
+         * ```
+         */
+        framesAlongWire(inputs: Inputs.OCCT.FramesAlongWireDto<Inputs.OCCT.TopoDSWirePointer>): Promise<Inputs.Base.Frame[]>;
         /**
          * Reads the point where a wire starts, in the wire's own direction.
          * @param inputs - The wire
@@ -40011,6 +45939,24 @@ declare namespace Bit {
          */
         placeWiresOnFace(inputs: Inputs.OCCT.WiresOnFaceDto<Inputs.OCCT.TopoDSWirePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSWirePointer[]>;
         /**
+         * Wraps flat wires drawn on the ground plane around a plane, cylinder or cone face, keeping every
+         * length, as a label wraps a can.
+         *
+         * On a cylinder of radius r, X runs around it from the face's start, 2 pi r to a turn, and Z runs
+         * along its axis. The wires follow the surface past the face's edges.
+         * @param inputs - The flat wires or edges, the face and the tolerance
+         * @returns The wrapped wires, in the same order
+         * @group place
+         * @shortname wrap wires on face
+         * @drawable true
+         * @example
+         * ```typescript
+         * const band = await bitbybit.occt.shapes.wire.createRectangleWire({ width: 6, length: 1, center: [3, 0, 2], direction: [0, 1, 0] });
+         * const wrapped = await bitbybit.occt.shapes.wire.wrapWiresOnFace({ wires: [band], face: cylinderWall, tolerance: 1e-4 });
+         * ```
+         */
+        wrapWiresOnFace(inputs: Inputs.OCCT.WrapWiresOnFaceDto<Inputs.OCCT.TopoDSWirePointer | Inputs.OCCT.TopoDSEdgePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSWirePointer[]>;
+        /**
          * Closes an open wire with a straight edge from its end point back to its start point.
          *
          * A wire whose ends already meet is returned as it is.
@@ -40055,6 +46001,40 @@ declare namespace Bit {
          * ```
          */
         projectWires(inputs: Inputs.OCCT.ProjectWiresDto<Inputs.OCCT.TopoDSWirePointer, Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSCompoundPointer[]>;
+        /**
+         * Lays edges or wires onto the faces of a shape along the surface's normals, rather than along one
+         * direction as `project` does.
+         *
+         * The pieces join into wires, one per loop or chain, within the faces' edges. `maxDistance` drops
+         * the parts landing farther than it; a projection that misses gives an empty compound.
+         * @param inputs - The edges or wires, the shape, the fitting tolerance and the greatest distance
+         * @returns A compound of the projected wires
+         * @group place
+         * @shortname project normal
+         * @drawable true
+         * @example
+         * ```typescript
+         * const onBall = await bitbybit.occt.shapes.wire.projectNormal({ wires: [circle], shape: sphere, tolerance: 1e-4, maxDistance: 0 });
+         * ```
+         */
+        projectNormal(inputs: Inputs.OCCT.ProjectNormalDto<Inputs.OCCT.TopoDSWirePointer | Inputs.OCCT.TopoDSEdgePointer, Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSCompoundPointer>;
+        /**
+         * Casts an edge or a wire onto the faces of a shape along the lines from a point through it, like
+         * the shadow a lamp throws.
+         *
+         * The result is a compound of the wires where those lines meet the shape, near side and far side
+         * alike; lines that miss give an empty compound.
+         * @param inputs - The edge or wire, the shape and the point to cast from
+         * @returns A compound of the projected wires
+         * @group place
+         * @shortname project conical
+         * @drawable true
+         * @example
+         * ```typescript
+         * const shadow = await bitbybit.occt.shapes.wire.projectConical({ wire: square, shape: floor, from: [0, 20, 0] });
+         * ```
+         */
+        projectConical(inputs: Inputs.OCCT.ProjectConicalDto<Inputs.OCCT.TopoDSWirePointer | Inputs.OCCT.TopoDSEdgePointer, Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSCompoundPointer>;
     }
     /**
      * Importing SVG drawings as OpenCascade shapes. The importer parses the document (paths, basic
@@ -40249,6 +46229,54 @@ declare namespace Bit {
          * ```
          */
         alignAndTranslate(inputs: Inputs.OCCT.AlignAndTranslateDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Moves a shape from one frame onto another in a single rigid motion: whatever sat on `from`
+         * sits the same way on `to`. The result shares its geometry with the shape.
+         *
+         * Leaving out `from` moves from the world frame at the origin, normal along z and direction along x.
+         * @param inputs - The shape, the frame to land on and the frame to move from
+         * @returns The moved shape
+         * @group frames
+         * @shortname orient
+         * @drawable true
+         * @example
+         * ```typescript
+         * const placed = await bitbybit.occt.transforms.orient({ shape: bracket, to: { origin: [10, 0, 0], normal: [1, 0, 0], direction: [0, 1, 0] } });
+         * ```
+         */
+        orient(inputs: Inputs.OCCT.OrientDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Places a copy of a shape on every frame, as `orient` would move it from `from`, all in one
+         * compound whose copies share the shape's geometry: an array of hundreds costs one shape's worth
+         * of geometry, and an export writes it once.
+         * @param inputs - The shape, the frames and the frame to move from
+         * @returns A compound of the placed copies, in the order of the frames
+         * @group frames
+         * @shortname place on frames
+         * @drawable true
+         * @example
+         * ```typescript
+         * const pattern = await bitbybit.occt.transforms.placeOnFrames({ shape: bolt, frames });
+         * ```
+         */
+        placeOnFrames(inputs: Inputs.OCCT.PlaceOnFramesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Places a copy of a shape by every placement, a matrix or a list of them, in one compound whose
+         * copies share the shape's geometry. Each must come to a turn and a move; one that scales or
+         * mirrors is refused and named, since a shared copy cannot hold either.
+         * @param inputs - The shape and one placement per copy
+         * @returns A compound of the placed copies, in the order of the placements
+         * @group frames
+         * @shortname place by matrices
+         * @drawable true
+         * @example
+         * ```typescript
+         * const frames = bitbybit.frame.polar({ count: 6, radius: 20 });
+         * const matrices = frames.map(frame => bitbybit.frame.toMatrix({ frame }));
+         * const copies = await bitbybit.occt.transforms.placeByMatrices({ shape: bolt, matrices });
+         * ```
+         */
+        placeByMatrices(inputs: Inputs.OCCT.PlaceByMatricesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
         /**
          * Moves a shape by a vector, in model units.
          * @param inputs - The shape and the vector to move it by
@@ -40564,9 +46592,9 @@ declare namespace Bit {
         /**
          * Applies a 4x4 matrix, or a list of matrices applied first to last, to a shape.
          *
-         * The matrix is column-major, so the translation sits at indices 12 to 14. A matrix that
-         * stretches or shears is allowed; build matrices with the `...ToMatrix` methods and combine
-         * them with `multiplyTransforms`. A matrix the kernel cannot apply throws an error.
+         * The matrix is column-major, with the translation at indices 12 to 14. A move, turn, mirror or
+         * even scale keeps circles and planes exact; a stretch or shear turns every surface into a
+         * B-spline, which fillets and booleans handle more slowly.
          * @param inputs - The shape and the matrix or list of matrices
          * @returns The transformed shape
          * @group by matrix
@@ -40782,9 +46810,9 @@ declare namespace Bit {
      */
     type DrawnEntity = Inputs.Draw.DrawnAny<THREEJS.Group>;
     /**
-     * Drawing anything into the scene: kernel shapes, points, lines, polylines, curves, meshes and tags
-     * all go through `drawAnyAsync`, which picks the right renderer for the entity and returns the
-     * drawn object. The `options` methods build the drawing options with defaults for each kind of
+     * Drawing anything into the scene: kernel shapes, points, lines, polylines, frames, curves, meshes
+     * and tags all go through `drawAnyAsync`, which picks the right renderer for the entity and returns
+     * the drawn object. The `options` methods build the drawing options with defaults for each kind of
      * entity, `createPBRMaterial` and `createTexture` make materials for the face slots, and a drawn
      * object can be redrawn in place by passing it back.
      */
@@ -40794,10 +46822,11 @@ declare namespace Bit {
         readonly tag: Tag;
         private defaultBasicOptions;
         private defaultPolylineOptions;
+        private defaultFrameOptions;
         /**
          * Draws any entity the library produces into the scene and gives back the drawn object: kernel
-         * shapes from OCCT, JSCAD and Manifold, points, lines, polylines, curves, meshes, tags and
-         * nodes.
+         * shapes from OCCT, JSCAD and Manifold, points, lines, polylines, frames, curves, meshes, tags
+         * and nodes.
          *
          * The options are matched to the entity, with defaults when none are given; pass the previous
          * result back in the update slot to redraw in place.
@@ -40811,14 +46840,6 @@ declare namespace Bit {
          * ```
          */
         drawAnyAsync<E extends Inputs.Draw.Entity>(inputs: Inputs.Draw.DrawAny<THREEJS.Group, E>): Promise<Inputs.Draw.Drawn<E, THREEJS.Group>>;
-        /**
-         * Every branch of the asynchronous dispatch, typed as what it can actually produce.
-         *
-         * A package that adds entity kinds overrides this rather than the public signature: two
-         * unresolved conditional types over the same `E` have no provable relation to each other, so a
-         * narrower override of `drawAnyAsync` cannot typecheck however correct it is.
-         * @ignore true
-         */
         private cachedSyncHandlers;
         /**
          * What this renderer draws each synchronous kind with, keyed by the kind's name in the ordered
@@ -40836,12 +46857,20 @@ declare namespace Bit {
          * @ignore true
          */
         private asyncHandlers;
+        /**
+         * Every branch of the asynchronous dispatch, typed as what it can actually produce.
+         *
+         * A package that adds entity kinds overrides this rather than the public signature: two
+         * unresolved conditional types over the same `E` have no provable relation to each other, so a
+         * narrower override of `drawAnyAsync` cannot typecheck however correct it is.
+         * @ignore true
+         */
         protected drawResolvedAsync(inputs: Inputs.Draw.DrawAny<THREEJS.Group>): Promise<DrawnEntity>;
         private handleDecomposedMeshShape;
         private handleDecomposedMeshes;
         /**
          * Draws an entity that needs no kernel work into the scene right away and gives back the drawn
-         * object: points, lines, polylines, tags and nodes.
+         * object: points, lines, polylines, frames, tags and nodes.
          *
          * Kernel shapes from OCCT, JSCAD and Manifold must go through `drawAnyAsync`, which waits for
          * the kernel to mesh them.
@@ -40877,16 +46906,31 @@ declare namespace Bit {
          */
         optionsSimple(inputs: Inputs.Draw.DrawBasicGeometryOptions): Inputs.Draw.DrawBasicGeometryOptions;
         /**
+         * Builds drawing options for frames: how long the axes are and their colors, whether the small
+         * grid in the frame's plane is drawn and in which color, the line width and whether the frame
+         * can be redrawn in place, with defaults for what is left out.
+         * @param inputs - The options to start from
+         * @returns The drawing options
+         * @group options
+         * @shortname frame
+         * @example
+         * ```typescript
+         * const options = bitbybit.draw.optionsFrame({ size: 2, colorX: "#ff0000", colorY: "#00ff00", colorZ: "#0000ff", drawPlane: true, colorPlane: "#808080", lineWidth: 2, updatable: false });
+         * const drawn = bitbybit.draw.drawAny({ entity: bitbybit.frame.world(), options });
+         * ```
+         */
+        optionsFrame(inputs: Inputs.Draw.DrawFrameOptions): Inputs.Draw.DrawFrameOptions;
+        /**
          * Builds the full drawing options for OCCT shapes: meshing precision, face, edge and vertex
-         * colors and sizes, index labels, arrows on edges, two-sided rendering and the triangulation
-         * cache, with defaults for what is left out.
+         * colors and sizes, index labels, arrows on edges, two-sided rendering, iso curves, a surface
+         * analysis coloring the faces and the triangulation cache, with defaults for what is left out.
          * @param inputs - The options to start from
          * @returns The drawing options
          * @group options
          * @shortname occt shape
          * @example
          * ```typescript
-         * const options = bitbybit.draw.optionsOcctShape({ faceOpacity: 1, edgeOpacity: 1, edgeColour: "#ffffff", faceColour: "#ff0000", edgeWidth: 2, drawEdges: true, drawFaces: true, drawVertices: false, vertexColour: "#ff00ff", vertexSize: 0.03, precision: 0.01, drawEdgeIndexes: false, edgeIndexHeight: 0.06, edgeIndexColour: "#ff00ff", drawFaceIndexes: false, faceIndexHeight: 0.06, faceIndexColour: "#0000ff", drawTwoSided: true, backFaceColour: "#0000ff", backFaceOpacity: 1, edgeArrowSize: 0, edgeArrowAngle: 15, keepMeshData: false, allowQualityDecrease: true, forceFaceDeflection: false });
+         * const options = bitbybit.draw.optionsOcctShape({ faceOpacity: 1, edgeOpacity: 1, edgeColour: "#ffffff", faceColour: "#ff0000", edgeWidth: 2, drawEdges: true, drawFaces: true, drawVertices: false, vertexColour: "#ff00ff", vertexSize: 0.03, precision: 0.01, drawEdgeIndexes: false, edgeIndexHeight: 0.06, edgeIndexColour: "#ff00ff", drawFaceIndexes: false, faceIndexHeight: 0.06, faceIndexColour: "#0000ff", drawTwoSided: true, backFaceColour: "#0000ff", backFaceOpacity: 1, edgeArrowSize: 0, edgeArrowAngle: 15, keepMeshData: false, allowQualityDecrease: true, forceFaceDeflection: false, drawIsoCurves: true, isoCurvesU: 5, isoCurvesV: 5, isoCurvesColour: "#808080", surfaceAnalysis: Bit.Inputs.OCCT.surfaceAnalysisEnum.gaussian, draftDirection: [0, 1, 0] });
          * ```
          */
         optionsOcctShape(inputs: Inputs.Draw.DrawOcctShapeOptions): Inputs.Draw.DrawOcctShapeOptions;
@@ -40940,6 +46984,13 @@ declare namespace Bit {
         private handlePolyline;
         private handleVerbCurve;
         private handleVerbSurface;
+        /**
+         * A frame or a list of frames drawn as one set of lines: the axes and plane grids of every
+         * frame in the list go into the same draw call, however long the list is. Whether it is one
+         * frame or a list is read from the entity, so a drawing can be redrawn with either. When no
+         * frame can be squared nothing is drawn, and an updatable drawing handed back is removed.
+         */
+        private handleFrames;
         private handlePolylines;
         private handleLines;
         private handlePoints;
@@ -40948,6 +46999,13 @@ declare namespace Bit {
         private handleTag;
         private handleTags;
         private updateAny;
+        /**
+         * The options a draw call was given, laid over the defaults of the options class for the kind
+         * being drawn: a partial object gets the same values the matching `options` method would give it.
+         */
+        private basicOptions;
+        private occtOptions;
+        private manifoldOptions;
         private handle;
         private handleAsync;
         private applyGlobalSettingsAndMetadataAndShadowCasting;
@@ -41958,6 +48016,672 @@ declare namespace Bit {
          */
         setUTCMilliseconds(inputs: Inputs.Dates.DateMillisecondsDto): Date;
     }
+    /**
+     * Frames: a frame is a point with three axes at right angles, written as its `origin`, its `normal`
+     * (the Z axis) and its `direction` (the X axis), the Y axis following from those two. Frames place
+     * things: a shape lands on one, points convert between one and the world, and frame patterns lay
+     * out copies. Every method returns new values and never changes its inputs.
+     */
+    declare class Frame {
+        private readonly vector;
+        private readonly math;
+        private readonly geometryHelper;
+        constructor(vector: Vector, math: MathBitByBit, geometryHelper: GeometryHelper);
+        /**
+         * Builds a frame from where it sits, where its Z axis points and roughly where its X axis
+         * points.
+         *
+         * `direction` is turned square to `normal` and both are scaled to length 1, so they only have
+         * to be roughly right. A `normal` of zero length or a `direction` along it throws.
+         * @param inputs - The origin, the normal and the rough X direction
+         * @returns A new frame
+         * @group create
+         * @shortname frame
+         * @drawable true
+         * @example
+         * ```typescript
+         * const tilted = bitbybit.frame.create({ origin: [0, 5, 0], normal: [0, 1, 1], direction: [1, 0, 0] });
+         * ```
+         */
+        create(inputs: Inputs.Frame.CreateFrameDto): Inputs.Base.Frame;
+        /**
+         * Gives the world frame: its origin at zero, its X, Y and Z axes along the world's.
+         *
+         * Placing something on the world frame leaves it where it is, and it is the frame the other
+         * methods use when one is left out.
+         * @returns The world frame
+         * @group create
+         * @shortname world
+         * @drawable true
+         * @example
+         * ```typescript
+         * const world = bitbybit.frame.world();
+         * const raised = bitbybit.frame.offset({ frame: world, distance: 5 });
+         * ```
+         */
+        world(): Inputs.Base.Frame;
+        /**
+         * Builds a frame lying in the XY plane: its X axis along the world X, its Y axis along the
+         * world Y and its normal along the world Z.
+         * @param inputs - Where the frame sits
+         * @returns A new frame
+         * @group create
+         * @shortname xy
+         * @drawable true
+         * @example
+         * ```typescript
+         * const floor = bitbybit.frame.xy({ origin: [0, 0, 2] });
+         * ```
+         */
+        xy(inputs: Inputs.Frame.OriginDto): Inputs.Base.Frame;
+        /**
+         * Builds a frame lying in the YZ plane: its X axis along the world Y, its Y axis along the
+         * world Z and its normal along the world X.
+         * @param inputs - Where the frame sits
+         * @returns A new frame
+         * @group create
+         * @shortname yz
+         * @drawable true
+         * @example
+         * ```typescript
+         * const side = bitbybit.frame.yz({ origin: [3, 0, 0] });
+         * ```
+         */
+        yz(inputs: Inputs.Frame.OriginDto): Inputs.Base.Frame;
+        /**
+         * Builds a frame lying in the ZX plane, the ground when Y points up: its X axis along the world
+         * Z, its Y axis along the world X and its normal along the world Y.
+         * @param inputs - Where the frame sits
+         * @returns A new frame
+         * @group create
+         * @shortname zx
+         * @drawable true
+         * @example
+         * ```typescript
+         * const ground = bitbybit.frame.zx({ origin: [0, 0, 0] });
+         * ```
+         */
+        zx(inputs: Inputs.Frame.OriginDto): Inputs.Base.Frame;
+        /**
+         * Builds a frame from three points: where it sits, a point its X axis runs toward and a point
+         * on the side its Y axis points to.
+         *
+         * The normal follows by the right-hand rule. `xPoint` at `origin`, or three points on one line,
+         * throws.
+         * @param inputs - The origin, a point along the X axis and a point in the plane
+         * @returns A new frame
+         * @group create
+         * @shortname from three points
+         * @drawable true
+         * @example
+         * ```typescript
+         * const frame = bitbybit.frame.fromThreePoints({ origin: [0, 0, 0], xPoint: [4, 0, 0], planePoint: [0, 0, -3] });
+         * ```
+         */
+        fromThreePoints(inputs: Inputs.Frame.ThreePointsDto): Inputs.Base.Frame;
+        /**
+         * Builds a frame from a point and a normal, choosing its X axis by a fixed rule.
+         *
+         * The same normal always gives the same X axis: square to the normal and to the world axis the
+         * normal leans on least. A normal of zero length throws.
+         * @param inputs - The origin and the normal
+         * @returns A new frame
+         * @group create
+         * @shortname from point and normal
+         * @drawable true
+         * @example
+         * ```typescript
+         * const onSlope = bitbybit.frame.fromPointAndNormal({ origin: [2, 1, 0], normal: [0, 1, 1] });
+         * ```
+         */
+        fromPointAndNormal(inputs: Inputs.Frame.PointAndNormalDto): Inputs.Base.Frame;
+        /**
+         * Fits a frame to points that lie on or near one plane.
+         *
+         * It sits at their average. The normal follows their order by the right-hand rule, and X runs
+         * along their widest spread, toward the first point; with no widest spread, as around a square,
+         * X points at the first point. Fewer than three points, or nearly collinear ones, throw.
+         * @param inputs - The points to fit
+         * @returns A new frame in the plane that fits the points best
+         * @group create
+         * @shortname best fit
+         * @drawable true
+         * @example
+         * ```typescript
+         * const frame = bitbybit.frame.bestFit({ points: [[0, 0, 0], [4, 0.1, 0], [4, 3, 0.1], [0, 3, 0]] });
+         * ```
+         */
+        bestFit(inputs: Inputs.Frame.BestFitDto): Inputs.Base.Frame;
+        /**
+         * Reads where a frame sits: the point its three axes start from.
+         * @param inputs - The frame to read
+         * @returns The origin
+         * @group read
+         * @shortname origin
+         * @drawable true
+         */
+        origin(inputs: Inputs.Frame.FrameDto): Inputs.Base.Point3;
+        /**
+         * Reads where a frame's Z axis points, as a vector of length 1.
+         * @param inputs - The frame to read
+         * @returns The normal
+         * @group read
+         * @shortname normal
+         * @drawable false
+         */
+        normal(inputs: Inputs.Frame.FrameDto): Inputs.Base.Vector3;
+        /**
+         * Reads where a frame's X axis points, as a vector of length 1 square to the normal.
+         * @param inputs - The frame to read
+         * @returns The X direction
+         * @group read
+         * @shortname direction
+         * @drawable false
+         */
+        direction(inputs: Inputs.Frame.FrameDto): Inputs.Base.Vector3;
+        /**
+         * Reads where a frame's Y axis points: the normal crossed with the direction, as a vector of
+         * length 1.
+         * @param inputs - The frame to read
+         * @returns The Y direction
+         * @group read
+         * @shortname y direction
+         * @drawable false
+         */
+        yDirection(inputs: Inputs.Frame.FrameDto): Inputs.Base.Vector3;
+        /**
+         * Moves a frame by a vector in world coordinates, keeping the directions of its axes.
+         * @param inputs - The frame and the vector to move it by
+         * @returns A new frame
+         * @group change
+         * @shortname translate
+         * @drawable true
+         * @example
+         * ```typescript
+         * const moved = bitbybit.frame.translate({ frame: bitbybit.frame.world(), translation: [2, 0, 1] });
+         * ```
+         */
+        translate(inputs: Inputs.Frame.TranslateDto): Inputs.Base.Frame;
+        /**
+         * Moves frames by one vector in world coordinates, as `translate` moves one; their axes keep
+         * their directions.
+         * @param inputs - The frames and the vector to move them by
+         * @returns New frames, in the same order
+         * @group change
+         * @shortname translate frames
+         * @drawable true
+         * @example
+         * ```typescript
+         * const floor = bitbybit.frame.grid({ countX: 3, countY: 3, spacingX: 2, spacingY: 2, centered: true });
+         * const ceiling = bitbybit.frame.translateFrames({ frames: floor, translation: [0, 0, 3] });
+         * ```
+         */
+        translateFrames(inputs: Inputs.Frame.TranslateFramesDto): Inputs.Base.Frame[];
+        /**
+         * Moves a frame along its own normal, keeping the directions of its axes.
+         *
+         * A negative distance moves it against the normal.
+         * @param inputs - The frame and the distance in model units
+         * @returns A new frame
+         * @group change
+         * @shortname offset
+         * @drawable true
+         * @example
+         * ```typescript
+         * const lid = bitbybit.frame.offset({ frame: bitbybit.frame.zx({ origin: [0, 0, 0] }), distance: 10 });
+         * ```
+         */
+        offset(inputs: Inputs.Frame.OffsetDto): Inputs.Base.Frame;
+        /**
+         * Moves each frame along its own normal by the same distance, as `offset` moves one; their
+         * axes keep their directions.
+         *
+         * Frames facing different ways move different ways: a negative distance moves each against its
+         * own normal.
+         * @param inputs - The frames and the distance in model units
+         * @returns New frames, in the same order
+         * @group change
+         * @shortname offset frames
+         * @drawable true
+         * @example
+         * ```typescript
+         * const ring = bitbybit.frame.polar({ count: 8, radius: 5, angle: 360, startAngle: 0, rotate: true });
+         * const raised = bitbybit.frame.offsetFrames({ frames: ring, distance: 2 });
+         * ```
+         */
+        offsetFrames(inputs: Inputs.Frame.OffsetFramesDto): Inputs.Base.Frame[];
+        /**
+         * Turns a frame about one of its own axes, through its origin.
+         *
+         * The angle is in degrees; positive is counter-clockwise when that axis points toward you.
+         * @param inputs - The frame, the axis to turn about and the angle
+         * @returns A new frame
+         * @group change
+         * @shortname rotate
+         * @drawable true
+         * @example
+         * ```typescript
+         * const tilted = bitbybit.frame.rotate({ frame: bitbybit.frame.world(), axis: Bit.Inputs.Frame.frameAxisEnum.x, angle: 30 });
+         * ```
+         */
+        rotate(inputs: Inputs.Frame.RotateDto): Inputs.Base.Frame;
+        /**
+         * Turns each frame about one of its own axes, through its own origin, as `rotate` turns one.
+         *
+         * The angle is in degrees; positive is counter-clockwise when that axis points toward you.
+         * @param inputs - The frames, the axis to turn each about and the angle
+         * @returns New frames, in the same order
+         * @group change
+         * @shortname rotate frames
+         * @drawable true
+         * @example
+         * ```typescript
+         * const row = bitbybit.frame.grid({ countX: 4, countY: 1, spacingX: 2, spacingY: 2, centered: true });
+         * const tilted = bitbybit.frame.rotateFrames({ frames: row, axis: Bit.Inputs.Frame.frameAxisEnum.x, angle: 30 });
+         * ```
+         */
+        rotateFrames(inputs: Inputs.Frame.RotateFramesDto): Inputs.Base.Frame[];
+        /**
+         * Turns a frame over: its normal points the other way and its Y axis with it, its origin and X
+         * axis stay.
+         * @param inputs - The frame to turn over
+         * @returns A new frame
+         * @group change
+         * @shortname flip
+         * @drawable true
+         * @example
+         * ```typescript
+         * const underside = bitbybit.frame.flip({ frame: bitbybit.frame.zx({ origin: [0, 0, 0] }) });
+         * ```
+         */
+        flip(inputs: Inputs.Frame.FrameDto): Inputs.Base.Frame;
+        /**
+         * Turns each frame over, as `flip` turns one: its normal and Y axis point the other way, its
+         * origin and X axis stay.
+         * @param inputs - The frames to turn over
+         * @returns New frames, in the same order
+         * @group change
+         * @shortname flip frames
+         * @drawable true
+         * @example
+         * ```typescript
+         * const tops = bitbybit.frame.grid({ countX: 2, countY: 2, spacingX: 3, spacingY: 3, centered: true });
+         * const bottoms = bitbybit.frame.flipFrames({ frames: tops });
+         * ```
+         */
+        flipFrames(inputs: Inputs.Frame.FramesDto): Inputs.Base.Frame[];
+        /**
+         * Places a frame given in another frame's coordinates into the world: a frame within a frame.
+         *
+         * `child` is read as if `parent` were the world, so a `child` at the origin sits on `parent`
+         * and one lifted along Z rises along the parent's normal.
+         * @param inputs - The parent frame and the child frame given in its coordinates
+         * @returns The child frame in world coordinates
+         * @group frame in frame
+         * @shortname frame to world
+         * @drawable true
+         * @example
+         * ```typescript
+         * const table = bitbybit.frame.zx({ origin: [0, 1, 0] });
+         * const onTable = bitbybit.frame.frameToWorld({ parent: table, child: bitbybit.frame.xy({ origin: [0.5, 0.2, 0] }) });
+         * ```
+         */
+        frameToWorld(inputs: Inputs.Frame.ChildFrameDto): Inputs.Base.Frame;
+        /**
+         * Places frames given in one parent frame's coordinates into the world, as `frameToWorld`
+         * places one: every child sits on `parent` as it would sit on the world.
+         * @param inputs - The parent frame and the frames given in its coordinates
+         * @returns The frames in world coordinates, in the same order
+         * @group frame in frame
+         * @shortname frames to world
+         * @drawable true
+         * @example
+         * ```typescript
+         * const table = bitbybit.frame.zx({ origin: [0, 1, 0] });
+         * const spots = bitbybit.frame.grid({ countX: 3, countY: 2, spacingX: 0.4, spacingY: 0.4, centered: true });
+         * const onTable = bitbybit.frame.framesToWorld({ parent: table, children: spots });
+         * ```
+         */
+        framesToWorld(inputs: Inputs.Frame.ChildFramesDto): Inputs.Base.Frame[];
+        /**
+         * Describes a frame given in world coordinates in another frame's coordinates, the reverse of
+         * `frameToWorld`.
+         *
+         * The result is where `child` sits and how it turns as seen from `parent`, as if `parent` were
+         * the world.
+         * @param inputs - The parent frame and the child frame in world coordinates
+         * @returns The child frame in the parent's coordinates
+         * @group frame in frame
+         * @shortname frame to local
+         * @drawable true
+         * @example
+         * ```typescript
+         * const table = bitbybit.frame.zx({ origin: [0, 1, 0] });
+         * const seenFromTable = bitbybit.frame.frameToLocal({ parent: table, child: bitbybit.frame.world() });
+         * ```
+         */
+        frameToLocal(inputs: Inputs.Frame.ChildFrameDto): Inputs.Base.Frame;
+        /**
+         * Describes frames given in world coordinates in one parent frame's coordinates, the reverse
+         * of `framesToWorld`, as `frameToLocal` describes one.
+         * @param inputs - The parent frame and the frames in world coordinates
+         * @returns The frames in the parent's coordinates, in the same order
+         * @group frame in frame
+         * @shortname frames to local
+         * @drawable true
+         * @example
+         * ```typescript
+         * const table = bitbybit.frame.zx({ origin: [0, 1, 0] });
+         * const seen = bitbybit.frame.framesToLocal({ parent: table, children: [bitbybit.frame.world(), bitbybit.frame.yz({ origin: [2, 0, 0] })] });
+         * ```
+         */
+        framesToLocal(inputs: Inputs.Frame.ChildFramesDto): Inputs.Base.Frame[];
+        /**
+         * Converts a point given in a frame's coordinates into world coordinates.
+         *
+         * `[1, 2, 3]` becomes the point 1 along the frame's X axis, 2 along its Y axis and 3 along its
+         * normal, from its origin.
+         * @param inputs - The frame and the point in its coordinates
+         * @returns The point in world coordinates
+         * @group coordinates
+         * @shortname point to world
+         * @drawable true
+         * @example
+         * ```typescript
+         * const corner = bitbybit.frame.pointToWorld({ frame: bitbybit.frame.zx({ origin: [0, 2, 0] }), point: [1, 1, 0] });
+         * ```
+         */
+        pointToWorld(inputs: Inputs.Frame.FramePointDto): Inputs.Base.Point3;
+        /**
+         * Converts a point given in world coordinates into a frame's coordinates, the reverse of
+         * `pointToWorld`.
+         *
+         * The third coordinate of the result is the point's signed distance from the frame's plane.
+         * @param inputs - The frame and the point in world coordinates
+         * @returns The point in the frame's coordinates
+         * @group coordinates
+         * @shortname point to local
+         * @drawable true
+         * @example
+         * ```typescript
+         * const local = bitbybit.frame.pointToLocal({ frame: bitbybit.frame.zx({ origin: [0, 2, 0] }), point: [1, 5, 1] });
+         * ```
+         */
+        pointToLocal(inputs: Inputs.Frame.FramePointDto): Inputs.Base.Point3;
+        /**
+         * Converts points given in a frame's coordinates into world coordinates, as `pointToWorld` does
+         * for one.
+         * @param inputs - The frame and the points in its coordinates
+         * @returns The points in world coordinates, in the same order
+         * @group coordinates
+         * @shortname points to world
+         * @drawable true
+         * @example
+         * ```typescript
+         * const square = bitbybit.frame.pointsToWorld({ frame: bitbybit.frame.yz({ origin: [3, 0, 0] }), points: [[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]] });
+         * ```
+         */
+        pointsToWorld(inputs: Inputs.Frame.FramePointsDto): Inputs.Base.Point3[];
+        /**
+         * Converts points given in world coordinates into a frame's coordinates, as `pointToLocal` does
+         * for one.
+         * @param inputs - The frame and the points in world coordinates
+         * @returns The points in the frame's coordinates, in the same order
+         * @group coordinates
+         * @shortname points to local
+         * @drawable true
+         * @example
+         * ```typescript
+         * const flat = bitbybit.frame.pointsToLocal({ frame: bitbybit.frame.yz({ origin: [3, 0, 0] }), points: [[3, 0, 0], [3, 1, 0], [3, 1, 1]] });
+         * ```
+         */
+        pointsToLocal(inputs: Inputs.Frame.FramePointsDto): Inputs.Base.Point3[];
+        /**
+         * Turns a vector given along a frame's axes into one along the world axes; the frame's origin
+         * plays no part.
+         * @param inputs - The frame and the vector along its axes
+         * @returns The vector along the world axes
+         * @group coordinates
+         * @shortname vector to world
+         * @drawable false
+         * @example
+         * ```typescript
+         * const up = bitbybit.frame.vectorToWorld({ frame: bitbybit.frame.zx({ origin: [0, 0, 0] }), vector: [0, 0, 1] });
+         * ```
+         */
+        vectorToWorld(inputs: Inputs.Frame.FrameVectorDto): Inputs.Base.Vector3;
+        /**
+         * Turns a vector given along the world axes into one along a frame's axes, the reverse of
+         * `vectorToWorld`.
+         * @param inputs - The frame and the vector along the world axes
+         * @returns The vector along the frame's axes
+         * @group coordinates
+         * @shortname vector to local
+         * @drawable false
+         * @example
+         * ```typescript
+         * const local = bitbybit.frame.vectorToLocal({ frame: bitbybit.frame.zx({ origin: [0, 0, 0] }), vector: [0, 1, 0] });
+         * ```
+         */
+        vectorToLocal(inputs: Inputs.Frame.FrameVectorDto): Inputs.Base.Vector3;
+        /**
+         * Gives the transformation that moves anything from the world frame onto a frame.
+         *
+         * It takes the world origin to the frame's origin and the world axes to the frame's axes, and
+         * comes as a list holding one matrix, the form every transformation input takes.
+         * @param inputs - The frame
+         * @returns The transformation onto the frame
+         * @group matrices
+         * @shortname to matrix
+         * @drawable false
+         * @example
+         * ```typescript
+         * const onFrame = bitbybit.frame.toMatrix({ frame: bitbybit.frame.zx({ origin: [0, 2, 0] }) });
+         * const moved = bitbybit.point.transformPoints({ points: [[1, 0, 0]], transformation: onFrame });
+         * ```
+         */
+        toMatrix(inputs: Inputs.Frame.FrameDto): Inputs.Base.TransformMatrixes;
+        /**
+         * Reads the frame a transformation puts the world frame on: where it moves the world origin
+         * and where it turns the world X and Z axes.
+         *
+         * Scaling is dropped, a shear keeps the Z axis and squares X to it, and a mirror keeps X and Z
+         * with the Y axis that follows from them. A perspective part throws.
+         * @param inputs - The transformation
+         * @returns A new frame
+         * @group matrices
+         * @shortname from matrix
+         * @drawable true
+         * @example
+         * ```typescript
+         * const turned = bitbybit.transforms.rotationCenterAxis({ center: [0, 0, 0], axis: [0, 1, 0], angle: 45 });
+         * const frame = bitbybit.frame.fromMatrix({ transformation: turned });
+         * ```
+         */
+        fromMatrix(inputs: Inputs.Frame.TransformationDto): Inputs.Base.Frame;
+        /**
+         * Gives the transformation that carries anything placed on one frame onto another, turning it
+         * the same way.
+         *
+         * Left out, `from` is the world frame, which makes this `toMatrix` of `to`. The result is a list
+         * holding one matrix.
+         * @param inputs - The frame to move onto and the frame to move from
+         * @returns The transformation from `from` onto `to`
+         * @group matrices
+         * @shortname matrix from to
+         * @drawable false
+         * @example
+         * ```typescript
+         * const from = bitbybit.frame.xy({ origin: [0, 0, 0] });
+         * const to = bitbybit.frame.zx({ origin: [0, 3, 0] });
+         * const carry = bitbybit.frame.matrixFromTo({ to, from });
+         * ```
+         */
+        matrixFromTo(inputs: Inputs.Frame.FromToDto): Inputs.Base.TransformMatrixes;
+        /**
+         * Lays out a rectangular grid of frames in a frame's plane, each turned the same way as that
+         * frame.
+         *
+         * The frames come row by row, along X first. Left out, `frame` is the world frame, so the grid
+         * lies in the XY plane.
+         * @param inputs - The frame to follow, the counts and spacings, and whether to center the grid
+         * @returns The frames of the grid
+         * @group patterns
+         * @shortname grid
+         * @drawable true
+         * @example
+         * ```typescript
+         * const spots = bitbybit.frame.grid({ frame: bitbybit.frame.zx({ origin: [0, 0, 0] }), countX: 4, countY: 3, spacingX: 2, spacingY: 2, centered: true });
+         * ```
+         */
+        grid(inputs: Inputs.Frame.GridDto): Inputs.Base.Frame[];
+        /**
+         * Lays out a ring of frames around a frame's normal, in its plane.
+         *
+         * Each is `frame` turned by its angle about the normal and moved out by `radius` along its
+         * turned X axis. A full turn spaces them evenly, a smaller `angle` puts one at each end, and a
+         * larger one throws. Left out, `frame` is the world frame.
+         * @param inputs - The frame to turn around, the count, radius, angles and whether frames turn
+         * @returns The frames of the ring, in the direction of the angle
+         * @group patterns
+         * @shortname polar
+         * @drawable true
+         * @example
+         * ```typescript
+         * const bolts = bitbybit.frame.polar({ frame: bitbybit.frame.zx({ origin: [0, 0, 0] }), count: 8, radius: 5, angle: 360, startAngle: 0, rotate: true });
+         * ```
+         */
+        polar(inputs: Inputs.Frame.PolarDto): Inputs.Base.Frame[];
+        /**
+         * Lays out a honeycomb of frames in a frame's plane, one at each hexagon's center, turned as
+         * that frame is.
+         *
+         * The hexagons have corners toward the frame's Y axis and flat sides toward X. Rows run along X,
+         * every second shifted by half a hexagon, and frames come row by row. Left out, `frame` is the
+         * world frame.
+         * @param inputs - The frame to follow, the counts, the hexagon size and whether to center it
+         * @returns The frames of the honeycomb
+         * @group patterns
+         * @shortname hex grid
+         * @drawable true
+         * @example
+         * ```typescript
+         * const cells = bitbybit.frame.hexGrid({ frame: bitbybit.frame.zx({ origin: [0, 0, 0] }), countX: 5, countY: 4, radius: 1, centered: true });
+         * ```
+         */
+        hexGrid(inputs: Inputs.Frame.HexGridDto): Inputs.Base.Frame[];
+        /**
+         * The widest spread's axis, pointing toward the first point, or with its largest component
+         * positive when the first point lies across it.
+         * @ignore true
+         */
+        private alongWidest;
+        /**
+         * Where the first point lies from the center, in the fitted plane, or the next point that does
+         * not sit on the center: the X axis of points that spread evenly every way in their plane.
+         * @ignore true
+         */
+        private towardFirstPoint;
+        /**
+         * @ignore true
+         */
+        private translated;
+        /**
+         * @ignore true
+         */
+        private offsetBy;
+        /**
+         * The axes turned about one of their own by `angle` radians, through their origin.
+         * @ignore true
+         */
+        private turned;
+        /**
+         * @ignore true
+         */
+        private flipped;
+        /**
+         * @ignore true
+         */
+        private childToWorld;
+        /**
+         * @ignore true
+         */
+        private childToLocal;
+        /**
+         * The vector `u` along `x`, `v` along `y` and `w` along `z` of the axes, from their origin.
+         * @ignore true
+         */
+        private along;
+        /**
+         * The same vector read against the axes: its components along `x`, `y` and `z`.
+         * @ignore true
+         */
+        private against;
+        /**
+         * `first` scaled by `a` plus `second` scaled by `b`.
+         * @ignore true
+         */
+        private combined;
+        /**
+         * Flips a unit vector whose largest component is negative, so a sign the data leaves open is
+         * decided the same way every time. Components within 1e-12 of each other count as equal and the
+         * first of them decides, so rounding cannot tip the choice; OCCT's frames break the tie the
+         * same way.
+         * @ignore true
+         */
+        private withLargestPositive;
+        /**
+         * The column-major matrix carrying the `from` axes onto the `to` axes.
+         * @ignore true
+         */
+        private matrixBetween;
+        /**
+         * The axes of a frame a caller handed in, squared, or an error naming the input at fault.
+         * @ignore true
+         */
+        private axesOf;
+        /**
+         * The axes of every frame in a list a caller handed in, or an error naming the list and the
+         * position at fault.
+         * @ignore true
+         */
+        private axesOfEach;
+        /**
+         * @ignore true
+         */
+        private axisOf;
+        /**
+         * An origin with a unit normal and a unit X axis square to it, or an error with the message for
+         * the part that cannot be squared, naming `property`, or that part when none is given.
+         * @ignore true
+         */
+        private squared;
+        /**
+         * The frame the axes describe, as new arrays.
+         * @ignore true
+         */
+        private frameOf;
+        /**
+         * @ignore true
+         */
+        private pointOf;
+        /**
+         * @ignore true
+         */
+        private vectorOf;
+        /**
+         * @ignore true
+         */
+        private pointsOf;
+        /**
+         * @ignore true
+         */
+        private numberOf;
+        /**
+         * @ignore true
+         */
+        private countOf;
+    }
     declare class GeometryHelper {
         /**
          * Applies one or more 4×4 transformation matrices to a list of points sequentially.
@@ -42131,9 +48855,8 @@ declare namespace Bit {
          */
         private getNextHandle;
         /**
-         * Convert color to DXF format
-         * Accepts hex color (#RRGGBB) or ACI color index (1-255)
-         * Returns appropriate DXF color codes based on colorFormat setting
+         * Convert a hex color (#RRGGBB) to DXF color codes, as the nearest ACI index or as true color
+         * depending on the colorFormat setting; anything else is written as ACI 7
          */
         private convertColorToDxf;
         /**
@@ -42228,6 +48951,55 @@ declare namespace Bit {
          */
         dxfCreate(inputs: Inputs.IO.DxfModelDto): string;
     }
+    type Vec3 = Inputs.Base.Vector3;
+    /**
+     * The sine below which two directions count as parallel wherever a frame is squared: a direction
+     * closer than this to its normal leaves the X axis to rounding.
+     */
+    declare const PARALLEL_SINE = 1e-9;
+    /**
+     * A frame as the four vectors the maths reads: the origin and three unit axes at right angles,
+     * with `y` the cross product of `z` and `x`.
+     */
+    interface FrameAxes {
+        readonly origin: Vec3;
+        readonly x: Vec3;
+        readonly y: Vec3;
+        readonly z: Vec3;
+    }
+    /** Whether a value is three finite numbers. */
+    declare const isTriple: (value: unknown) => value is Vec3;
+    /** Whether a value has the shape of a frame: an `origin`, a `normal` and a `direction`, three finite numbers each. */
+    declare const isFrameShaped: (value: unknown) => value is Inputs.Base.Frame;
+    /**
+     * A vector scaled to length 1, or undefined for one of no length. It is divided by its largest
+     * component before it is measured, so no square overflows or underflows at any finite size.
+     */
+    declare const unitOf: (vector: Vec3) => Vec3 | undefined;
+    /**
+     * The axes of an origin, a normal and a rough X direction: the normal scaled to length 1 and the
+     * direction turned square to it. Gives the name of the part that cannot be squared instead: a
+     * normal of no length, or a direction of no length or within `PARALLEL_SINE` of the normal.
+     *
+     * The direction is projected twice: a direction close to the normal loses most of its digits to
+     * the first subtraction, and the second takes out what rounding left along the normal.
+     */
+    declare const squareFrame: (origin: Vec3, normal: Vec3, direction: Vec3) => FrameAxes | "normal" | "direction";
+    type Vec3 = Inputs.Base.Vector3;
+    /** Whether a value is one column-major 4 x 4 matrix: sixteen finite numbers. */
+    declare const isTransformMatrix: (value: unknown) => value is Inputs.Base.TransformMatrix;
+    /** The product of two column-major 4 x 4 matrices: `first` applied, then `second`. */
+    declare const followedBy: (first: readonly number[], second: readonly number[]) => Inputs.Base.TransformMatrix;
+    /** One column-major 4 x 4 matrix that applies a list of them first to last; the identity for an empty list. */
+    declare const composed: (matrices: readonly (readonly number[])[]) => Inputs.Base.TransformMatrix;
+    /**
+     * The eigenvalues of a symmetric 3 x 3 matrix, largest first, each with its unit eigenvector, by
+     * cyclic Jacobi rotations; the vectors come out at right angles to each other.
+     */
+    declare const symmetricEigen: (matrix: readonly (readonly number[])[]) => {
+        value: number;
+        vector: Vec3;
+    }[];
     /**
      * Compute smooth vertex normals for a mesh that arrives without them.
      * Accumulates each triangle's cross product onto its three vertices, then normalizes, so a vertex
@@ -47963,7 +54735,7 @@ declare namespace Bit {
          * @returns pyramid shapes along the wire
          * @group create
          * @shortname create simple pyramid
-         * @image https://ik.imagekit.io/bitbybit/app/assets/spec-cat/advanced/patterns/pyramid-simple.jpeg
+         * @image https://bitbybit.dev/files/site/spec-cat/advanced/patterns/pyramid-simple.jpeg
          * @drawable true
          */
         createPyramidSimple(inputs: Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleDto<Inputs.OCCT.TopoDSFacePointer>): Promise<Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleData<Inputs.OCCT.TopoDSShapePointer>>;
@@ -47973,7 +54745,7 @@ declare namespace Bit {
          * @returns pyramid shapes along the wire
          * @group create
          * @shortname create simple pyramid affector
-         * @image https://ik.imagekit.io/bitbybit/app/assets/spec-cat/advanced/patterns/pyramid-simple.jpeg
+         * @image https://bitbybit.dev/files/site/spec-cat/advanced/patterns/pyramid-simple.jpeg
          * @drawable true
          */
         createPyramidSimpleAffectors(inputs: Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleAffectorsDto<Inputs.OCCT.TopoDSFacePointer>): Promise<Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleData<Inputs.OCCT.TopoDSShapePointer>>;
@@ -47993,7 +54765,7 @@ declare namespace Bit {
          * @returns Compound shape of the pyramid
          * @group get shapes
          * @shortname get compound
-         * @image https://ik.imagekit.io/bitbybit/app/assets/spec-cat/advanced/patterns/pyramid-simple.jpeg
+         * @image https://bitbybit.dev/files/site/spec-cat/advanced/patterns/pyramid-simple.jpeg
          * @drawable true
          */
         getCompoundShape(inputs: Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleModelDto<Inputs.OCCT.TopoDSShapePointer>): Inputs.OCCT.TopoDSShapePointer;
@@ -48003,7 +54775,7 @@ declare namespace Bit {
          * @returns Compound shape of the pyramids on the face
          * @group get shapes
          * @shortname get compound on face
-         * @image https://ik.imagekit.io/bitbybit/app/assets/spec-cat/advanced/patterns/pyramid-simple.jpeg
+         * @image https://bitbybit.dev/files/site/spec-cat/advanced/patterns/pyramid-simple.jpeg
          * @drawable true
          */
         getCompoundShapeOnFace(inputs: Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleModelFaceIndexDto<Inputs.OCCT.TopoDSShapePointer>): Inputs.OCCT.TopoDSShapePointer;
@@ -48013,7 +54785,7 @@ declare namespace Bit {
          * @returns Compound shape of the pyramid
          * @group get shapes
          * @shortname get compound cell on face
-         * @image https://ik.imagekit.io/bitbybit/app/assets/spec-cat/advanced/patterns/pyramid-simple.jpeg
+         * @image https://bitbybit.dev/files/site/spec-cat/advanced/patterns/pyramid-simple.jpeg
          * @drawable true
          */
         getCompoundShapeCellOnFace(inputs: Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleModelFaceCellIndexDto<Inputs.OCCT.TopoDSShapePointer>): Inputs.OCCT.TopoDSShapePointer;
@@ -48023,7 +54795,7 @@ declare namespace Bit {
          * @returns Compound shape of the pyramid
          * @group get cells
          * @shortname get all cells
-         * @image https://ik.imagekit.io/bitbybit/app/assets/spec-cat/advanced/patterns/pyramid-simple.jpeg
+         * @image https://bitbybit.dev/files/site/spec-cat/advanced/patterns/pyramid-simple.jpeg
          * @drawable false
          */
         getAllPyramidCells(inputs: Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleModelDto<Inputs.OCCT.TopoDSShapePointer>): Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleCellPart<Inputs.OCCT.TopoDSShapePointer>[];
@@ -48033,7 +54805,7 @@ declare namespace Bit {
          * @returns Cells of the pyramid
          * @group get cells
          * @shortname get cells on face
-         * @image https://ik.imagekit.io/bitbybit/app/assets/spec-cat/advanced/patterns/pyramid-simple.jpeg
+         * @image https://bitbybit.dev/files/site/spec-cat/advanced/patterns/pyramid-simple.jpeg
          * @drawable false
          */
         getAllPyramidCellsOnFace(inputs: Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleModelFaceIndexDto<Inputs.OCCT.TopoDSShapePointer>): Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleCellPart<Inputs.OCCT.TopoDSShapePointer>[];
@@ -48043,7 +54815,7 @@ declare namespace Bit {
          * @returns Cells of the pyramid
          * @group get cells
          * @shortname get cells on face
-         * @image https://ik.imagekit.io/bitbybit/app/assets/spec-cat/advanced/patterns/pyramid-simple.jpeg
+         * @image https://bitbybit.dev/files/site/spec-cat/advanced/patterns/pyramid-simple.jpeg
          * @drawable false
          */
         getAllPyramidUCellsOnFace(inputs: Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleModelFaceIndexDto<Inputs.OCCT.TopoDSShapePointer>): Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleCellPart<Inputs.OCCT.TopoDSShapePointer>[];
@@ -48053,7 +54825,7 @@ declare namespace Bit {
          * @returns Cells of the pyramid
          * @group get cells
          * @shortname get cells on face at u
-         * @image https://ik.imagekit.io/bitbybit/app/assets/spec-cat/advanced/patterns/pyramid-simple.jpeg
+         * @image https://bitbybit.dev/files/site/spec-cat/advanced/patterns/pyramid-simple.jpeg
          * @drawable false
          */
         getAllPyramidUCellsOnFaceAtU(inputs: Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleModelFaceCellsUIndexDto<Inputs.OCCT.TopoDSShapePointer>): Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleCellPart<Inputs.OCCT.TopoDSShapePointer>[];
@@ -48063,7 +54835,7 @@ declare namespace Bit {
          * @returns Cells of the pyramid
          * @group get cells
          * @shortname get cells on face at v
-         * @image https://ik.imagekit.io/bitbybit/app/assets/spec-cat/advanced/patterns/pyramid-simple.jpeg
+         * @image https://bitbybit.dev/files/site/spec-cat/advanced/patterns/pyramid-simple.jpeg
          * @drawable false
          */
         getAllPyramidUCellsOnFaceAtV(inputs: Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleModelFaceCellsVIndexDto<Inputs.OCCT.TopoDSShapePointer>): Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleCellPart<Inputs.OCCT.TopoDSShapePointer>[];
@@ -48073,7 +54845,7 @@ declare namespace Bit {
          * @returns Cell of the pyramid
          * @group get cell
          * @shortname get cell
-         * @image https://ik.imagekit.io/bitbybit/app/assets/spec-cat/advanced/patterns/pyramid-simple.jpeg
+         * @image https://bitbybit.dev/files/site/spec-cat/advanced/patterns/pyramid-simple.jpeg
          * @drawable false
          */
         getCellOnIndex(inputs: Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleModelFaceCellIndexDto<Inputs.OCCT.TopoDSShapePointer>): Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleCellPart<Inputs.OCCT.TopoDSShapePointer>;
@@ -48083,7 +54855,7 @@ declare namespace Bit {
          * @returns Top points on the cells
          * @group get from cells
          * @shortname get top points
-         * @image https://ik.imagekit.io/bitbybit/app/assets/spec-cat/advanced/patterns/pyramid-simple.jpeg
+         * @image https://bitbybit.dev/files/site/spec-cat/advanced/patterns/pyramid-simple.jpeg
          * @drawable true
          */
         getTopPointsOfCells(inputs: Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleModelCellsDto<Inputs.OCCT.TopoDSShapePointer>): Inputs.Base.Point3[];
@@ -48093,7 +54865,7 @@ declare namespace Bit {
          * @returns Center points on the cells
          * @group get from cells
          * @shortname get center points
-         * @image https://ik.imagekit.io/bitbybit/app/assets/spec-cat/advanced/patterns/pyramid-simple.jpeg
+         * @image https://bitbybit.dev/files/site/spec-cat/advanced/patterns/pyramid-simple.jpeg
          * @drawable true
          */
         getCenterPointsOfCells(inputs: Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleModelCellsDto<Inputs.OCCT.TopoDSShapePointer>): Inputs.Base.Point3[];
@@ -48103,7 +54875,7 @@ declare namespace Bit {
          * @returns Corner points on cells provided
          * @group get from cells
          * @shortname get corner points of cells
-         * @image https://ik.imagekit.io/bitbybit/app/assets/spec-cat/advanced/patterns/pyramid-simple.jpeg
+         * @image https://bitbybit.dev/files/site/spec-cat/advanced/patterns/pyramid-simple.jpeg
          * @drawable false
          */
         getCornerPointsOfCells(inputs: Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleModelCellsDto<Inputs.OCCT.TopoDSShapePointer>): Inputs.Base.Point3[][];
@@ -48113,7 +54885,7 @@ declare namespace Bit {
          * @returns Corner points on cells provided
          * @group get from cells
          * @shortname get corner point of cells
-         * @image https://ik.imagekit.io/bitbybit/app/assets/spec-cat/advanced/patterns/pyramid-simple.jpeg
+         * @image https://bitbybit.dev/files/site/spec-cat/advanced/patterns/pyramid-simple.jpeg
          * @drawable true
          */
         getCornerPointOfCells(inputs: Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleModelCellsIndexDto<Inputs.OCCT.TopoDSShapePointer>): Inputs.Base.Point3[];
@@ -48123,7 +54895,7 @@ declare namespace Bit {
          * @returns Corner normals on cells provided
          * @group get from cells
          * @shortname get corner normal of cells
-         * @image https://ik.imagekit.io/bitbybit/app/assets/spec-cat/advanced/patterns/pyramid-simple.jpeg
+         * @image https://bitbybit.dev/files/site/spec-cat/advanced/patterns/pyramid-simple.jpeg
          * @drawable false
          */
         getCornerNormalOfCells(inputs: Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleModelCellsIndexDto<Inputs.OCCT.TopoDSShapePointer>): Inputs.Base.Point3[];
@@ -48133,7 +54905,7 @@ declare namespace Bit {
          * @returns Corner normals on cells provided
          * @group get from cells
          * @shortname get corner normals of cells
-         * @image https://ik.imagekit.io/bitbybit/app/assets/spec-cat/advanced/patterns/pyramid-simple.jpeg
+         * @image https://bitbybit.dev/files/site/spec-cat/advanced/patterns/pyramid-simple.jpeg
          * @drawable false
          */
         getCornerNormalsOfCells(inputs: Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleModelCellsDto<Inputs.OCCT.TopoDSShapePointer>): Inputs.Base.Point3[][];
@@ -48143,7 +54915,7 @@ declare namespace Bit {
          * @returns Compound shapes on cells provided
          * @group get from cells
          * @shortname get compound shapes
-         * @image https://ik.imagekit.io/bitbybit/app/assets/spec-cat/advanced/patterns/pyramid-simple.jpeg
+         * @image https://bitbybit.dev/files/site/spec-cat/advanced/patterns/pyramid-simple.jpeg
          * @drawable true
          */
         getCompoundShapesOfCells(inputs: Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleModelCellsDto<Inputs.OCCT.TopoDSShapePointer>): Inputs.OCCT.TopoDSShapePointer[];
@@ -48153,7 +54925,7 @@ declare namespace Bit {
          * @returns Face shapes on cells provided
          * @group get from cells
          * @shortname get face shapes
-         * @image https://ik.imagekit.io/bitbybit/app/assets/spec-cat/advanced/patterns/pyramid-simple.jpeg
+         * @image https://bitbybit.dev/files/site/spec-cat/advanced/patterns/pyramid-simple.jpeg
          * @drawable true
          */
         getFaceShapesOfCells(inputs: Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleModelCellsIndexDto<Inputs.OCCT.TopoDSShapePointer>): Inputs.OCCT.TopoDSShapePointer[];
@@ -48163,7 +54935,7 @@ declare namespace Bit {
          * @returns Wire shapes on cells provided
          * @group get from cells
          * @shortname get wire shapes
-         * @image https://ik.imagekit.io/bitbybit/app/assets/spec-cat/advanced/patterns/pyramid-simple.jpeg
+         * @image https://bitbybit.dev/files/site/spec-cat/advanced/patterns/pyramid-simple.jpeg
          * @drawable true
          */
         getWireShapesOfCells(inputs: Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleModelCellsIndexDto<Inputs.OCCT.TopoDSShapePointer>): Inputs.OCCT.TopoDSShapePointer[];
@@ -48173,7 +54945,7 @@ declare namespace Bit {
          * @returns Wire shapes
          * @group get from face
          * @shortname get start polyline wire u
-         * @image https://ik.imagekit.io/bitbybit/app/assets/spec-cat/advanced/patterns/pyramid-simple.jpeg
+         * @image https://bitbybit.dev/files/site/spec-cat/advanced/patterns/pyramid-simple.jpeg
          * @drawable true
          */
         getStartPolylineWireU(inputs: Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleModelFaceIndexDto<Inputs.OCCT.TopoDSShapePointer>): Inputs.OCCT.TopoDSShapePointer;
@@ -48183,7 +54955,7 @@ declare namespace Bit {
          * @returns Wire shapes
          * @group get from face
          * @shortname get end polyline wire u
-         * @image https://ik.imagekit.io/bitbybit/app/assets/spec-cat/advanced/patterns/pyramid-simple.jpeg
+         * @image https://bitbybit.dev/files/site/spec-cat/advanced/patterns/pyramid-simple.jpeg
          * @drawable true
          */
         getEndPolylineWireU(inputs: Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleModelFaceIndexDto<Inputs.OCCT.TopoDSShapePointer>): Inputs.OCCT.TopoDSShapePointer;
@@ -48193,7 +54965,7 @@ declare namespace Bit {
          * @returns Wire shapes
          * @group get from face
          * @shortname get start polyline wire v
-         * @image https://ik.imagekit.io/bitbybit/app/assets/spec-cat/advanced/patterns/pyramid-simple.jpeg
+         * @image https://bitbybit.dev/files/site/spec-cat/advanced/patterns/pyramid-simple.jpeg
          * @drawable true
          */
         getStartPolylineWireV(inputs: Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleModelFaceIndexDto<Inputs.OCCT.TopoDSShapePointer>): Inputs.OCCT.TopoDSShapePointer;
@@ -48203,7 +54975,7 @@ declare namespace Bit {
          * @returns Wire shapes
          * @group get from face
          * @shortname get end polyline wire v
-         * @image https://ik.imagekit.io/bitbybit/app/assets/spec-cat/advanced/patterns/pyramid-simple.jpeg
+         * @image https://bitbybit.dev/files/site/spec-cat/advanced/patterns/pyramid-simple.jpeg
          * @drawable true
          */
         getEndPolylineWireV(inputs: Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleModelFaceIndexDto<Inputs.OCCT.TopoDSShapePointer>): Inputs.OCCT.TopoDSShapePointer;
@@ -48213,7 +54985,7 @@ declare namespace Bit {
          * @returns Wire shapes
          * @group get from face
          * @shortname get compound polyline wires u
-         * @image https://ik.imagekit.io/bitbybit/app/assets/spec-cat/advanced/patterns/pyramid-simple.jpeg
+         * @image https://bitbybit.dev/files/site/spec-cat/advanced/patterns/pyramid-simple.jpeg
          * @drawable true
          */
         getPolylineWiresUCompound(inputs: Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleModelFaceIndexDto<Inputs.OCCT.TopoDSShapePointer>): Inputs.OCCT.TopoDSShapePointer;
@@ -48223,7 +54995,7 @@ declare namespace Bit {
          * @returns Wire shapes
          * @group get from face
          * @shortname get compound polyline wires v
-         * @image https://ik.imagekit.io/bitbybit/app/assets/spec-cat/advanced/patterns/pyramid-simple.jpeg
+         * @image https://bitbybit.dev/files/site/spec-cat/advanced/patterns/pyramid-simple.jpeg
          * @drawable true
          */
         getPolylineWiresVCompound(inputs: Advanced.Patterns.FacePatterns.PyramidSimple.PyramidSimpleModelFaceIndexDto<Inputs.OCCT.TopoDSShapePointer>): Inputs.OCCT.TopoDSShapePointer;
@@ -48430,6 +55202,7 @@ declare namespace Bit {
         readonly three: ThreeJS;
         readonly vector: Vector;
         readonly point: Point;
+        readonly frame: Frame;
         readonly line: Line;
         readonly polyline: Polyline;
         readonly mesh: MeshBitByBit;
