@@ -1,5 +1,5 @@
 {
-  "version": "1.4.0-rc.0",
+  "version": "1.4.0",
   "engines": ["babylonjs","threejs","playcanvas"],
   "bundleSha256": {"babylonjs":"cff0cf2d5c46f3c6dc3ab8a28d1e9b5790c21d9255114ecc0b90197228dae5ea","threejs":"e3806b20fd1af12f4bd4c7ffdb78d5007a8aa9cab15b62a2285b0d92a147616c","playcanvas":"50535d870e2197a59ce2ee0a1666b7ff3e6f70b193467d75346fdd1565c1803e"},
   "namespaces": [
