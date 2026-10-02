@@ -3547,6 +3547,116 @@ declare namespace Bit {
                 ] | undefined;
                 warnings: string[];
             }
+            enum strokeCapEnum {
+                flat = "flat",
+                round = "round",
+                square = "square"
+            }
+            class SketchLineDto {
+                constructor(to?: Base.Point2, relative?: boolean, id?: string);
+                to?: Base.Point2 | undefined;
+                relative?: boolean | undefined;
+                id?: string | undefined;
+            }
+            class SketchHLineDto {
+                constructor(length?: number, id?: string);
+                length?: number | undefined;
+                id?: string | undefined;
+            }
+            class SketchVLineDto {
+                constructor(length?: number, id?: string);
+                length?: number | undefined;
+                id?: string | undefined;
+            }
+            class SketchPolarLineDto {
+                constructor(length?: number, angle?: number, id?: string);
+                length?: number | undefined;
+                angle?: number | undefined;
+                id?: string | undefined;
+            }
+            class SketchTangentLineDto {
+                constructor(length?: number, id?: string);
+                length?: number | undefined;
+                id?: string | undefined;
+            }
+            class SketchThreePointArcDto {
+                constructor(through?: Base.Point2, to?: Base.Point2, relative?: boolean, id?: string);
+                through?: Base.Point2 | undefined;
+                to?: Base.Point2 | undefined;
+                relative?: boolean | undefined;
+                id?: string | undefined;
+            }
+            class SketchTangentArcDto {
+                constructor(to?: Base.Point2, relative?: boolean, id?: string);
+                to?: Base.Point2 | undefined;
+                relative?: boolean | undefined;
+                id?: string | undefined;
+            }
+            class SketchSagittaArcDto {
+                constructor(to?: Base.Point2, sagitta?: number, relative?: boolean, id?: string);
+                to?: Base.Point2 | undefined;
+                sagitta?: number | undefined;
+                relative?: boolean | undefined;
+                id?: string | undefined;
+            }
+            class SketchBulgeArcDto {
+                constructor(to?: Base.Point2, bulge?: number, relative?: boolean, id?: string);
+                to?: Base.Point2 | undefined;
+                bulge?: number | undefined;
+                relative?: boolean | undefined;
+                id?: string | undefined;
+            }
+            class SketchQuadraticDto {
+                constructor(control?: Base.Point2, to?: Base.Point2, relative?: boolean, id?: string);
+                control?: Base.Point2 | undefined;
+                to?: Base.Point2 | undefined;
+                relative?: boolean | undefined;
+                id?: string | undefined;
+            }
+            class SketchCubicDto {
+                constructor(control1?: Base.Point2, control2?: Base.Point2, to?: Base.Point2, relative?: boolean, id?: string);
+                control1?: Base.Point2 | undefined;
+                control2?: Base.Point2 | undefined;
+                to?: Base.Point2 | undefined;
+                relative?: boolean | undefined;
+                id?: string | undefined;
+            }
+            class SketchCloseDto {
+                constructor(id?: string);
+                id?: string | undefined;
+            }
+            class SketchFilletCornerDto {
+                constructor(radius?: number, id?: string);
+                radius?: number | undefined;
+                id?: string | undefined;
+            }
+            class SketchChamferCornerDto {
+                constructor(distance?: number, id?: string);
+                distance?: number | undefined;
+                id?: string | undefined;
+            }
+            class SketchPenDto {
+                constructor(commands?: Models.OCCT.SketchCommand[], start?: Base.Point2, frame?: Base.Frame, makeFace?: boolean);
+                commands: Models.OCCT.SketchCommand[];
+                start?: Base.Point2 | undefined;
+                frame?: Base.Frame | undefined;
+                makeFace?: boolean | undefined;
+            }
+            class SketchStrokeDto<T> {
+                constructor(shape?: T, width?: number, cap?: strokeCapEnum, join?: joinTypeEnum, frame?: Base.Frame, makeFace?: boolean);
+                shape: T;
+                width?: number | undefined;
+                cap?: strokeCapEnum | undefined;
+                join?: joinTypeEnum | undefined;
+                frame?: Base.Frame | undefined;
+                makeFace?: boolean | undefined;
+            }
+            class SketchHullDto<T> {
+                constructor(shapes?: T[], frame?: Base.Frame, makeFace?: boolean);
+                shapes: T[];
+                frame?: Base.Frame | undefined;
+                makeFace?: boolean | undefined;
+            }
             class SelectFacesOfTypeDto<T> {
                 constructor(shape?: T, type?: surfaceTypeEnum, indexes?: number[]);
                 shape: T;
@@ -6881,6 +6991,99 @@ declare namespace Bit {
                 visible: T;
                 hidden: T;
             }
+            interface SketchLineCommand {
+                type: "line";
+                id?: string;
+                to: Base.Point2;
+                relative?: boolean;
+            }
+            interface SketchHLineCommand {
+                type: "hLine";
+                id?: string;
+                length: number;
+            }
+            interface SketchVLineCommand {
+                type: "vLine";
+                id?: string;
+                length: number;
+            }
+            interface SketchPolarLineCommand {
+                type: "polarLine";
+                id?: string;
+                length: number;
+                angle: number;
+            }
+            interface SketchTangentLineCommand {
+                type: "tangentLine";
+                id?: string;
+                length: number;
+            }
+            interface SketchThreePointArcCommand {
+                type: "threePointArc";
+                id?: string;
+                through: Base.Point2;
+                to: Base.Point2;
+                relative?: boolean;
+            }
+            interface SketchTangentArcCommand {
+                type: "tangentArc";
+                id?: string;
+                to: Base.Point2;
+                relative?: boolean;
+            }
+            interface SketchSagittaArcCommand {
+                type: "sagittaArc";
+                id?: string;
+                to: Base.Point2;
+                sagitta: number;
+                relative?: boolean;
+            }
+            interface SketchBulgeArcCommand {
+                type: "bulgeArc";
+                id?: string;
+                to: Base.Point2;
+                bulge: number;
+                relative?: boolean;
+            }
+            interface SketchQuadraticCommand {
+                type: "quadratic";
+                id?: string;
+                control: Base.Point2;
+                to: Base.Point2;
+                relative?: boolean;
+            }
+            interface SketchCubicCommand {
+                type: "cubic";
+                id?: string;
+                control1: Base.Point2;
+                control2: Base.Point2;
+                to: Base.Point2;
+                relative?: boolean;
+            }
+            interface SketchCloseCommand {
+                type: "close";
+                id?: string;
+            }
+            interface SketchFilletCornerCommand {
+                type: "filletCorner";
+                id?: string;
+                radius: number;
+            }
+            interface SketchChamferCornerCommand {
+                type: "chamferCorner";
+                id?: string;
+                distance: number;
+            }
+            type SketchCommand = SketchLineCommand | SketchHLineCommand | SketchVLineCommand | SketchPolarLineCommand | SketchTangentLineCommand | SketchThreePointArcCommand | SketchTangentArcCommand | SketchSagittaArcCommand | SketchBulgeArcCommand | SketchQuadraticCommand | SketchCubicCommand | SketchCloseCommand | SketchFilletCornerCommand | SketchChamferCornerCommand;
+            interface SketchSegment {
+                id: string;
+                command: number;
+                edges: number[];
+            }
+            interface SketchWithSegments<T> {
+                shape: T;
+                segments: SketchSegment[];
+            }
             declare class TextWiresCharShapePart<T> {
                 id?: string | undefined;
                 shapes?: {
@@ -9351,6 +9554,7 @@ declare namespace Bit {
         readonly analysis: OCCTAnalysis;
         readonly io: OCCTIO;
         readonly path: OCCTPath;
+        readonly sketch: OCCTSketch;
         readonly svg: OCCTSVG;
         shapeFacesToPolygonPoints(inputs: Inputs.OCCT.ShapeFacesToPolygonPointsDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.Base.Point3[][]>;
         shapeToMesh(inputs: Inputs.OCCT.ShapeToMeshDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.DecomposedMeshDto>;
@@ -9804,6 +10008,31 @@ declare namespace Bit {
         projectWires(inputs: Inputs.OCCT.ProjectWiresDto<Inputs.OCCT.TopoDSWirePointer, Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSCompoundPointer[]>;
         projectNormal(inputs: Inputs.OCCT.ProjectNormalDto<Inputs.OCCT.TopoDSWirePointer | Inputs.OCCT.TopoDSEdgePointer, Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSCompoundPointer>;
         projectConical(inputs: Inputs.OCCT.ProjectConicalDto<Inputs.OCCT.TopoDSWirePointer | Inputs.OCCT.TopoDSEdgePointer, Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSCompoundPointer>;
+    }
+    declare class OCCTSketchCommands {
+        private readonly occWorkerManager;
+        line(inputs: Inputs.OCCT.SketchLineDto): Promise<Models.OCCT.SketchCommand>;
+        hLine(inputs: Inputs.OCCT.SketchHLineDto): Promise<Models.OCCT.SketchCommand>;
+        vLine(inputs: Inputs.OCCT.SketchVLineDto): Promise<Models.OCCT.SketchCommand>;
+        polarLine(inputs: Inputs.OCCT.SketchPolarLineDto): Promise<Models.OCCT.SketchCommand>;
+        tangentLine(inputs: Inputs.OCCT.SketchTangentLineDto): Promise<Models.OCCT.SketchCommand>;
+        threePointArc(inputs: Inputs.OCCT.SketchThreePointArcDto): Promise<Models.OCCT.SketchCommand>;
+        tangentArc(inputs: Inputs.OCCT.SketchTangentArcDto): Promise<Models.OCCT.SketchCommand>;
+        sagittaArc(inputs: Inputs.OCCT.SketchSagittaArcDto): Promise<Models.OCCT.SketchCommand>;
+        bulgeArc(inputs: Inputs.OCCT.SketchBulgeArcDto): Promise<Models.OCCT.SketchCommand>;
+        quadratic(inputs: Inputs.OCCT.SketchQuadraticDto): Promise<Models.OCCT.SketchCommand>;
+        cubic(inputs: Inputs.OCCT.SketchCubicDto): Promise<Models.OCCT.SketchCommand>;
+        close(inputs: Inputs.OCCT.SketchCloseDto): Promise<Models.OCCT.SketchCommand>;
+        filletCorner(inputs: Inputs.OCCT.SketchFilletCornerDto): Promise<Models.OCCT.SketchCommand>;
+        chamferCorner(inputs: Inputs.OCCT.SketchChamferCornerDto): Promise<Models.OCCT.SketchCommand>;
+    }
+    declare class OCCTSketch {
+        private readonly occWorkerManager;
+        readonly commands: OCCTSketchCommands;
+        pen(inputs: Inputs.OCCT.SketchPenDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        penWithSegments(inputs: Inputs.OCCT.SketchPenDto): Promise<Models.OCCT.SketchWithSegments<Inputs.OCCT.TopoDSShapePointer>>;
+        stroke(inputs: Inputs.OCCT.SketchStrokeDto<Inputs.OCCT.TopoDSWirePointer | Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        hull(inputs: Inputs.OCCT.SketchHullDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
     }
     declare class OCCTSVG {
         private readonly occWorkerManager;

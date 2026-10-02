@@ -14423,6 +14423,462 @@ declare namespace Bit {
                 warnings: string[];
             }
             /**
+             * How `sketch.stroke` finishes the two ends of an open wire.
+             * - `flat`: a straight cut across each end.
+             * - `round`: a half circle around each end.
+             * - `square`: a straight cut half the width past each end.
+             */
+            enum strokeCapEnum {
+                flat = "flat",
+                round = "round",
+                square = "square"
+            }
+            /**
+             * A point to draw a straight segment to, for `sketch.commands.line`, which makes the command
+             * `sketch.pen` draws; the point is a sketch point, or an offset from the pen with `relative`.
+             */
+            class SketchLineDto {
+                constructor(to?: Base.Point2, relative?: boolean, id?: string);
+                /**
+                 * Where the segment ends, in the sketch's x and y.
+                 * @default [10, 0]
+                 */
+                to?: Base.Point2 | undefined;
+                /**
+                 * When true, `to` is an offset from where the pen is rather than a point of the sketch.
+                 * @default false
+                 */
+                relative?: boolean | undefined;
+                /**
+                 * A name for the command, reported with the edges it draws; leave it out to be named by position.
+                 * @default undefined
+                 * @optional true
+                 */
+                id?: string | undefined;
+            }
+            /**
+             * A length to draw along the sketch's x axis, for `sketch.commands.hLine`, which makes the command
+             * `sketch.pen` draws; a negative length draws to the left.
+             */
+            class SketchHLineDto {
+                constructor(length?: number, id?: string);
+                /**
+                 * How far to draw along the sketch's x axis, in model units; negative draws the other way.
+                 * @default 10
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                length?: number | undefined;
+                /**
+                 * A name for the command, reported with the edges it draws; leave it out to be named by position.
+                 * @default undefined
+                 * @optional true
+                 */
+                id?: string | undefined;
+            }
+            /**
+             * A length to draw along the sketch's y axis, for `sketch.commands.vLine`, which makes the command
+             * `sketch.pen` draws; a negative length draws downward.
+             */
+            class SketchVLineDto {
+                constructor(length?: number, id?: string);
+                /**
+                 * How far to draw along the sketch's y axis, in model units; negative draws the other way.
+                 * @default 10
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                length?: number | undefined;
+                /**
+                 * A name for the command, reported with the edges it draws; leave it out to be named by position.
+                 * @default undefined
+                 * @optional true
+                 */
+                id?: string | undefined;
+            }
+            /**
+             * A length and an angle to draw at, for `sketch.commands.polarLine`, which makes the command
+             * `sketch.pen` draws; the angle is measured from the sketch's x axis, counterclockwise.
+             */
+            class SketchPolarLineDto {
+                constructor(length?: number, angle?: number, id?: string);
+                /**
+                 * How far to draw, in model units; negative draws the opposite way.
+                 * @default 10
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                length?: number | undefined;
+                /**
+                 * The direction to draw in, in degrees from the sketch's x axis, counterclockwise.
+                 * @default 45
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 15
+                 */
+                angle?: number | undefined;
+                /**
+                 * A name for the command, reported with the edges it draws; leave it out to be named by position.
+                 * @default undefined
+                 * @optional true
+                 */
+                id?: string | undefined;
+            }
+            /**
+             * A length to carry on straight for, for `sketch.commands.tangentLine`, which makes the command
+             * `sketch.pen` draws in the direction the previous segment ended in.
+             */
+            class SketchTangentLineDto {
+                constructor(length?: number, id?: string);
+                /**
+                 * How far to carry on, in model units.
+                 * @default 10
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                length?: number | undefined;
+                /**
+                 * A name for the command, reported with the edges it draws; leave it out to be named by position.
+                 * @default undefined
+                 * @optional true
+                 */
+                id?: string | undefined;
+            }
+            /**
+             * A point to pass through and a point to end at, for `sketch.commands.threePointArc`, which makes
+             * the circular arc command `sketch.pen` draws from where the pen is.
+             */
+            class SketchThreePointArcDto {
+                constructor(through?: Base.Point2, to?: Base.Point2, relative?: boolean, id?: string);
+                /**
+                 * A point the arc passes through between its ends, in the sketch's x and y.
+                 * @default [5, 5]
+                 */
+                through?: Base.Point2 | undefined;
+                /**
+                 * Where the arc ends, in the sketch's x and y.
+                 * @default [10, 0]
+                 */
+                to?: Base.Point2 | undefined;
+                /**
+                 * When true, `through` and `to` are offsets from where the pen is rather than points of the sketch.
+                 * @default false
+                 */
+                relative?: boolean | undefined;
+                /**
+                 * A name for the command, reported with the edges it draws; leave it out to be named by position.
+                 * @default undefined
+                 * @optional true
+                 */
+                id?: string | undefined;
+            }
+            /**
+             * A point to end at, for `sketch.commands.tangentArc`, which makes the command `sketch.pen` draws: a
+             * circular arc leaving in the direction the previous segment ended in.
+             */
+            class SketchTangentArcDto {
+                constructor(to?: Base.Point2, relative?: boolean, id?: string);
+                /**
+                 * Where the arc ends, in the sketch's x and y.
+                 * @default [10, 10]
+                 */
+                to?: Base.Point2 | undefined;
+                /**
+                 * When true, `to` is an offset from where the pen is rather than a point of the sketch.
+                 * @default false
+                 */
+                relative?: boolean | undefined;
+                /**
+                 * A name for the command, reported with the edges it draws; leave it out to be named by position.
+                 * @default undefined
+                 * @optional true
+                 */
+                id?: string | undefined;
+            }
+            /**
+             * A point to end at and how far the arc stands off the straight line to it, for
+             * `sketch.commands.sagittaArc`, which makes the circular arc command `sketch.pen` draws.
+             */
+            class SketchSagittaArcDto {
+                constructor(to?: Base.Point2, sagitta?: number, relative?: boolean, id?: string);
+                /**
+                 * Where the arc ends, in the sketch's x and y.
+                 * @default [10, 0]
+                 */
+                to?: Base.Point2 | undefined;
+                /**
+                 * How far the arc's middle stands off the straight line between its ends, in model units:
+                 * positive to the left of travel, negative to the right.
+                 * @default 2
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 0.5
+                 */
+                sagitta?: number | undefined;
+                /**
+                 * When true, `to` is an offset from where the pen is rather than a point of the sketch.
+                 * @default false
+                 */
+                relative?: boolean | undefined;
+                /**
+                 * A name for the command, reported with the edges it draws; leave it out to be named by position.
+                 * @default undefined
+                 * @optional true
+                 */
+                id?: string | undefined;
+            }
+            /**
+             * A point to end at and the arc's bulge, as DXF files write arcs, for `sketch.commands.bulgeArc`,
+             * which makes the circular arc command `sketch.pen` draws.
+             */
+            class SketchBulgeArcDto {
+                constructor(to?: Base.Point2, bulge?: number, relative?: boolean, id?: string);
+                /**
+                 * Where the arc ends, in the sketch's x and y.
+                 * @default [10, 0]
+                 */
+                to?: Base.Point2 | undefined;
+                /**
+                 * The tangent of a quarter of the angle the arc sweeps: positive turns counterclockwise, 1 is a
+                 * half circle, and 0 would be a straight line.
+                 * @default 0.5
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                bulge?: number | undefined;
+                /**
+                 * When true, `to` is an offset from where the pen is rather than a point of the sketch.
+                 * @default false
+                 */
+                relative?: boolean | undefined;
+                /**
+                 * A name for the command, reported with the edges it draws; leave it out to be named by position.
+                 * @default undefined
+                 * @optional true
+                 */
+                id?: string | undefined;
+            }
+            /**
+             * A control point and a point to end at, for `sketch.commands.quadratic`, which makes the quadratic
+             * Bezier command `sketch.pen` draws from where the pen is.
+             */
+            class SketchQuadraticDto {
+                constructor(control?: Base.Point2, to?: Base.Point2, relative?: boolean, id?: string);
+                /**
+                 * The point the curve is pulled toward, in the sketch's x and y.
+                 * @default [5, 5]
+                 */
+                control?: Base.Point2 | undefined;
+                /**
+                 * Where the curve ends, in the sketch's x and y.
+                 * @default [10, 0]
+                 */
+                to?: Base.Point2 | undefined;
+                /**
+                 * When true, `control` and `to` are offsets from where the pen is rather than points of the sketch.
+                 * @default false
+                 */
+                relative?: boolean | undefined;
+                /**
+                 * A name for the command, reported with the edges it draws; leave it out to be named by position.
+                 * @default undefined
+                 * @optional true
+                 */
+                id?: string | undefined;
+            }
+            /**
+             * Two control points and a point to end at, for `sketch.commands.cubic`, which makes the cubic Bezier
+             * command `sketch.pen` draws from where the pen is.
+             */
+            class SketchCubicDto {
+                constructor(control1?: Base.Point2, control2?: Base.Point2, to?: Base.Point2, relative?: boolean, id?: string);
+                /**
+                 * The point the curve leaves toward, in the sketch's x and y.
+                 * @default [3, 5]
+                 */
+                control1?: Base.Point2 | undefined;
+                /**
+                 * The point the curve arrives from, in the sketch's x and y.
+                 * @default [7, 5]
+                 */
+                control2?: Base.Point2 | undefined;
+                /**
+                 * Where the curve ends, in the sketch's x and y.
+                 * @default [10, 0]
+                 */
+                to?: Base.Point2 | undefined;
+                /**
+                 * When true, the control points and `to` are offsets from where the pen is rather than points of
+                 * the sketch.
+                 * @default false
+                 */
+                relative?: boolean | undefined;
+                /**
+                 * A name for the command, reported with the edges it draws; leave it out to be named by position.
+                 * @default undefined
+                 * @optional true
+                 */
+                id?: string | undefined;
+            }
+            /**
+             * An optional name for the command `sketch.commands.close` makes, which `sketch.pen` draws as a
+             * straight segment back to the start point, closing the outline.
+             */
+            class SketchCloseDto {
+                constructor(id?: string);
+                /**
+                 * A name for the command, reported with the edge it draws; leave it out to be named by position.
+                 * @default undefined
+                 * @optional true
+                 */
+                id?: string | undefined;
+            }
+            /**
+             * A radius for `sketch.commands.filletCorner`, which makes the command `sketch.pen` uses to round the
+             * corner between the segments before and after it.
+             */
+            class SketchFilletCornerDto {
+                constructor(radius?: number, id?: string);
+                /**
+                 * The radius of the rounding arc, in model units.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                radius?: number | undefined;
+                /**
+                 * A name for the command, reported with the arc it draws; leave it out to be named by position.
+                 * @default undefined
+                 * @optional true
+                 */
+                id?: string | undefined;
+            }
+            /**
+             * A distance for `sketch.commands.chamferCorner`, which makes the command `sketch.pen` uses to bevel
+             * the corner between the segments before and after it.
+             */
+            class SketchChamferCornerDto {
+                constructor(distance?: number, id?: string);
+                /**
+                 * How much the bevel cuts off each segment, in model units, measured along the segment.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                distance?: number | undefined;
+                /**
+                 * A name for the command, reported with the segment it draws; leave it out to be named by position.
+                 * @default undefined
+                 * @optional true
+                 */
+                id?: string | undefined;
+            }
+            /**
+             * A start point, the pen's commands and a frame for `sketch.pen` and `sketch.penWithSegments`, which
+             * draw one outline in the frame's plane as an exact wire, or a face when it closes.
+             */
+            class SketchPenDto {
+                constructor(commands?: Models.OCCT.SketchCommand[], start?: Base.Point2, frame?: Base.Frame, makeFace?: boolean);
+                /**
+                 * The moves of the pen, drawn one after another from `start`.
+                 * @default undefined
+                 */
+                commands: Models.OCCT.SketchCommand[];
+                /**
+                 * Where the pen starts, in the sketch's x and y.
+                 * @default [0, 0]
+                 */
+                start?: Base.Point2 | undefined;
+                /**
+                 * The frame the sketch lies in, its direction the sketch's x axis and its normal out of the face.
+                 * Left out, the ground, with the sketch's y axis along -Z.
+                 * @default undefined
+                 * @optional true
+                 */
+                frame?: Base.Frame | undefined;
+                /**
+                 * When true, the closed outline becomes a face whose normal is the frame's normal.
+                 * @default false
+                 */
+                makeFace?: boolean | undefined;
+            }
+            /**
+             * A wire, a width and how to finish its ends and corners for `sketch.stroke`, which outlines the wire
+             * as if drawn with a pen that wide.
+             */
+            class SketchStrokeDto<T> {
+                constructor(shape?: T, width?: number, cap?: strokeCapEnum, join?: joinTypeEnum, frame?: Base.Frame, makeFace?: boolean);
+                /**
+                 * The wire or edge to outline, lying in the frame's plane.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * How wide the stroke is, in model units; it reaches half the width to each side.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                width?: number | undefined;
+                /**
+                 * How the two ends of an open wire are finished; a closed wire has no ends.
+                 * @default round
+                 */
+                cap?: strokeCapEnum | undefined;
+                /**
+                 * How the outline goes around the wire's corners: `arc` rounds them, `intersection` keeps them
+                 * sharp, `tangent` continues each side tangentially.
+                 * @default arc
+                 */
+                join?: joinTypeEnum | undefined;
+                /**
+                 * The frame whose plane the wire lies in. Leave it out for the ground plane.
+                 * @default undefined
+                 * @optional true
+                 */
+                frame?: Base.Frame | undefined;
+                /**
+                 * When true, the outline becomes a face; a closed wire gives a ring, a face with one hole.
+                 * @default true
+                 */
+                makeFace?: boolean | undefined;
+            }
+            /**
+             * Vertices, edges and wires lying in a frame's plane for `sketch.hull`, which wraps them in the
+             * tightest convex outline, exact along lines, circles and circular arcs.
+             */
+            class SketchHullDto<T> {
+                constructor(shapes?: T[], frame?: Base.Frame, makeFace?: boolean);
+                /**
+                 * The vertices, edges and wires to wrap; their edges must be straight or circular.
+                 * @default undefined
+                 */
+                shapes: T[];
+                /**
+                 * The frame whose plane the shapes lie in. Leave it out for the ground plane.
+                 * @default undefined
+                 * @optional true
+                 */
+                frame?: Base.Frame | undefined;
+                /**
+                 * When true, the hull becomes a face whose normal is the frame's normal.
+                 * @default true
+                 */
+                makeFace?: boolean | undefined;
+            }
+            /**
              * A shape, a surface type and the faces to choose among for `select.faces.ofType`.
              */
             class SelectFacesOfTypeDto<T> {
@@ -26115,6 +26571,163 @@ declare namespace Bit {
             interface HiddenLinesResult<T> {
                 visible: T;
                 hidden: T;
+            }
+            /**
+             * A straight segment from the current point to `to`, which is a sketch point, or an offset from the
+             * current point when `relative` is true.
+             */
+            interface SketchLineCommand {
+                type: "line";
+                id?: string;
+                to: Base.Point2;
+                relative?: boolean;
+            }
+            /**
+             * A straight segment `length` along the sketch's x axis; a negative length runs the other way.
+             */
+            interface SketchHLineCommand {
+                type: "hLine";
+                id?: string;
+                length: number;
+            }
+            /**
+             * A straight segment `length` along the sketch's y axis; a negative length runs the other way.
+             */
+            interface SketchVLineCommand {
+                type: "vLine";
+                id?: string;
+                length: number;
+            }
+            /**
+             * A straight segment `length` long at `angle` degrees from the sketch's x axis, counterclockwise.
+             */
+            interface SketchPolarLineCommand {
+                type: "polarLine";
+                id?: string;
+                length: number;
+                angle: number;
+            }
+            /**
+             * A straight segment `length` long that carries on in the direction the previous segment ended in.
+             */
+            interface SketchTangentLineCommand {
+                type: "tangentLine";
+                id?: string;
+                length: number;
+            }
+            /**
+             * A circular arc from the current point through `through` to `to`; with `relative` true both are
+             * offsets from the current point.
+             */
+            interface SketchThreePointArcCommand {
+                type: "threePointArc";
+                id?: string;
+                through: Base.Point2;
+                to: Base.Point2;
+                relative?: boolean;
+            }
+            /**
+             * A circular arc to `to` that leaves the current point in the direction the previous segment ended
+             * in.
+             */
+            interface SketchTangentArcCommand {
+                type: "tangentArc";
+                id?: string;
+                to: Base.Point2;
+                relative?: boolean;
+            }
+            /**
+             * A circular arc to `to` whose middle stands `sagitta` away from the straight line between its ends:
+             * a positive sagitta bulges to the left of the direction of travel, a negative one to the right.
+             */
+            interface SketchSagittaArcCommand {
+                type: "sagittaArc";
+                id?: string;
+                to: Base.Point2;
+                sagitta: number;
+                relative?: boolean;
+            }
+            /**
+             * A circular arc to `to` given by its bulge, as DXF files write arcs: the tangent of a quarter of the
+             * angle it sweeps, positive counterclockwise.
+             */
+            interface SketchBulgeArcCommand {
+                type: "bulgeArc";
+                id?: string;
+                to: Base.Point2;
+                bulge: number;
+                relative?: boolean;
+            }
+            /**
+             * A quadratic Bezier segment to `to`, pulled toward `control`.
+             */
+            interface SketchQuadraticCommand {
+                type: "quadratic";
+                id?: string;
+                control: Base.Point2;
+                to: Base.Point2;
+                relative?: boolean;
+            }
+            /**
+             * A cubic Bezier segment to `to`, leaving toward `control1` and arriving from `control2`.
+             */
+            interface SketchCubicCommand {
+                type: "cubic";
+                id?: string;
+                control1: Base.Point2;
+                control2: Base.Point2;
+                to: Base.Point2;
+                relative?: boolean;
+            }
+            /**
+             * A straight segment back to the start point, which closes the outline; when the pen is already
+             * there, it only closes it.
+             */
+            interface SketchCloseCommand {
+                type: "close";
+                id?: string;
+            }
+            /**
+             * Rounds the corner where the segment before it meets the segment after it with an arc of `radius`;
+             * after `close`, the corner at the start point.
+             */
+            interface SketchFilletCornerCommand {
+                type: "filletCorner";
+                id?: string;
+                radius: number;
+            }
+            /**
+             * Bevels the corner where the segment before it meets the segment after it, cutting `distance` off
+             * each, measured along the segments; after `close`, the corner at the start point.
+             */
+            interface SketchChamferCornerCommand {
+                type: "chamferCorner";
+                id?: string;
+                distance: number;
+            }
+            /**
+             * One move of the pen that `sketch.pen` draws: a line, an arc, a Bezier segment, closing the outline,
+             * or rounding or beveling a corner. `type` says which; `id` names the command in the segments
+             * `sketch.penWithSegments` reports.
+             */
+            type SketchCommand = SketchLineCommand | SketchHLineCommand | SketchVLineCommand | SketchPolarLineCommand | SketchTangentLineCommand | SketchThreePointArcCommand | SketchTangentArcCommand | SketchSagittaArcCommand | SketchBulgeArcCommand | SketchQuadraticCommand | SketchCubicCommand | SketchCloseCommand | SketchFilletCornerCommand | SketchChamferCornerCommand;
+            /**
+             * The edges one command drew: `id` is the command's own id, or its position in the list as text when
+             * it has none, `command` is that position, and `edges` are edge indexes as `shapes.edge.getEdges`
+             * counts them on the result.
+             */
+            interface SketchSegment {
+                id: string;
+                command: number;
+                edges: number[];
+            }
+            /**
+             * An outline `sketch.penWithSegments` drew, with the edges each command drew; commands that drew
+             * nothing, such as a `close` where the pen already was, are left out.
+             */
+            interface SketchWithSegments<T> {
+                shape: T;
+                segments: SketchSegment[];
             }
             /**
              * The wires of a single character in a text run: the outlines that bound its filled regions,
@@ -39026,9 +39639,9 @@ declare namespace Bit {
      * compounds; `operations`, `booleans`, `fillets`, `transforms`, `corners`, `draft` and `features`
      * change shapes; `select` picks faces and edges by what they are and where they lie; `analysis`
      * answers questions about shapes with points and numbers; `geom` handles
-     * curves and surfaces; `io` reads and writes STEP, IGES, STL and other files; `assembly`,
-     * `dimensions`, `brepGraph`, `path` and `svg` cover documents, annotations, topology graphs,
-     * machining paths and SVG. The methods on the service itself turn shapes into triangle meshes for
+     * curves and surfaces; `io` reads and writes STEP, IGES, STL and other files; `sketch` draws flat
+     * outlines with a pen; `assembly`, `dimensions`, `brepGraph`, `path` and `svg` cover documents,
+     * annotations, topology graphs, machining paths and SVG. The methods on the service itself turn shapes into triangle meshes for
      * drawing.
      */
     declare class OCCT {
@@ -39050,6 +39663,7 @@ declare namespace Bit {
         readonly analysis: OCCTAnalysis;
         readonly io: OCCTIO;
         readonly path: OCCTPath;
+        readonly sketch: OCCTSketch;
         readonly svg: OCCTSVG;
         /**
          * Triangulates a shape and returns every triangle as three points, in one flat list over all
@@ -45939,6 +46553,334 @@ declare namespace Bit {
          * ```
          */
         projectConical(inputs: Inputs.OCCT.ProjectConicalDto<Inputs.OCCT.TopoDSWirePointer | Inputs.OCCT.TopoDSEdgePointer, Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSCompoundPointer>;
+    }
+    /**
+     * Making the commands `sketch.pen` draws, one at a time: lines, circular arcs, Bezier curves,
+     * closing the outline, and rounding or beveling a corner. Each method returns one command as plain
+     * data, the same object a script can write by hand, so a list of them is what `sketch.pen` takes.
+     */
+    declare class OCCTSketchCommands {
+        private readonly occWorkerManager;
+        /**
+         * Makes a command that draws a straight segment to a point.
+         *
+         * `to` is a point in the sketch's x and y, or an offset from where the pen is when `relative`
+         * is true.
+         * @param inputs - The point to draw to, whether it is relative and the command's id
+         * @returns The command
+         * @group lines
+         * @shortname line
+         * @drawable false
+         * @example
+         * ```typescript
+         * const side = await bitbybit.occt.sketch.commands.line({ to: [0, 10], relative: true, id: "side" });
+         * const outline = await bitbybit.occt.sketch.pen({ commands: [side, { type: "hLine", length: 20 }] });
+         * ```
+         */
+        line(inputs: Inputs.OCCT.SketchLineDto): Promise<Models.OCCT.SketchCommand>;
+        /**
+         * Makes a command that draws a straight segment along the sketch's x axis.
+         *
+         * A negative `length` draws in the negative x direction.
+         * @param inputs - The length and the command's id
+         * @returns The command
+         * @group lines
+         * @shortname h line
+         * @drawable false
+         * @example
+         * ```typescript
+         * const base = await bitbybit.occt.sketch.commands.hLine({ length: 40, id: "base" });
+         * ```
+         */
+        hLine(inputs: Inputs.OCCT.SketchHLineDto): Promise<Models.OCCT.SketchCommand>;
+        /**
+         * Makes a command that draws a straight segment along the sketch's y axis.
+         *
+         * A negative `length` draws in the negative y direction.
+         * @param inputs - The length and the command's id
+         * @returns The command
+         * @group lines
+         * @shortname v line
+         * @drawable false
+         * @example
+         * ```typescript
+         * const side = await bitbybit.occt.sketch.commands.vLine({ length: 10, id: "side" });
+         * ```
+         */
+        vLine(inputs: Inputs.OCCT.SketchVLineDto): Promise<Models.OCCT.SketchCommand>;
+        /**
+         * Makes a command that draws a straight segment of a given length at an angle.
+         *
+         * `angle` is in degrees from the sketch's x axis, counterclockwise; a negative `length` draws
+         * the opposite way.
+         * @param inputs - The length, the angle in degrees and the command's id
+         * @returns The command
+         * @group lines
+         * @shortname polar line
+         * @drawable false
+         * @example
+         * ```typescript
+         * const slope = await bitbybit.occt.sketch.commands.polarLine({ length: 12, angle: 30 });
+         * ```
+         */
+        polarLine(inputs: Inputs.OCCT.SketchPolarLineDto): Promise<Models.OCCT.SketchCommand>;
+        /**
+         * Makes a command that draws straight on in the direction the previous segment ended in.
+         *
+         * It needs a segment before it, and is how a straight run leaves an arc smoothly.
+         * @param inputs - The length and the command's id
+         * @returns The command
+         * @group lines
+         * @shortname tangent line
+         * @drawable false
+         * @example
+         * ```typescript
+         * const runOut = await bitbybit.occt.sketch.commands.tangentLine({ length: 15 });
+         * ```
+         */
+        tangentLine(inputs: Inputs.OCCT.SketchTangentLineDto): Promise<Models.OCCT.SketchCommand>;
+        /**
+         * Makes a command that draws a circular arc through one point to another.
+         *
+         * The arc turns whichever way takes it from where the pen is through `through` to `to`; the
+         * three points must not lie on one line.
+         * @param inputs - The point to pass through, the point to end at, whether they are relative and the command's id
+         * @returns The command
+         * @group arcs
+         * @shortname three point arc
+         * @drawable false
+         * @example
+         * ```typescript
+         * const crown = await bitbybit.occt.sketch.commands.threePointArc({ through: [10, 4], to: [20, 0] });
+         * ```
+         */
+        threePointArc(inputs: Inputs.OCCT.SketchThreePointArcDto): Promise<Models.OCCT.SketchCommand>;
+        /**
+         * Makes a command that draws a circular arc to a point, leaving in the direction the previous
+         * segment ended in.
+         *
+         * It needs a segment before it. The arc's radius follows from where it ends; an end straight
+         * ahead is refused, as `tangentLine` draws that.
+         * @param inputs - The point to end at, whether it is relative and the command's id
+         * @returns The command
+         * @group arcs
+         * @shortname tangent arc
+         * @drawable false
+         * @example
+         * ```typescript
+         * const bend = await bitbybit.occt.sketch.commands.tangentArc({ to: [10, 10], relative: true });
+         * ```
+         */
+        tangentArc(inputs: Inputs.OCCT.SketchTangentArcDto): Promise<Models.OCCT.SketchCommand>;
+        /**
+         * Makes a command that draws a circular arc to a point, bowed out by a given distance.
+         *
+         * `sagitta` is how far the middle of the arc stands off the straight line to `to`: positive to
+         * the left of the direction of travel, negative to the right.
+         * @param inputs - The point to end at, the sagitta, whether the point is relative and the command's id
+         * @returns The command
+         * @group arcs
+         * @shortname sagitta arc
+         * @drawable false
+         * @example
+         * ```typescript
+         * const bow = await bitbybit.occt.sketch.commands.sagittaArc({ to: [20, 0], sagitta: 3 });
+         * ```
+         */
+        sagittaArc(inputs: Inputs.OCCT.SketchSagittaArcDto): Promise<Models.OCCT.SketchCommand>;
+        /**
+         * Makes a command that draws a circular arc to a point, given by its bulge as DXF files write
+         * arcs.
+         *
+         * `bulge` is the tangent of a quarter of the angle swept: positive turns counterclockwise, 1
+         * draws a half circle and 0 is refused, being a straight line.
+         * @param inputs - The point to end at, the bulge, whether the point is relative and the command's id
+         * @returns The command
+         * @group arcs
+         * @shortname bulge arc
+         * @drawable false
+         * @example
+         * ```typescript
+         * const half = await bitbybit.occt.sketch.commands.bulgeArc({ to: [-20, 0], bulge: 1, relative: true });
+         * ```
+         */
+        bulgeArc(inputs: Inputs.OCCT.SketchBulgeArcDto): Promise<Models.OCCT.SketchCommand>;
+        /**
+         * Makes a command that draws a quadratic Bezier curve to a point, pulled toward a control point.
+         *
+         * With `relative` true, `control` and `to` are offsets from where the pen is.
+         * @param inputs - The control point, the point to end at, whether they are relative and the command's id
+         * @returns The command
+         * @group curves
+         * @shortname quadratic
+         * @drawable false
+         * @example
+         * ```typescript
+         * const sweep = await bitbybit.occt.sketch.commands.quadratic({ control: [10, 8], to: [20, 0] });
+         * ```
+         */
+        quadratic(inputs: Inputs.OCCT.SketchQuadraticDto): Promise<Models.OCCT.SketchCommand>;
+        /**
+         * Makes a command that draws a cubic Bezier curve to a point, shaped by two control points.
+         *
+         * The curve leaves toward `control1` and arrives from `control2`; with `relative` true all three
+         * points are offsets from where the pen is.
+         * @param inputs - The two control points, the point to end at, whether they are relative and the command's id
+         * @returns The command
+         * @group curves
+         * @shortname cubic
+         * @drawable false
+         * @example
+         * ```typescript
+         * const wave = await bitbybit.occt.sketch.commands.cubic({ control1: [5, 10], control2: [15, -10], to: [20, 0] });
+         * ```
+         */
+        cubic(inputs: Inputs.OCCT.SketchCubicDto): Promise<Models.OCCT.SketchCommand>;
+        /**
+         * Makes a command that closes the outline with a straight segment back to the start point.
+         *
+         * Only corner commands may follow it. When the pen is already at the start point it draws
+         * nothing and only closes the outline.
+         * @param inputs - The command's id
+         * @returns The command
+         * @group outline
+         * @shortname close
+         * @drawable false
+         * @example
+         * ```typescript
+         * const close = await bitbybit.occt.sketch.commands.close({ id: "back" });
+         * ```
+         */
+        close(inputs: Inputs.OCCT.SketchCloseDto): Promise<Models.OCCT.SketchCommand>;
+        /**
+         * Makes a command that rounds the corner between the segment before it and the segment after
+         * it with an arc of a given radius.
+         *
+         * Placed after `close`, it rounds the corner at the start point. Only lines and circular arcs
+         * take a corner, and a radius too large for them is refused.
+         * @param inputs - The radius and the command's id
+         * @returns The command
+         * @group corners
+         * @shortname fillet corner
+         * @drawable false
+         * @example
+         * ```typescript
+         * const round = await bitbybit.occt.sketch.commands.filletCorner({ radius: 2 });
+         * ```
+         */
+        filletCorner(inputs: Inputs.OCCT.SketchFilletCornerDto): Promise<Models.OCCT.SketchCommand>;
+        /**
+         * Makes a command that bevels the corner between the segment before it and the segment after it,
+         * cutting the same distance off each.
+         *
+         * `distance` is measured along each segment. Placed after `close`, it bevels the corner at the
+         * start point; only lines and circular arcs take a corner.
+         * @param inputs - The distance and the command's id
+         * @returns The command
+         * @group corners
+         * @shortname chamfer corner
+         * @drawable false
+         * @example
+         * ```typescript
+         * const bevel = await bitbybit.occt.sketch.commands.chamferCorner({ distance: 1.5 });
+         * ```
+         */
+        chamferCorner(inputs: Inputs.OCCT.SketchChamferCornerDto): Promise<Models.OCCT.SketchCommand>;
+    }
+    /**
+     * Drawing flat outlines with a pen: a start point and a list of moves (lines, arcs, Bezier curves,
+     * rounded and beveled corners) become one exact wire, or a face when the outline closes, in the plane
+     * of a frame. `commands` makes the moves one at a time; `stroke` and `hull` outline wires and wrap
+     * shapes. A sketch's x axis is the frame's direction and its y axis the normal crossed with it.
+     */
+    declare class OCCTSketch {
+        private readonly occWorkerManager;
+        readonly commands: OCCTSketchCommands;
+        /**
+         * Draws an outline with a pen, from a start point through a list of moves, in a frame's plane.
+         *
+         * Each command draws on from where the previous one ended, and lines and arcs come out as exact
+         * lines and circles. `makeFace` turns a closed outline into a face facing along the frame's
+         * normal; one that crosses itself is refused.
+         * @param inputs - The commands, the start point, the frame and whether to make a face
+         * @returns The outline as a wire, or a face when `makeFace` is true
+         * @group draw
+         * @shortname pen
+         * @drawable true
+         * @example
+         * ```typescript
+         * const plate = await bitbybit.occt.sketch.pen({
+         *     commands: [
+         *         { type: "hLine", length: 40 },
+         *         { type: "vLine", length: 10 },
+         *         { type: "filletCorner", radius: 2 },
+         *         { type: "tangentArc", to: [-10, 10], relative: true },
+         *         { type: "close" },
+         *     ],
+         *     makeFace: true,
+         * });
+         * ```
+         */
+        pen(inputs: Inputs.OCCT.SketchPenDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Draws an outline as `pen` does and reports which edges each command drew, so later steps can
+         * find the edges and faces a command made by its `id`.
+         *
+         * Edges are numbered as `shapes.edge.getEdges` numbers them on the result. A command without an
+         * `id` is named by its position, and a command that drew nothing is left out.
+         * @param inputs - The commands, the start point, the frame and whether to make a face
+         * @returns The outline and, per command, the edges it drew
+         * @group draw
+         * @shortname pen with segments
+         * @drawable false
+         * @example
+         * ```typescript
+         * const drawn = await bitbybit.occt.sketch.penWithSegments({
+         *     commands: [{ type: "hLine", id: "base", length: 40 }, { type: "vLine", id: "side", length: 10 }, { type: "close", id: "slope" }],
+         *     makeFace: true,
+         * });
+         * console.log(drawn.segments.find(segment => segment.id === "slope")?.edges);
+         * ```
+         */
+        penWithSegments(inputs: Inputs.OCCT.SketchPenDto): Promise<Models.OCCT.SketchWithSegments<Inputs.OCCT.TopoDSShapePointer>>;
+        /**
+         * Outlines a wire as if it were drawn with a pen of a given width, in a frame's plane.
+         *
+         * Half of `width` lies to each side; `cap` finishes an open wire's ends and `join` its corners.
+         * A closed wire gives a ring: a face with one hole, or its two wires in a compound without
+         * `makeFace`.
+         * @param inputs - The wire, the width, the end and corner styles, the frame and whether to make a face
+         * @returns The outline as a face, or as a wire or compound of wires when `makeFace` is false
+         * @group outline
+         * @shortname stroke
+         * @drawable true
+         * @example
+         * ```typescript
+         * const path = await bitbybit.occt.sketch.pen({ commands: [{ type: "hLine", length: 30 }, { type: "tangentArc", to: [10, 10], relative: true }] });
+         * const slot = await bitbybit.occt.sketch.stroke({ shape: path, width: 4, cap: Bit.Inputs.OCCT.strokeCapEnum.round });
+         * ```
+         */
+        stroke(inputs: Inputs.OCCT.SketchStrokeDto<Inputs.OCCT.TopoDSWirePointer | Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Wraps vertices, straight edges and circular edges lying in a frame's plane in the tightest
+         * convex outline around them.
+         *
+         * The outline is exact: straight where it spans between shapes, following a circle where a circle
+         * or an arc bulges out. Other curves are refused, as are shapes off the frame's plane or circles
+         * tilted out of it.
+         * @param inputs - The shapes, the frame and whether to make a face
+         * @returns The hull as a face, or as a wire when `makeFace` is false
+         * @group outline
+         * @shortname hull
+         * @drawable true
+         * @example
+         * ```typescript
+         * const left = await bitbybit.occt.shapes.wire.createCircleWire({ radius: 5, center: [0, 0, 0], direction: [0, 1, 0] });
+         * const right = await bitbybit.occt.shapes.wire.createCircleWire({ radius: 2, center: [20, 0, 0], direction: [0, 1, 0] });
+         * const lever = await bitbybit.occt.sketch.hull({ shapes: [left, right] });
+         * ```
+         */
+        hull(inputs: Inputs.OCCT.SketchHullDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
     }
     /**
      * Importing SVG drawings as OpenCascade shapes. The importer parses the document (paths, basic
