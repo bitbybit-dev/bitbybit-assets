@@ -1,137 +1,137 @@
 {
-  "version": "1.4.1",
+  "version": "1.5.0-rc.0",
   "files": [
     {
-      "fileName": "bitbybit-babylon-ai-context-v1.4.1.md",
-      "sha256": "11d3d1841771aec30adf2f6033f0e6d149cc45f95e282838ec8ee81b0217db31",
-      "tokens": 154298,
-      "tokensRounded": "154k",
-      "characters": 432034,
+      "fileName": "bitbybit-babylon-ai-context-v1.5.0-rc.0.md",
+      "sha256": "8177878e038c4f03695a0cefb3cac49f79aac6567d73069b74158f4902aed31b",
+      "tokens": 171695,
+      "tokensRounded": "172k",
+      "characters": 480745,
       "lines": 1078,
-      "sizeKB": 421.96
+      "sizeKB": 469.53
     },
     {
-      "fileName": "bitbybit-babylon-formatted-no-comments-v1.4.1.d.ts",
-      "sha256": "34d2d08e6c8a40145666f27a4144f9fea919fde995e916663284c6a6c80ef1ab",
-      "tokens": 268866,
-      "tokensRounded": "269k",
-      "characters": 752824,
-      "lines": 14171,
-      "sizeKB": 735.18
+      "fileName": "bitbybit-babylon-formatted-no-comments-v1.5.0-rc.0.d.ts",
+      "sha256": "711fb2b210d96f10da80828dba3ce42026f269f4743706db6a8bc9e2e7f7ef13",
+      "tokens": 303166,
+      "tokensRounded": "303k",
+      "characters": 848866,
+      "lines": 16268,
+      "sizeKB": 828.97
     },
     {
-      "fileName": "bitbybit-babylon-formatted-v1.4.1.d.ts",
-      "sha256": "d3a23cb02fdc964977db0dc5c28e92791e361a6e50f7adfde3638572ef99c5e3",
-      "tokens": 1118683,
-      "tokensRounded": "1119k",
-      "characters": 3132313,
-      "lines": 69950,
-      "sizeKB": 3058.96
+      "fileName": "bitbybit-babylon-formatted-v1.5.0-rc.0.d.ts",
+      "sha256": "9d96544c5f316141f0d68226899e96868d717b07d2d4c9fd863b27dc90076c30",
+      "tokens": 1307861,
+      "tokensRounded": "1308k",
+      "characters": 3662012,
+      "lines": 79995,
+      "sizeKB": 3576.23
     },
     {
-      "fileName": "bitbybit-babylon-monaco-ai-context-v1.4.1.md",
-      "sha256": "7fd7854b2d4e1465d25d2089fd9cf961e1558d19a5618eef821809be499d7846",
-      "tokens": 162918,
-      "tokensRounded": "163k",
-      "characters": 407296,
+      "fileName": "bitbybit-babylon-monaco-ai-context-v1.5.0-rc.0.md",
+      "sha256": "955dc7d51028f37ae73df2a1ef064be991dc15abb680efa00d67aa4719266a49",
+      "tokens": 182403,
+      "tokensRounded": "182k",
+      "characters": 456007,
       "lines": 344,
-      "sizeKB": 397.77
+      "sizeKB": 445.33
     },
     {
-      "fileName": "bitbybit-babylon-no-comment-min-ai-v1.4.1.md",
-      "sha256": "ee8aa67d44dd193c240e9f73dab639b14b70c2695bb01e8b0e51e69631bf8adb",
-      "tokens": 159819,
-      "tokensRounded": "160k",
-      "characters": 399548,
+      "fileName": "bitbybit-babylon-no-comment-min-ai-v1.5.0-rc.0.md",
+      "sha256": "4551b36a6b71faa99cc3cf1e0c72526970a42ab422f2de06c0715c9cec7dfe15",
+      "tokens": 179302,
+      "tokensRounded": "179k",
+      "characters": 448254,
       "lines": 107,
-      "sizeKB": 390.19
+      "sizeKB": 437.76
     },
     {
-      "fileName": "bitbybit-playcanvas-ai-context-v1.4.1.md",
-      "sha256": "b7b74a4165ecb7c29e80c386b6061ec0294863055a56a6139477b5062b3e3233",
-      "tokens": 114058,
-      "tokensRounded": "114k",
-      "characters": 319363,
+      "fileName": "bitbybit-playcanvas-ai-context-v1.5.0-rc.0.md",
+      "sha256": "00c002e2d53d128a165588ed053e0731c108aa7335b08c92700e61ca840dac5e",
+      "tokens": 131416,
+      "tokensRounded": "131k",
+      "characters": 367966,
       "lines": 881,
-      "sizeKB": 311.93
+      "sizeKB": 359.39
     },
     {
-      "fileName": "bitbybit-playcanvas-formatted-no-comments-v1.4.1.d.ts",
-      "sha256": "fef1aa7c42facf79aa860d3db2c71472e35c2d734dc92296921c2b76a4b04f76",
-      "tokens": 207610,
-      "tokensRounded": "208k",
-      "characters": 581309,
-      "lines": 11134,
-      "sizeKB": 567.68
+      "fileName": "bitbybit-playcanvas-formatted-no-comments-v1.5.0-rc.0.d.ts",
+      "sha256": "84e4042f18f7d9ca4cff35cd651a082b684d65165f3efdfc91038d34008e12e8",
+      "tokens": 241862,
+      "tokensRounded": "242k",
+      "characters": 677214,
+      "lines": 13230,
+      "sizeKB": 661.34
     },
     {
-      "fileName": "bitbybit-playcanvas-formatted-v1.4.1.d.ts",
-      "sha256": "b47f003164c7abc97ccb143a092d7c6933bdf9de1c42a85f3f54972d9d497c2c",
-      "tokens": 893739,
-      "tokensRounded": "894k",
-      "characters": 2502469,
-      "lines": 56075,
-      "sizeKB": 2443.87
+      "fileName": "bitbybit-playcanvas-formatted-v1.5.0-rc.0.d.ts",
+      "sha256": "dd393789300b30e58cffdb59473c5295ac726ebe00cdbec72cfb3d9a186577da",
+      "tokens": 1069510,
+      "tokensRounded": "1070k",
+      "characters": 2994628,
+      "lines": 65677,
+      "sizeKB": 2924.49
     },
     {
-      "fileName": "bitbybit-playcanvas-no-comment-min-ai-v1.4.1.md",
-      "sha256": "869cf9c8d9e94fb3718b497cd25b72aa9dec183eb6227b56a00f4a3fb8fdc7d7",
-      "tokens": 117536,
-      "tokensRounded": "118k",
-      "characters": 293841,
+      "fileName": "bitbybit-playcanvas-no-comment-min-ai-v1.5.0-rc.0.md",
+      "sha256": "84ab5c9bcd7e57525bb6121201820944579bea18d867e0774e2007ff3a0eef3a",
+      "tokens": 136976,
+      "tokensRounded": "137k",
+      "characters": 342439,
       "lines": 107,
-      "sizeKB": 286.96
+      "sizeKB": 334.42
     },
     {
-      "fileName": "bitbybit-three-ai-context-v1.4.1.md",
-      "sha256": "eb5f3859292e0eb18a0d81a6dd73256aeb722289db77b69daf539a6140ed006c",
-      "tokens": 122174,
-      "tokensRounded": "122k",
-      "characters": 342087,
+      "fileName": "bitbybit-three-ai-context-v1.5.0-rc.0.md",
+      "sha256": "32aa0bb13b8dbef4541550acd4fb612c6f737eae9c06c7243e861725e9d2786f",
+      "tokens": 139534,
+      "tokensRounded": "140k",
+      "characters": 390694,
       "lines": 1459,
-      "sizeKB": 334.11
+      "sizeKB": 381.57
     },
     {
-      "fileName": "bitbybit-three-formatted-no-comments-v1.4.1.d.ts",
-      "sha256": "80ae1182cf4759d53fd9c31cc8ee7533e00ca0a1e65843b30e0bdc011c94d1a8",
-      "tokens": 208017,
-      "tokensRounded": "208k",
-      "characters": 582447,
-      "lines": 11139,
-      "sizeKB": 568.8
+      "fileName": "bitbybit-three-formatted-no-comments-v1.5.0-rc.0.d.ts",
+      "sha256": "f5882bc4a256e0d3a6f2eb745e9f01ffb4c00dc82f2ee5c26a316942349e75b1",
+      "tokens": 242273,
+      "tokensRounded": "242k",
+      "characters": 678365,
+      "lines": 13235,
+      "sizeKB": 662.47
     },
     {
-      "fileName": "bitbybit-three-formatted-v1.4.1.d.ts",
-      "sha256": "660f34a061dfee96d821f8bd2a124ba5d58c965311d9852e8e2e538ae77d6ce6",
-      "tokens": 895639,
-      "tokensRounded": "896k",
-      "characters": 2507788,
-      "lines": 56181,
-      "sizeKB": 2449.06
+      "fileName": "bitbybit-three-formatted-v1.5.0-rc.0.d.ts",
+      "sha256": "8db8c5ff9e8a319225da2e4fa6232721a4f7e1898b6ed8130aa5dab9ca504811",
+      "tokens": 1072143,
+      "tokensRounded": "1072k",
+      "characters": 3002001,
+      "lines": 65827,
+      "sizeKB": 2931.69
     },
     {
-      "fileName": "bitbybit-three-no-comment-min-ai-v1.4.1.md",
-      "sha256": "00059a0eda0b51d3545a3b50704822b549582ccec32b7553abe8ef0085c25648",
-      "tokens": 117819,
-      "tokensRounded": "118k",
-      "characters": 294548,
+      "fileName": "bitbybit-three-no-comment-min-ai-v1.5.0-rc.0.md",
+      "sha256": "3e9b4763cc2e9b1a6d01baec776442033e03b02d739252b3563e63ec2178d803",
+      "tokens": 137260,
+      "tokensRounded": "137k",
+      "characters": 343150,
       "lines": 107,
-      "sizeKB": 287.65
+      "sizeKB": 335.12
     },
     {
-      "fileName": "index-v1.4.1.json",
-      "sha256": "d28da4936657f3995a6f089eef691c0ccc0edc81fd35fad85b90c88684d428fc",
-      "tokens": 1069411,
-      "tokensRounded": "1069k",
-      "characters": 3101293,
-      "lines": 3712,
-      "sizeKB": 3028.62
+      "fileName": "index-v1.5.0-rc.0.json",
+      "sha256": "7706f268be41e0da02762292e9a0e0924e4faadf6d38f473a04db698cccfdb1a",
+      "tokens": 1251865,
+      "tokensRounded": "1252k",
+      "characters": 3630408,
+      "lines": 4157,
+      "sizeKB": 3545.32
     }
   ],
   "totals": {
     "totalFiles": 14,
-    "totalTokens": 5610587,
-    "totalCharacters": 15649160,
-    "totalSizeKB": 15282.74
+    "totalTokens": 6567266,
+    "totalCharacters": 18322749,
+    "totalSizeKB": 17893.63
   }
 }

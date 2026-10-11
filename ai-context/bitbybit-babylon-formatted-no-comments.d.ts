@@ -83,12 +83,12 @@ declare namespace Bit {
             type Polyline3 = {
                 points: Base.Point3[];
                 isClosed?: boolean;
-                color?: number[];
+                color?: string | number[];
             };
             type Polyline2 = {
                 points: Base.Point2[];
                 isClosed?: boolean;
-                color?: number[];
+                color?: string | number[];
             };
             type TransformMatrix3x3 = [
                 number,
@@ -121,6 +121,102 @@ declare namespace Bit {
                 number
             ];
             type TransformMatrixes = TransformMatrix[];
+            type RecipeRange = [
+                number,
+                number
+            ];
+            interface RecipeBuffers {
+                f64: Float64Array;
+                i32: Int32Array;
+            }
+            interface RecipePolygonNode {
+                op: "polygon";
+                points: RecipeRange;
+                holes: RecipeRange[];
+            }
+            interface RecipeCircleNode {
+                op: "circle";
+                center: Point2;
+                radius: number;
+            }
+            interface RecipeExtrudeNode {
+                op: "extrude";
+                profile: number;
+                direction: Vector3;
+                depth: number;
+            }
+            interface RecipeHalfSpaceNode {
+                op: "halfSpace";
+                origin: Point3;
+                normal: Vector3;
+            }
+            interface RecipeDifferenceNode {
+                op: "difference";
+                of: number;
+                tools: number[];
+            }
+            interface RecipeTransformNode {
+                op: "transform";
+                of: number;
+                matrix: TransformMatrix;
+            }
+            interface RecipeVoidsNode {
+                op: "voids";
+                host: number;
+                openings: number[];
+            }
+            interface RecipeTrianglesNode {
+                op: "triangles";
+                positions: RecipeRange;
+                indices: RecipeRange;
+            }
+            interface RecipeCompoundNode {
+                op: "compound";
+                of: number[];
+            }
+            interface RecipeUnionNode {
+                op: "union";
+                of: number[];
+            }
+            interface RecipeIntersectionNode {
+                op: "intersection";
+                of: number[];
+            }
+            interface RecipeRevolveNode {
+                op: "revolve";
+                profile: number;
+                origin: Point2;
+                direction: Vector2;
+                angle: number;
+            }
+            interface RecipeLoftNode {
+                op: "loft";
+                profiles: number[];
+                frames: RecipeRange;
+            }
+            type RecipeNode = RecipePolygonNode | RecipeCircleNode | RecipeExtrudeNode | RecipeHalfSpaceNode | RecipeDifferenceNode | RecipeTransformNode | RecipeVoidsNode | RecipeTrianglesNode | RecipeCompoundNode | RecipeUnionNode | RecipeIntersectionNode | RecipeRevolveNode | RecipeLoftNode;
+            type RecipeTagValue = string | number | boolean | number[];
+            interface RecipeRoot {
+                node: number;
+                matrix: TransformMatrix;
+                tag: Record<string, RecipeTagValue>;
+                group?: number | undefined;
+            }
+            interface RecipeGroup {
+                name: string;
+                parent?: number | undefined;
+                tag: Record<string, RecipeTagValue>;
+            }
+            interface Recipe {
+                format: "bitbybit.recipe";
+                version: 1;
+                millimetresPerUnit: number;
+                tolerance: number;
+                buffers: RecipeBuffers;
+                nodes: RecipeNode[];
+                roots: RecipeRoot[];
+                groups?: RecipeGroup[] | undefined;
+            }
             enum horizontalAlignEnum {
                 left = "left",
                 center = "center",
@@ -762,7 +858,7 @@ declare namespace Bit {
                 halfedgeTangent?: Float32Array | undefined;
             }
             class DrawManifoldOrCrossSectionDto<T, M> {
-                constructor(manifoldOrCrossSection?: T, faceOpacity?: number, faceMaterial?: M, faceColour?: Base.Color, crossSectionColour?: Base.Color, crossSectionWidth?: number, crossSectionOpacity?: number, computeNormals?: boolean, drawTwoSided?: boolean, backFaceColour?: Base.Color, backFaceOpacity?: number);
+                constructor(manifoldOrCrossSection?: T, faceOpacity?: number, faceMaterial?: M, faceColour?: Base.Color, crossSectionColour?: Base.Color, crossSectionWidth?: number, crossSectionOpacity?: number, computeNormals?: boolean, drawTwoSided?: boolean, backFaceColour?: Base.Color, backFaceOpacity?: number, minSharpAngle?: number);
                 manifoldOrCrossSection?: T | undefined;
                 faceOpacity?: number | undefined;
                 faceMaterial?: M | undefined;
@@ -771,12 +867,13 @@ declare namespace Bit {
                 crossSectionWidth?: number | undefined;
                 crossSectionOpacity?: number | undefined;
                 computeNormals?: boolean | undefined;
+                minSharpAngle?: number | undefined;
                 drawTwoSided?: boolean | undefined;
                 backFaceColour?: Base.Color | undefined;
                 backFaceOpacity?: number | undefined;
             }
             class DrawManifoldsOrCrossSectionsDto<T, M> {
-                constructor(manifoldsOrCrossSections?: T[], faceOpacity?: number, faceMaterial?: M, faceColour?: Base.Color, crossSectionColour?: Base.Color, crossSectionWidth?: number, crossSectionOpacity?: number, computeNormals?: boolean, drawTwoSided?: boolean, backFaceColour?: Base.Color, backFaceOpacity?: number);
+                constructor(manifoldsOrCrossSections?: T[], faceOpacity?: number, faceMaterial?: M, faceColour?: Base.Color, crossSectionColour?: Base.Color, crossSectionWidth?: number, crossSectionOpacity?: number, computeNormals?: boolean, drawTwoSided?: boolean, backFaceColour?: Base.Color, backFaceOpacity?: number, minSharpAngle?: number);
                 manifoldsOrCrossSections?: T[] | undefined;
                 faceMaterial?: M | undefined;
                 faceColour?: Base.Color | undefined;
@@ -785,6 +882,7 @@ declare namespace Bit {
                 crossSectionWidth?: number | undefined;
                 crossSectionOpacity?: number | undefined;
                 computeNormals?: boolean | undefined;
+                minSharpAngle?: number | undefined;
                 drawTwoSided?: boolean | undefined;
                 backFaceColour?: Base.Color | undefined;
                 backFaceOpacity?: number | undefined;
@@ -983,6 +1081,19 @@ declare namespace Bit {
                 matchProfile?: boolean | undefined;
                 circularSegments?: number | undefined;
             }
+            class LoftDto<T> {
+                constructor(crossSections?: T[], frames?: Base.TransformMatrix[]);
+                crossSections: T[];
+                frames: Base.TransformMatrix[];
+            }
+            class SweepDto<T> {
+                constructor(crossSection?: T, path?: Base.Point3[], cornerRadius?: number, circularSegments?: number, xDirection?: Base.Vector3);
+                crossSection: T;
+                path: Base.Point3[];
+                cornerRadius?: number | undefined;
+                circularSegments?: number | undefined;
+                xDirection?: Base.Vector3 | undefined;
+            }
             class OffsetDto<T> {
                 constructor(crossSection?: T, delta?: number, joinType?: manifoldJoinTypeEnum, miterLimit?: number, circularSegments?: number);
                 crossSection: T;
@@ -1148,9 +1259,10 @@ declare namespace Bit {
                 normalIdx?: number[] | undefined;
             }
             class DecomposeManifoldOrCrossSectionDto<T> {
-                constructor(manifoldOrCrossSection?: T, normalIdx?: number);
+                constructor(manifoldOrCrossSection?: T, normalIdx?: number, minSharpAngle?: number);
                 manifoldOrCrossSection: T;
                 normalIdx?: number | undefined;
+                minSharpAngle?: number | undefined;
             }
             class ManifoldOrCrossSectionDto<T> {
                 constructor(manifoldOrCrossSection?: T);
@@ -1161,9 +1273,642 @@ declare namespace Bit {
                 manifoldsOrCrossSections: T[];
             }
             class DecomposeManifoldsOrCrossSectionsDto<T> {
-                constructor(manifoldsOrCrossSections?: T[], normalIdx?: number[]);
+                constructor(manifoldsOrCrossSections?: T[], normalIdx?: number[], minSharpAngle?: number);
                 manifoldsOrCrossSections: T[];
                 normalIdx?: number[] | undefined;
+                minSharpAngle?: number | undefined;
+            }
+            class BuildRecipeDto {
+                constructor(recipe?: Base.Recipe, circularSegments?: number, adjustZtoY?: boolean, emptyWhenFailed?: boolean);
+                recipe: Base.Recipe;
+                circularSegments?: number | undefined;
+                adjustZtoY?: boolean | undefined;
+                emptyWhenFailed?: boolean | undefined;
+            }
+            class RecipeSurfaceMeshesDto {
+                constructor(recipe?: Base.Recipe, roots?: number[], adjustZtoY?: boolean);
+                recipe: Base.Recipe;
+                roots?: number[] | undefined;
+                adjustZtoY?: boolean | undefined;
+            }
+            class BuildRecipeMeshesDto {
+                constructor(recipe?: Base.Recipe, circularSegments?: number, adjustZtoY?: boolean, emptyWhenFailed?: boolean, minSharpAngle?: number);
+                recipe: Base.Recipe;
+                circularSegments?: number | undefined;
+                adjustZtoY?: boolean | undefined;
+                emptyWhenFailed?: boolean | undefined;
+                minSharpAngle?: number | undefined;
+            }
+            class RecipeMeshPlacementDto {
+                mesh: number;
+                matrix: Base.TransformMatrix;
+                tag: Record<string, Base.RecipeTagValue>;
+                group?: number | undefined;
+            }
+            class RecipeMeshesDto {
+                meshes: DecomposedManifoldMeshDto[];
+                placements: RecipeMeshPlacementDto[];
+            }
+        }
+        declare namespace IFC {
+            type IfcModelPointer = {
+                hash: number;
+                type: "ifc-model";
+            };
+            type IfcAttributeValue = IfcValue;
+            enum lengthUnitEnum {
+                millimetre = "millimetre",
+                centimetre = "centimetre",
+                metre = "metre"
+            }
+            enum wallAlignmentEnum {
+                center = "center",
+                left = "left",
+                right = "right"
+            }
+            enum wallEndEnum {
+                start = "start",
+                end = "end",
+                along = "along"
+            }
+            enum wallPredefinedTypeEnum {
+                standard = "STANDARD",
+                solidWall = "SOLIDWALL",
+                partitioning = "PARTITIONING",
+                shear = "SHEAR",
+                parapet = "PARAPET",
+                movable = "MOVABLE",
+                plumbingWall = "PLUMBINGWALL",
+                notDefined = "NOTDEFINED"
+            }
+            enum roofKindEnum {
+                flat = "flat",
+                monoPitch = "monoPitch",
+                gable = "gable",
+                hip = "hip"
+            }
+            enum memberPredefinedTypeEnum {
+                brace = "BRACE",
+                chord = "CHORD",
+                collar = "COLLAR",
+                member = "MEMBER",
+                mullion = "MULLION",
+                plate = "PLATE",
+                post = "POST",
+                purlin = "PURLIN",
+                rafter = "RAFTER",
+                stringer = "STRINGER",
+                strut = "STRUT",
+                stud = "STUD",
+                notDefined = "NOTDEFINED"
+            }
+            enum elementAssemblyPredefinedTypeEnum {
+                accessoryAssembly = "ACCESSORY_ASSEMBLY",
+                arch = "ARCH",
+                beamGrid = "BEAM_GRID",
+                bracedFrame = "BRACED_FRAME",
+                girder = "GIRDER",
+                reinforcementUnit = "REINFORCEMENT_UNIT",
+                rigidFrame = "RIGID_FRAME",
+                slabField = "SLAB_FIELD",
+                truss = "TRUSS",
+                userDefined = "USERDEFINED",
+                notDefined = "NOTDEFINED"
+            }
+            enum spacePredefinedTypeEnum {
+                space = "SPACE",
+                parking = "PARKING",
+                gfa = "GFA",
+                internal = "INTERNAL",
+                external = "EXTERNAL",
+                notDefined = "NOTDEFINED"
+            }
+            enum slabPredefinedTypeEnum {
+                floor = "FLOOR",
+                roof = "ROOF",
+                landing = "LANDING",
+                baseSlab = "BASESLAB",
+                notDefined = "NOTDEFINED"
+            }
+            enum doorOperationEnum {
+                singleSwingLeft = "SINGLE_SWING_LEFT",
+                singleSwingRight = "SINGLE_SWING_RIGHT",
+                doubleSwingLeft = "DOUBLE_SWING_LEFT",
+                doubleSwingRight = "DOUBLE_SWING_RIGHT",
+                slidingToLeft = "SLIDING_TO_LEFT",
+                slidingToRight = "SLIDING_TO_RIGHT",
+                foldingToLeft = "FOLDING_TO_LEFT",
+                foldingToRight = "FOLDING_TO_RIGHT",
+                revolving = "REVOLVING",
+                rollingUp = "ROLLINGUP",
+                notDefined = "NOTDEFINED"
+            }
+            enum doorHandleEnum {
+                none = "none",
+                lever = "lever",
+                pullBar = "pullBar"
+            }
+            enum profileKindEnum {
+                rectangle = "rectangle",
+                circle = "circle",
+                iShape = "iShape"
+            }
+            class ModelDto<T> {
+                constructor(model?: T);
+                model: T;
+            }
+            class CreateModelDto {
+                constructor(name?: string, siteName?: string, buildingName?: string, lengthUnit?: lengthUnitEnum, seed?: string, author?: string, organization?: string);
+                name?: string | undefined;
+                siteName?: string | undefined;
+                buildingName?: string | undefined;
+                lengthUnit?: lengthUnitEnum | undefined;
+                seed?: string | undefined;
+                author?: string | undefined;
+                organization?: string | undefined;
+            }
+            class ReadModelDto {
+                constructor(data?: string | Uint8Array | ArrayBuffer);
+                data: string | Uint8Array | ArrayBuffer;
+            }
+            class WriteModelDto<T> {
+                constructor(model?: T, fileName?: string, timeStamp?: string);
+                model: T;
+                fileName?: string | undefined;
+                timeStamp?: string | undefined;
+            }
+            class ElementsDto<T> {
+                constructor(model?: T, type?: string, storey?: string);
+                model: T;
+                type?: string | undefined;
+                storey?: string | undefined;
+            }
+            class ElementDto<T> {
+                constructor(model?: T, element?: string);
+                model: T;
+                element: string;
+            }
+            class SetAttributeDto<T> {
+                constructor(model?: T, element?: string, attribute?: string, value?: string | number | boolean);
+                model: T;
+                element: string;
+                attribute?: string | undefined;
+                value: string | number | boolean;
+            }
+            class GetAttributeDto<T> {
+                constructor(model?: T, element?: string, attribute?: string);
+                model: T;
+                element: string;
+                attribute?: string | undefined;
+            }
+            class GlobalIdOfDto<T> {
+                constructor(model?: T, id?: string);
+                model: T;
+                id: string;
+            }
+            class MoveElementDto<T> {
+                constructor(model?: T, element?: string, translation?: Base.Vector3, rotation?: number);
+                model: T;
+                element: string;
+                translation?: Base.Vector3 | undefined;
+                rotation?: number | undefined;
+            }
+            class AddStoreyDto<T> {
+                constructor(model?: T, id?: string, name?: string, elevation?: number);
+                model: T;
+                id?: string | undefined;
+                name?: string | undefined;
+                elevation?: number | undefined;
+            }
+            class AddMaterialDto<T> {
+                constructor(model?: T, name?: string, category?: string, color?: string, transparency?: number);
+                model: T;
+                name?: string | undefined;
+                category?: string | undefined;
+                color?: string | undefined;
+                transparency?: number | undefined;
+            }
+            class MaterialLayerDto {
+                constructor(material?: string, thickness?: number, name?: string);
+                material?: string | undefined;
+                thickness?: number | undefined;
+                name?: string | undefined;
+            }
+            class AddLayerSetDto<T> {
+                constructor(model?: T, name?: string, layers?: MaterialLayerDto[]);
+                model: T;
+                name?: string | undefined;
+                layers: MaterialLayerDto[];
+            }
+            class StoreyInfoDto {
+                globalId: string;
+                name: string;
+                elevation: number;
+            }
+            class SetStoreyElevationDto<T> {
+                constructor(model?: T, storey?: string, elevation?: number);
+                model: T;
+                storey: string;
+                elevation?: number | undefined;
+            }
+            class AddSpaceDto<T> {
+                constructor(model?: T, storey?: string, id?: string, name?: string, longName?: string, outline?: Base.Point2[], height?: number, baseOffset?: number, predefinedType?: spacePredefinedTypeEnum);
+                model: T;
+                storey: string;
+                id?: string | undefined;
+                name?: string | undefined;
+                longName?: string | undefined;
+                outline: Base.Point2[];
+                height?: number | undefined;
+                baseOffset?: number | undefined;
+                predefinedType?: spacePredefinedTypeEnum | undefined;
+            }
+            class SpacesDto<T> {
+                constructor(model?: T, storey?: string);
+                model: T;
+                storey?: string | undefined;
+            }
+            class SpaceInfoDto {
+                globalId: string;
+                name: string;
+                longName: string;
+                storey: string;
+                area: number;
+                height: number;
+            }
+            class ElementInfoDto {
+                globalId: string;
+                type: string;
+                name: string;
+                storey: string;
+            }
+            class GeoreferenceDto {
+                mapped: boolean;
+                crs: string;
+                eastings: number;
+                northings: number;
+                orthogonalHeight: number;
+                xAxisAbscissa: number;
+                xAxisOrdinate: number;
+                scale: number;
+                located: boolean;
+                latitude: number;
+                longitude: number;
+                elevation: number;
+            }
+            class ModelSummaryDto {
+                schema: string;
+                editable: boolean;
+                project: string;
+                millimetresPerUnit: number;
+                entities: number;
+                storeys: StoreyInfoDto[];
+                elementCounts: Record<string, number>;
+            }
+            class AddWallDto<T> {
+                constructor(model?: T, storey?: string, id?: string, name?: string, start?: Base.Point2, end?: Base.Point2, height?: number, thickness?: number, layerSet?: string, alignment?: wallAlignmentEnum, baseOffset?: number, wallType?: string, predefinedType?: wallPredefinedTypeEnum);
+                model: T;
+                storey: string;
+                id?: string | undefined;
+                name?: string | undefined;
+                start: Base.Point2;
+                end: Base.Point2;
+                height?: number | undefined;
+                thickness?: number | undefined;
+                layerSet?: string | undefined;
+                alignment?: wallAlignmentEnum | undefined;
+                baseOffset?: number | undefined;
+                wallType?: string | undefined;
+                predefinedType?: wallPredefinedTypeEnum | undefined;
+            }
+            class ConnectWallsDto<T> {
+                constructor(model?: T, wall?: string, other?: string);
+                model: T;
+                wall: string;
+                other: string;
+            }
+            class ClipWallDto<T> {
+                constructor(model?: T, wall?: string, origin?: Base.Point3, normal?: Base.Vector3);
+                model: T;
+                wall: string;
+                origin: Base.Point3;
+                normal?: Base.Vector3 | undefined;
+            }
+            class ClipWallByRoofDto<T> {
+                constructor(model?: T, wall?: string, roof?: string);
+                model: T;
+                wall: string;
+                roof: string;
+            }
+            class AddWallTypeDto<T> {
+                constructor(model?: T, id?: string, name?: string, layerSet?: string, predefinedType?: wallPredefinedTypeEnum);
+                model: T;
+                id?: string | undefined;
+                name?: string | undefined;
+                layerSet: string;
+                predefinedType?: wallPredefinedTypeEnum | undefined;
+            }
+            class WallDto<T> {
+                constructor(model?: T, wall?: string);
+                model: T;
+                wall: string;
+            }
+            class EditWallDto<T> {
+                constructor(model?: T, wall?: string, start?: Base.Point2, end?: Base.Point2, height?: number, baseOffset?: number, thickness?: number, layerSet?: string, alignment?: wallAlignmentEnum);
+                model: T;
+                wall: string;
+                start?: Base.Point2 | undefined;
+                end?: Base.Point2 | undefined;
+                height?: number | undefined;
+                baseOffset?: number | undefined;
+                thickness?: number | undefined;
+                layerSet?: string | undefined;
+                alignment?: wallAlignmentEnum | undefined;
+            }
+            class WallJoinInfoDto {
+                other: string;
+                at: wallEndEnum;
+                otherAt: wallEndEnum;
+            }
+            class WallParametersDto {
+                globalId: string;
+                name: string;
+                storey: string;
+                start: Base.Point2;
+                end: Base.Point2;
+                height: number;
+                baseOffset: number;
+                thickness: number;
+                offset: number;
+                alignment: wallAlignmentEnum | "";
+                layerSet: string;
+                wallType: string;
+                joins: WallJoinInfoDto[];
+                openings: string[];
+                clippings: number;
+            }
+            class AddOpeningDto<T> {
+                constructor(model?: T, wall?: string, id?: string, name?: string, offset?: number, sill?: number, width?: number, height?: number);
+                model: T;
+                wall: string;
+                id?: string | undefined;
+                name?: string | undefined;
+                offset?: number | undefined;
+                sill?: number | undefined;
+                width?: number | undefined;
+                height?: number | undefined;
+            }
+            class EditOpeningDto<T> {
+                constructor(model?: T, opening?: string, offset?: number, sill?: number, width?: number, height?: number);
+                model: T;
+                opening: string;
+                offset?: number | undefined;
+                sill?: number | undefined;
+                width?: number | undefined;
+                height?: number | undefined;
+            }
+            class AddSlabOpeningDto<T> {
+                constructor(model?: T, slab?: string, id?: string, name?: string, outline?: Base.Point2[]);
+                model: T;
+                slab: string;
+                id?: string | undefined;
+                name?: string | undefined;
+                outline: Base.Point2[];
+            }
+            class AddDoorTypeDto<T> {
+                constructor(model?: T, id?: string, name?: string, width?: number, height?: number, liningThickness?: number, liningDepth?: number, panelThickness?: number, operation?: doorOperationEnum, liningMaterial?: string, panelMaterial?: string, handle?: doorHandleEnum, handleMaterial?: string);
+                model: T;
+                id?: string | undefined;
+                name?: string | undefined;
+                width?: number | undefined;
+                height?: number | undefined;
+                liningThickness?: number | undefined;
+                liningDepth?: number | undefined;
+                panelThickness?: number | undefined;
+                operation?: doorOperationEnum | undefined;
+                liningMaterial?: string | undefined;
+                panelMaterial?: string | undefined;
+                handle?: doorHandleEnum | undefined;
+                handleMaterial?: string | undefined;
+            }
+            class AddWindowTypeDto<T> {
+                constructor(model?: T, id?: string, name?: string, width?: number, height?: number, frameThickness?: number, frameDepth?: number, glassThickness?: number, frameMaterial?: string, glassMaterial?: string);
+                model: T;
+                id?: string | undefined;
+                name?: string | undefined;
+                width?: number | undefined;
+                height?: number | undefined;
+                frameThickness?: number | undefined;
+                frameDepth?: number | undefined;
+                glassThickness?: number | undefined;
+                frameMaterial?: string | undefined;
+                glassMaterial?: string | undefined;
+            }
+            class AddDoorDto<T> {
+                constructor(model?: T, wall?: string, doorType?: string, id?: string, name?: string, offset?: number, sill?: number);
+                model: T;
+                wall: string;
+                doorType: string;
+                id?: string | undefined;
+                name?: string | undefined;
+                offset?: number | undefined;
+                sill?: number | undefined;
+            }
+            class AddWindowDto<T> {
+                constructor(model?: T, wall?: string, windowType?: string, id?: string, name?: string, offset?: number, sill?: number);
+                model: T;
+                wall: string;
+                windowType: string;
+                id?: string | undefined;
+                name?: string | undefined;
+                offset?: number | undefined;
+                sill?: number | undefined;
+            }
+            class AddSlabDto<T> {
+                constructor(model?: T, storey?: string, id?: string, name?: string, outline?: Base.Point2[], holes?: Base.Point2[][], thickness?: number, layerSet?: string, topOffset?: number, predefinedType?: slabPredefinedTypeEnum);
+                model: T;
+                storey: string;
+                id?: string | undefined;
+                name?: string | undefined;
+                outline: Base.Point2[];
+                holes?: Base.Point2[][] | undefined;
+                thickness?: number | undefined;
+                layerSet?: string | undefined;
+                topOffset?: number | undefined;
+                predefinedType?: slabPredefinedTypeEnum | undefined;
+            }
+            abstract class MemberSharedDto<T> {
+                model: T;
+                storey: string;
+                id?: string | undefined;
+                name?: string | undefined;
+                profile?: profileKindEnum | undefined;
+                width?: number | undefined;
+                depth?: number | undefined;
+                radius?: number | undefined;
+                webThickness?: number | undefined;
+                flangeThickness?: number | undefined;
+                rotation?: number | undefined;
+                material?: string | undefined;
+            }
+            class AddColumnDto<T> extends MemberSharedDto<T> {
+                constructor(model?: T, storey?: string, position?: Base.Point2, height?: number, baseOffset?: number, id?: string, name?: string, profile?: profileKindEnum, width?: number, depth?: number, radius?: number, webThickness?: number, flangeThickness?: number, rotation?: number, material?: string);
+                position?: Base.Point2 | undefined;
+                height?: number | undefined;
+                baseOffset?: number | undefined;
+            }
+            class AddBeamDto<T> extends MemberSharedDto<T> {
+                constructor(model?: T, storey?: string, start?: Base.Point3, end?: Base.Point3, id?: string, name?: string, profile?: profileKindEnum, width?: number, depth?: number, radius?: number, webThickness?: number, flangeThickness?: number, rotation?: number, material?: string);
+                start: Base.Point3;
+                end: Base.Point3;
+            }
+            class AddMemberDto<T> extends MemberSharedDto<T> {
+                constructor(model?: T, storey?: string, start?: Base.Point3, end?: Base.Point3, id?: string, name?: string, profile?: profileKindEnum, width?: number, depth?: number, radius?: number, webThickness?: number, flangeThickness?: number, rotation?: number, material?: string, predefinedType?: memberPredefinedTypeEnum);
+                start: Base.Point3;
+                end: Base.Point3;
+                predefinedType?: memberPredefinedTypeEnum | undefined;
+            }
+            class AddRoofDto<T> {
+                constructor(model?: T, storey?: string, id?: string, name?: string, outline?: Base.Point2[], kind?: roofKindEnum, pitch?: number, thickness?: number, layerSet?: string, overhang?: number, baseOffset?: number);
+                model: T;
+                storey: string;
+                id?: string | undefined;
+                name?: string | undefined;
+                outline: Base.Point2[];
+                kind?: roofKindEnum | undefined;
+                pitch?: number | undefined;
+                thickness?: number | undefined;
+                layerSet?: string | undefined;
+                overhang?: number | undefined;
+                baseOffset?: number | undefined;
+            }
+            class AddAssemblyDto<T> {
+                constructor(model?: T, parts?: string[], id?: string, name?: string, predefinedType?: elementAssemblyPredefinedTypeEnum, objectType?: string);
+                model: T;
+                parts: string[];
+                id?: string | undefined;
+                name?: string | undefined;
+                predefinedType?: elementAssemblyPredefinedTypeEnum | undefined;
+                objectType?: string | undefined;
+            }
+            class AddTerrainDto<T> {
+                constructor(model?: T, id?: string, name?: string, outline?: Base.Point2[], holes?: Base.Point2[][], depth?: number, elevation?: number, material?: string);
+                model: T;
+                id?: string | undefined;
+                name?: string | undefined;
+                outline: Base.Point2[];
+                holes?: Base.Point2[][] | undefined;
+                depth?: number | undefined;
+                elevation?: number | undefined;
+                material?: string | undefined;
+            }
+            class AddTreeDto<T> {
+                constructor(model?: T, id?: string, name?: string, species?: string, position?: Base.Point2, elevation?: number, height?: number, crownRadius?: number, trunkRadius?: number, crownMaterial?: string, trunkMaterial?: string);
+                model: T;
+                id?: string | undefined;
+                name?: string | undefined;
+                species?: string | undefined;
+                position?: Base.Point2 | undefined;
+                elevation?: number | undefined;
+                height?: number | undefined;
+                crownRadius?: number | undefined;
+                trunkRadius?: number | undefined;
+                crownMaterial?: string | undefined;
+                trunkMaterial?: string | undefined;
+            }
+            class PropertyDto {
+                constructor(name?: string, value?: string | number | boolean, type?: string);
+                name?: string | undefined;
+                value: string | number | boolean;
+                type?: string | undefined;
+            }
+            class AddPropertySetDto<T> {
+                constructor(model?: T, elements?: string[], name?: string, properties?: PropertyDto[]);
+                model: T;
+                elements: string[];
+                name?: string | undefined;
+                properties: PropertyDto[];
+            }
+            class SetPropertyValuesDto<T> {
+                constructor(model?: T, element?: string, name?: string, properties?: PropertyDto[]);
+                model: T;
+                element: string;
+                name?: string | undefined;
+                properties: PropertyDto[];
+            }
+            class RemovePropertyValuesDto<T> {
+                constructor(model?: T, element?: string, name?: string, names?: string[]);
+                model: T;
+                element: string;
+                name?: string | undefined;
+                names: string[];
+            }
+            class RemovePropertySetDto<T> {
+                constructor(model?: T, element?: string, name?: string);
+                model: T;
+                element: string;
+                name?: string | undefined;
+            }
+            class PropertySetInfoDto {
+                name: string;
+                properties: Record<string, string | number | boolean>;
+            }
+            class ComputeQuantitiesDto<T> {
+                constructor(model?: T, elements?: string[]);
+                model: T;
+                elements?: string[] | undefined;
+            }
+            class QuantitySetInfoDto {
+                name: string;
+                quantities: Record<string, number>;
+            }
+            class GeometryDto<T> {
+                constructor(model?: T, elements?: string[], groupByClass?: boolean);
+                model: T;
+                elements?: string[] | undefined;
+                groupByClass?: boolean | undefined;
+            }
+            class GeometryElementsDto<T> {
+                constructor(model?: T, elements?: string[]);
+                model: T;
+                elements?: string[] | undefined;
+            }
+            class GeometryToShapesDto<T> {
+                constructor(model?: T, elements?: string[], adjustZtoY?: boolean, emptyWhenFailed?: boolean, facetedMeshes?: boolean, maxTriangles?: number);
+                model: T;
+                elements?: string[] | undefined;
+                adjustZtoY?: boolean | undefined;
+                emptyWhenFailed?: boolean | undefined;
+                facetedMeshes?: boolean | undefined;
+                maxTriangles?: number | undefined;
+            }
+            class GeometryToDocumentDto<T> {
+                constructor(model?: T, elements?: string[], name?: string, emptyWhenFailed?: boolean, facetedMeshes?: boolean, maxTriangles?: number, groupByClass?: boolean);
+                model: T;
+                elements?: string[] | undefined;
+                name?: string | undefined;
+                emptyWhenFailed?: boolean | undefined;
+                facetedMeshes?: boolean | undefined;
+                maxTriangles?: number | undefined;
+                groupByClass?: boolean | undefined;
+            }
+            class GeometryToStepDto<T> {
+                constructor(model?: T, elements?: string[], name?: string, fileName?: string, emptyWhenFailed?: boolean, facetedMeshes?: boolean, maxTriangles?: number, compress?: boolean, tryDownload?: boolean, groupByClass?: boolean);
+                model: T;
+                elements?: string[] | undefined;
+                name?: string | undefined;
+                fileName?: string | undefined;
+                emptyWhenFailed?: boolean | undefined;
+                facetedMeshes?: boolean | undefined;
+                maxTriangles?: number | undefined;
+                compress?: boolean | undefined;
+                tryDownload?: boolean | undefined;
+                groupByClass?: boolean | undefined;
+            }
+            class GeometryProblemDto {
+                globalId: string;
+                type: string;
+                message: string;
             }
         }
         declare namespace OCCT {
@@ -1405,6 +2150,14 @@ declare namespace Bit {
                 untilFace = "untilFace",
                 throughAll = "throughAll"
             }
+            enum upAxisEnum {
+                y = "y",
+                z = "z"
+            }
+            enum designRebindEnum {
+                never = "never",
+                report = "report"
+            }
             class DecomposedMeshDto {
                 constructor(faceList?: DecomposedFaceDto[], edgeList?: DecomposedEdgeDto[]);
                 faceList: DecomposedFaceDto[];
@@ -1580,6 +2333,8 @@ declare namespace Bit {
                 vertexColour?: string | undefined;
                 vertexSize?: number | undefined;
                 precision?: number | undefined;
+                angularDeflection?: number | undefined;
+                relativeDeflection?: boolean | undefined;
                 drawEdgeIndexes?: boolean | undefined;
                 edgeIndexHeight?: number | undefined;
                 edgeIndexColour?: Base.Color | undefined;
@@ -1602,11 +2357,11 @@ declare namespace Bit {
                 analysisMax?: number | undefined;
             }
             class DrawShapeDto<T> extends DrawShapeSharedDto {
-                constructor(shape?: T, faceOpacity?: number, edgeOpacity?: number, edgeColour?: Base.Color, faceMaterial?: Base.Material, faceColour?: Base.Color, edgeWidth?: number, drawEdges?: boolean, drawFaces?: boolean, drawVertices?: boolean, vertexColour?: Base.Color, vertexSize?: number, precision?: number, drawEdgeIndexes?: boolean, edgeIndexHeight?: number, edgeIndexColour?: Base.Color, drawFaceIndexes?: boolean, faceIndexHeight?: number, faceIndexColour?: Base.Color, drawTwoSided?: boolean, backFaceColour?: Base.Color, backFaceOpacity?: number, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, drawIsoCurves?: boolean, isoCurvesU?: number, isoCurvesV?: number, isoCurvesColour?: Base.Color, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3, analysisMin?: number, analysisMax?: number);
+                constructor(shape?: T, faceOpacity?: number, edgeOpacity?: number, edgeColour?: Base.Color, faceMaterial?: Base.Material, faceColour?: Base.Color, edgeWidth?: number, drawEdges?: boolean, drawFaces?: boolean, drawVertices?: boolean, vertexColour?: Base.Color, vertexSize?: number, precision?: number, drawEdgeIndexes?: boolean, edgeIndexHeight?: number, edgeIndexColour?: Base.Color, drawFaceIndexes?: boolean, faceIndexHeight?: number, faceIndexColour?: Base.Color, drawTwoSided?: boolean, backFaceColour?: Base.Color, backFaceOpacity?: number, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, drawIsoCurves?: boolean, isoCurvesU?: number, isoCurvesV?: number, isoCurvesColour?: Base.Color, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3, analysisMin?: number, analysisMax?: number, angularDeflection?: number, relativeDeflection?: boolean);
                 shape?: T | undefined;
             }
             class DrawShapesDto<T> extends DrawShapeSharedDto {
-                constructor(shapes?: T[], faceOpacity?: number, edgeOpacity?: number, edgeColour?: Base.Color, faceMaterial?: Base.Material, faceColour?: Base.Color, edgeWidth?: number, drawEdges?: boolean, drawFaces?: boolean, drawVertices?: boolean, vertexColour?: Base.Color, vertexSize?: number, precision?: number, drawEdgeIndexes?: boolean, edgeIndexHeight?: number, edgeIndexColour?: Base.Color, drawFaceIndexes?: boolean, faceIndexHeight?: number, faceIndexColour?: Base.Color, drawTwoSided?: boolean, backFaceColour?: Base.Color, backFaceOpacity?: number, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, drawIsoCurves?: boolean, isoCurvesU?: number, isoCurvesV?: number, isoCurvesColour?: Base.Color, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3, analysisMin?: number, analysisMax?: number);
+                constructor(shapes?: T[], faceOpacity?: number, edgeOpacity?: number, edgeColour?: Base.Color, faceMaterial?: Base.Material, faceColour?: Base.Color, edgeWidth?: number, drawEdges?: boolean, drawFaces?: boolean, drawVertices?: boolean, vertexColour?: Base.Color, vertexSize?: number, precision?: number, drawEdgeIndexes?: boolean, edgeIndexHeight?: number, edgeIndexColour?: Base.Color, drawFaceIndexes?: boolean, faceIndexHeight?: number, faceIndexColour?: Base.Color, drawTwoSided?: boolean, backFaceColour?: Base.Color, backFaceOpacity?: number, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, drawIsoCurves?: boolean, isoCurvesU?: number, isoCurvesV?: number, isoCurvesColour?: Base.Color, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3, analysisMin?: number, analysisMax?: number, angularDeflection?: number, relativeDeflection?: boolean);
                 shapes: T[];
             }
             class FaceSubdivisionDto<T> {
@@ -2920,9 +3675,11 @@ declare namespace Bit {
                 internal?: boolean | undefined;
             }
             class ShapeToMeshDto<T> {
-                constructor(shape?: T, precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, isoCurvesU?: number, isoCurvesV?: number, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3);
+                constructor(shape?: T, precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, isoCurvesU?: number, isoCurvesV?: number, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3, angularDeflection?: number, relativeDeflection?: boolean);
                 shape: T;
                 precision?: number | undefined;
+                angularDeflection?: number | undefined;
+                relativeDeflection?: boolean | undefined;
                 adjustYtoZ?: boolean | undefined;
                 computeMetadata?: boolean | undefined;
                 keepMeshData?: boolean | undefined;
@@ -2946,9 +3703,11 @@ declare namespace Bit {
                 precision?: number | undefined;
             }
             class ShapesToMeshesDto<T> {
-                constructor(shapes?: T[], precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, isoCurvesU?: number, isoCurvesV?: number, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3);
+                constructor(shapes?: T[], precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, isoCurvesU?: number, isoCurvesV?: number, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3, angularDeflection?: number, relativeDeflection?: boolean);
                 shapes: T[];
                 precision?: number | undefined;
+                angularDeflection?: number | undefined;
+                relativeDeflection?: boolean | undefined;
                 adjustYtoZ?: boolean | undefined;
                 computeMetadata?: boolean | undefined;
                 keepMeshData?: boolean | undefined;
@@ -2960,9 +3719,11 @@ declare namespace Bit {
                 draftDirection?: Base.Vector3 | undefined;
             }
             class DocToMeshDto<U> {
-                constructor(document?: U, precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean);
+                constructor(document?: U, precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, angularDeflection?: number, relativeDeflection?: boolean);
                 document: U;
                 precision?: number | undefined;
+                angularDeflection?: number | undefined;
+                relativeDeflection?: boolean | undefined;
                 adjustYtoZ?: boolean | undefined;
                 computeMetadata?: boolean | undefined;
                 keepMeshData?: boolean | undefined;
@@ -2970,9 +3731,11 @@ declare namespace Bit {
                 forceFaceDeflection?: boolean | undefined;
             }
             class DocToMeshesDto<U> {
-                constructor(document?: U, precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean);
+                constructor(document?: U, precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, angularDeflection?: number, relativeDeflection?: boolean);
                 document: U;
                 precision?: number | undefined;
+                angularDeflection?: number | undefined;
+                relativeDeflection?: boolean | undefined;
                 adjustYtoZ?: boolean | undefined;
                 computeMetadata?: boolean | undefined;
                 keepMeshData?: boolean | undefined;
@@ -3214,6 +3977,7 @@ declare namespace Bit {
                 controlSurfaceDeflection?: boolean | undefined;
                 mergeFaces?: boolean | undefined;
                 forceUVExport?: boolean | undefined;
+                up?: upAxisEnum | undefined;
                 fileName?: string | undefined;
                 tryDownload?: boolean | undefined;
             }
@@ -4195,10 +4959,22 @@ declare namespace Bit {
                 brepData: string | File | Blob;
             }
             class SaveBrepDto<T> {
-                constructor(shape?: T, fileName?: string, tryDownload?: boolean);
+                constructor(shape?: T, fileName?: string, tryDownload?: boolean, withTriangulation?: boolean);
                 shape: T;
                 fileName?: string | undefined;
                 tryDownload?: boolean | undefined;
+                withTriangulation?: boolean | undefined;
+            }
+            class SaveBrepBinaryDto<T> {
+                constructor(shape?: T, fileName?: string, tryDownload?: boolean, withTriangulation?: boolean);
+                shape: T;
+                fileName?: string | undefined;
+                tryDownload?: boolean | undefined;
+                withTriangulation?: boolean | undefined;
+            }
+            class LoadBrepBinaryDto {
+                constructor(brepData?: ArrayBuffer | Uint8Array | File | Blob);
+                brepData: ArrayBuffer | Uint8Array | File | Blob;
             }
             class SaveObjDto<T> {
                 constructor(shape?: T, fileName?: string, precision?: number, adjustYtoZ?: boolean, tryDownload?: boolean);
@@ -4246,6 +5022,68 @@ declare namespace Bit {
                 meshDeflection?: number | undefined;
                 fileName?: string | undefined;
                 tryDownload?: boolean | undefined;
+            }
+            class DesignDocumentDto {
+                constructor(document?: Models.OCCT.DesignDocument, documents?: Models.OCCT.DesignDocument[]);
+                document: Models.OCCT.DesignDocument;
+                documents?: Models.OCCT.DesignDocument[] | undefined;
+            }
+            class DesignBuildDto<T> {
+                constructor(document?: Models.OCCT.DesignDocument, configuration?: string, parameters?: Record<string, number | string | boolean>, assets?: Record<string, string | Uint8Array | ArrayBuffer>, documents?: Models.OCCT.DesignDocument[], rebind?: designRebindEnum, outcomes?: Models.OCCT.DesignSuppliedOutcome<T>[], sketches?: boolean);
+                document: Models.OCCT.DesignDocument;
+                configuration?: string | undefined;
+                parameters?: Record<string, number | string | boolean> | undefined;
+                assets?: Record<string, string | Uint8Array | ArrayBuffer> | undefined;
+                documents?: Models.OCCT.DesignDocument[] | undefined;
+                rebind?: designRebindEnum | undefined;
+                outcomes?: Models.OCCT.DesignSuppliedOutcome<T>[] | undefined;
+                sketches?: boolean | undefined;
+            }
+            class DesignProbeFilletDto {
+                constructor(document?: Models.OCCT.DesignDocument, feature?: string, configuration?: string, parameters?: Record<string, number | string | boolean>, assets?: Record<string, string | Uint8Array | ArrayBuffer>, maxAttempts?: number);
+                document: Models.OCCT.DesignDocument;
+                feature: string;
+                configuration?: string | undefined;
+                parameters?: Record<string, number | string | boolean> | undefined;
+                assets?: Record<string, string | Uint8Array | ArrayBuffer> | undefined;
+                maxAttempts?: number | undefined;
+            }
+            class DesignReferenceForDto {
+                constructor(document?: Models.OCCT.DesignDocument, body?: string, faces?: number[], edges?: number[], configuration?: string, parameters?: Record<string, number | string | boolean>, assets?: Record<string, string | Uint8Array | ArrayBuffer>, nudge?: boolean);
+                document: Models.OCCT.DesignDocument;
+                body: string;
+                faces?: number[] | undefined;
+                edges?: number[] | undefined;
+                configuration?: string | undefined;
+                parameters?: Record<string, number | string | boolean> | undefined;
+                assets?: Record<string, string | Uint8Array | ArrayBuffer> | undefined;
+                nudge?: boolean | undefined;
+            }
+            class DesignClashesDto {
+                constructor(document?: Models.OCCT.DesignDocument, documents?: Models.OCCT.DesignDocument[], configuration?: string, parameters?: Record<string, number | string | boolean>, assets?: Record<string, string | Uint8Array | ArrayBuffer>, clearance?: number);
+                document: Models.OCCT.DesignDocument;
+                documents?: Models.OCCT.DesignDocument[] | undefined;
+                configuration?: string | undefined;
+                parameters?: Record<string, number | string | boolean> | undefined;
+                assets?: Record<string, string | Uint8Array | ArrayBuffer> | undefined;
+                clearance?: number | undefined;
+            }
+            class BuildRecipeDto {
+                constructor(recipe?: Base.Recipe, adjustZtoY?: boolean, emptyWhenFailed?: boolean, facetedMeshes?: boolean, maxTriangles?: number);
+                recipe: Base.Recipe;
+                adjustZtoY?: boolean | undefined;
+                emptyWhenFailed?: boolean | undefined;
+                facetedMeshes?: boolean | undefined;
+                maxTriangles?: number | undefined;
+            }
+            class BuildRecipeDocumentDto {
+                constructor(recipe?: Base.Recipe, name?: string, groupBy?: string, emptyWhenFailed?: boolean, facetedMeshes?: boolean, maxTriangles?: number);
+                recipe: Base.Recipe;
+                name?: string | undefined;
+                groupBy?: string | undefined;
+                emptyWhenFailed?: boolean | undefined;
+                facetedMeshes?: boolean | undefined;
+                maxTriangles?: number | undefined;
             }
         }
         declare namespace BabylonCamera {
@@ -4729,9 +5567,10 @@ declare namespace Bit {
                 constructor(container?: BABYLON.GUI.Container);
                 container: BABYLON.GUI.Container;
             }
-            class AddControlsToContainerDto {
-                constructor(container?: BABYLON.GUI.StackPanel, controls?: BABYLON.GUI.Control[], clearControlsFirst?: boolean);
-                container: BABYLON.GUI.Container;
+            type ControlsParent = BABYLON.GUI.Container | BABYLON.GUI.AdvancedDynamicTexture;
+            class AddControlsToContainerDto<C extends ControlsParent = ControlsParent> {
+                constructor(container?: C, controls?: BABYLON.GUI.Control[], clearControlsFirst?: boolean);
+                container: C;
                 controls: BABYLON.GUI.Control[];
                 clearControlsFirst?: boolean | undefined;
             }
@@ -5762,8 +6601,12 @@ declare namespace Bit {
             }
         }
         declare namespace Draw {
-            type DrawOptions = DrawBasicGeometryOptions | DrawManifoldOrCrossSectionOptions | DrawOcctShapeOptions | DrawOcctShapeSimpleOptions | DrawOcctShapeMaterialOptions | DrawNodeOptions | DrawFrameOptions;
-            type Entity = number[] | Base.Point3 | Base.Line3 | Base.Segment3 | Base.Polyline3 | Base.Frame | Base.VerbCurve | Base.VerbSurface | Inputs.OCCT.TopoDSShapePointer | Inputs.OCCT.DecomposedMeshDto | Inputs.Manifold.ManifoldPointer | Inputs.Manifold.CrossSectionPointer | Inputs.JSCAD.JSCADEntity | Inputs.Tag.TagDto | CustomGeometryDrawable | CustomOverlayDrawable | BABYLON.TransformNode | number[][] | Base.Point3[] | Base.Line3[] | Base.Segment3[] | Base.Polyline3[] | Base.Frame[] | Base.VerbCurve[] | Base.VerbSurface[] | Inputs.OCCT.TopoDSShapePointer[] | Inputs.OCCT.DecomposedMeshDto[] | Inputs.Manifold.ManifoldPointer[] | Inputs.Manifold.CrossSectionPointer[] | Inputs.JSCAD.JSCADEntity[] | Inputs.Tag.TagDto[] | BABYLON.TransformNode[];
+            type DrawOptions = DrawBasicGeometryOptions | DrawManifoldOrCrossSectionOptions | DrawOcctShapeOptions | DrawOcctShapeSimpleOptions | DrawOcctShapeMaterialOptions | DrawNodeOptions | DrawFrameOptions | DrawRecipeMeshesOptions;
+            interface ShapeWithAppearance {
+                shape: Inputs.OCCT.TopoDSShapePointer;
+                appearance?: Models.OCCT.DesignBuiltAppearance | undefined;
+            }
+            type Entity = number[] | Base.Point3 | Base.Line3 | Base.Segment3 | Base.Polyline3 | Base.Frame | Base.VerbCurve | Base.VerbSurface | Inputs.OCCT.TopoDSShapePointer | ShapeWithAppearance | Models.OCCT.DesignBuildResult<Inputs.OCCT.TopoDSShapePointer> | Inputs.OCCT.DecomposedMeshDto | Inputs.Manifold.ManifoldPointer | Inputs.Manifold.CrossSectionPointer | Inputs.Manifold.DecomposedManifoldMeshDto | Inputs.Manifold.RecipeMeshesDto | Inputs.JSCAD.JSCADEntity | Inputs.Tag.TagDto | CustomGeometryDrawable | CustomOverlayDrawable | BABYLON.TransformNode | number[][] | Base.Point3[] | Base.Line3[] | Base.Segment3[] | Base.Polyline3[] | Base.Frame[] | Base.VerbCurve[] | Base.VerbSurface[] | Inputs.OCCT.TopoDSShapePointer[] | ShapeWithAppearance[] | Inputs.OCCT.DecomposedMeshDto[] | Inputs.Manifold.ManifoldPointer[] | Inputs.Manifold.CrossSectionPointer[] | Inputs.Manifold.DecomposedManifoldMeshDto[] | Inputs.JSCAD.JSCADEntity[] | Inputs.Tag.TagDto[] | BABYLON.TransformNode[];
             interface DrawnTagMeta {
                 type: drawingTypes;
                 options: DrawOptions | {
@@ -5834,7 +6677,7 @@ declare namespace Bit {
                 size?: number | undefined;
             }
             class DrawManifoldOrCrossSectionOptions {
-                constructor(faceOpacity?: number, faceMaterial?: Base.Material, faceColour?: Base.Color, crossSectionColour?: Base.Color, crossSectionWidth?: number, crossSectionOpacity?: number, computeNormals?: boolean, drawTwoSided?: boolean, backFaceColour?: Base.Color, backFaceOpacity?: number);
+                constructor(faceOpacity?: number, faceMaterial?: Base.Material, faceColour?: Base.Color, crossSectionColour?: Base.Color, crossSectionWidth?: number, crossSectionOpacity?: number, computeNormals?: boolean, drawTwoSided?: boolean, backFaceColour?: Base.Color, backFaceOpacity?: number, minSharpAngle?: number);
                 faceOpacity?: number | undefined;
                 faceColour?: Base.Color | undefined;
                 faceMaterial?: Base.Material | undefined;
@@ -5842,15 +6685,17 @@ declare namespace Bit {
                 crossSectionWidth?: number | undefined;
                 crossSectionOpacity?: number | undefined;
                 computeNormals?: boolean | undefined;
+                minSharpAngle?: number | undefined;
                 drawTwoSided?: boolean | undefined;
                 backFaceColour?: Base.Color | undefined;
                 backFaceOpacity?: number | undefined;
             }
             class DrawOcctShapeOptions {
-                constructor(faceOpacity?: number, edgeOpacity?: number, edgeColour?: Base.Color, faceMaterial?: Base.Material, faceColour?: Base.Color, edgeWidth?: number, drawEdges?: boolean, drawFaces?: boolean, drawVertices?: boolean, vertexColour?: Base.Color, vertexSize?: number, precision?: number, drawEdgeIndexes?: boolean, edgeIndexHeight?: number, edgeIndexColour?: Base.Color, drawFaceIndexes?: boolean, faceIndexHeight?: number, faceIndexColour?: Base.Color, drawTwoSided?: boolean, backFaceColour?: Base.Color, backFaceOpacity?: number, edgeArrowSize?: number, edgeArrowAngle?: number, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, drawIsoCurves?: boolean, isoCurvesU?: number, isoCurvesV?: number, isoCurvesColour?: Base.Color, surfaceAnalysis?: Inputs.OCCT.surfaceAnalysisEnum, draftDirection?: Base.Vector3, analysisMin?: number, analysisMax?: number);
+                constructor(faceOpacity?: number, edgeOpacity?: number, edgeColour?: Base.Color, faceMaterial?: Base.Material, faceColour?: Base.Color, edgeWidth?: number, drawEdges?: boolean, drawFaces?: boolean, drawVertices?: boolean, vertexColour?: Base.Color, vertexSize?: number, precision?: number, drawEdgeIndexes?: boolean, edgeIndexHeight?: number, edgeIndexColour?: Base.Color, drawFaceIndexes?: boolean, faceIndexHeight?: number, faceIndexColour?: Base.Color, drawTwoSided?: boolean, backFaceColour?: Base.Color, backFaceOpacity?: number, edgeArrowSize?: number, edgeArrowAngle?: number, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, drawIsoCurves?: boolean, isoCurvesU?: number, isoCurvesV?: number, isoCurvesColour?: Base.Color, surfaceAnalysis?: Inputs.OCCT.surfaceAnalysisEnum, draftDirection?: Base.Vector3, analysisMin?: number, analysisMax?: number, edgeContrast?: number, angularDeflection?: number, relativeDeflection?: boolean);
                 faceOpacity?: number | undefined;
                 edgeOpacity?: number | undefined;
                 edgeColour?: Base.Color | undefined;
+                edgeContrast?: number | undefined;
                 faceColour?: Base.Color | undefined;
                 vertexColour?: Base.Color | undefined;
                 faceMaterial?: Base.Material | undefined;
@@ -5860,6 +6705,8 @@ declare namespace Bit {
                 drawFaces?: boolean | undefined;
                 drawVertices?: boolean | undefined;
                 precision?: number | undefined;
+                angularDeflection?: number | undefined;
+                relativeDeflection?: boolean | undefined;
                 drawEdgeIndexes?: boolean | undefined;
                 edgeIndexHeight?: number | undefined;
                 edgeIndexColour?: Base.Color | undefined;
@@ -5959,6 +6806,37 @@ declare namespace Bit {
                 lineWidth?: number | undefined;
                 updatable?: boolean | undefined;
             }
+            class DrawRecipeMeshesOptions {
+                constructor(elementKey?: string, instancing?: boolean, minInstances?: number, maxBatchVertices?: number, defaultColour?: Base.Color, defaultOpacity?: number, metallic?: number, roughness?: number);
+                elementKey?: string | undefined;
+                instancing?: boolean | undefined;
+                minInstances?: number | undefined;
+                maxBatchVertices?: number | undefined;
+                defaultColour?: Base.Color | undefined;
+                defaultOpacity?: number | undefined;
+                metallic?: number | undefined;
+                roughness?: number | undefined;
+            }
+            class RecipeElementsVisibilityDto<T> {
+                constructor(drawn?: T, keys?: string[], visible?: boolean);
+                drawn: T;
+                keys: string[];
+                visible?: boolean | undefined;
+            }
+            class RecipeElementsColourDto<T> {
+                constructor(drawn?: T, keys?: string[], colour?: Base.Color, opacity?: number);
+                drawn: T;
+                keys: string[];
+                colour?: Base.Color | undefined;
+                opacity?: number | undefined;
+            }
+            class RecipeElementPickDto<T, M> {
+                constructor(drawn?: T, mesh?: M, triangle?: number, instance?: number);
+                drawn: T;
+                mesh: M;
+                triangle?: number | undefined;
+                instance?: number | undefined;
+            }
             enum drawingTypes {
                 point = "point",
                 points = "points",
@@ -5981,6 +6859,7 @@ declare namespace Bit {
                 occt = "occt",
                 occtShapes = "occtShapes",
                 manifold = "manifold",
+                recipeMeshes = "recipeMeshes",
                 tag = "tag",
                 tags = "tags"
             }
@@ -7008,6 +7887,15 @@ declare namespace Bit {
                 mesh2: Base.Mesh3;
                 tolerance?: number | undefined;
             }
+            class PolygonWithHolesDto {
+                constructor(points?: Base.Point3[], holes?: Base.Point3[][]);
+                points: Base.Point3[];
+                holes?: Base.Point3[][] | undefined;
+            }
+            class MeshDto {
+                constructor(mesh?: Base.Mesh3);
+                mesh: Base.Mesh3;
+            }
         }
         declare namespace Point {
             class PointDto {
@@ -7185,6 +8073,13 @@ declare namespace Bit {
                 radiusHexagon?: number | undefined;
                 orientOnCenter?: boolean | undefined;
                 pointsOnGround?: boolean | undefined;
+            }
+            class ArcThroughThreePointsDto {
+                constructor(start?: Base.Point3, middle?: Base.Point3, end?: Base.Point3, segments?: number);
+                start: Base.Point3;
+                middle: Base.Point3;
+                end: Base.Point3;
+                segments?: number | undefined;
             }
         }
         declare namespace Polyline {
@@ -8195,6 +9090,29 @@ declare namespace Bit {
                 support: OCCT.shapeTypeEnum;
                 index: number;
             }
+            interface FaceSignature {
+                index: number;
+                type: OCCT.surfaceTypeEnum;
+                area: number;
+                centre: Base.Point3;
+                normal: Base.Vector3;
+                box: {
+                    min: Base.Point3;
+                    max: Base.Point3;
+                };
+            }
+            interface EdgeSignature {
+                index: number;
+                type: OCCT.curveTypeEnum;
+                isDegenerate: boolean;
+                length: number;
+                midpoint: Base.Point3;
+                tangent: Base.Vector3;
+            }
+            interface ShapeSignatures {
+                faces: FaceSignature[];
+                edges: EdgeSignature[];
+            }
             interface FaceClosestPoint {
                 point: Base.Point3;
                 u: number;
@@ -8274,6 +9192,7 @@ declare namespace Bit {
                 scale?: number | undefined;
                 matrix?: Base.TransformMatrix | Base.TransformMatrixes | undefined;
                 colorRgba?: Base.ColorRGBA | undefined;
+                properties?: Record<string, string | number | boolean> | undefined;
             }
             interface AssemblyNodeJson {
                 id: string;
@@ -8293,6 +9212,20 @@ declare namespace Bit {
                 shape: T;
                 name: string;
                 colorRgba?: Base.ColorRGBA | undefined;
+                edgeColorRgba?: Base.ColorRGBA | undefined;
+                metallic?: number | undefined;
+                roughness?: number | undefined;
+                emissiveRgb?: Base.ColorRGB | undefined;
+                faceColors?: AssemblySubShapeColor[] | undefined;
+                edgeColors?: AssemblySubShapeColor[] | undefined;
+                properties?: Record<string, string | number | boolean> | undefined;
+            }
+            interface AssemblySubShapeColor {
+                indexes: number[];
+                colorRgba: Base.ColorRGBA;
+                metallic?: number | undefined;
+                roughness?: number | undefined;
+                emissiveRgb?: Base.ColorRGB | undefined;
             }
             interface AssemblyPartUpdateDef<T> {
                 label: string;
@@ -8306,6 +9239,7 @@ declare namespace Bit {
                 removals?: string[] | undefined;
                 partUpdates?: AssemblyPartUpdateDef<T>[] | undefined;
                 loadedParts?: AssemblyLoadedPartDef[] | undefined;
+                lengthUnit?: "mm" | "cm" | "m" | "in" | undefined;
                 clearDocument: boolean;
             }
             interface DocumentPartInfo {
@@ -8556,6 +9490,681 @@ declare namespace Bit {
                 results: CornerResult[];
                 error?: string | undefined;
             }
+            interface DesignIssue {
+                path: string;
+                message: string;
+            }
+            interface DesignFeatureReport {
+                id: string;
+                type: string;
+                status: "ok" | "failed" | "skipped" | "suppressed" | "rebound" | "pending";
+                ms: number;
+                cached: boolean;
+                messages: string[];
+                repairs?: DesignRepair[];
+            }
+            interface DesignRepair {
+                path: string;
+                faces: number[];
+                score: number;
+                clear: boolean;
+            }
+            interface DesignBuiltFaceAppearance {
+                indexes: number[];
+                color?: string;
+                metallic?: number;
+                roughness?: number;
+                opacity?: number;
+                emissive?: string;
+                emissiveStrength?: number;
+            }
+            interface DesignBuiltAppearance {
+                color?: string;
+                metallic?: number;
+                roughness?: number;
+                opacity?: number;
+                emissive?: string;
+                emissiveStrength?: number;
+                edgeColor?: string;
+                faces: DesignBuiltFaceAppearance[];
+                edges?: DesignBuiltEdgeAppearance[];
+            }
+            interface DesignBuiltEdgeAppearance {
+                indexes: number[];
+                color?: string;
+            }
+            interface DesignBuiltMaterial {
+                id: string;
+                name?: string;
+                standard?: string;
+                density?: number;
+                properties: Record<string, string | number | boolean>;
+            }
+            interface DesignBuiltPart<T> {
+                id: string;
+                itemKey: string;
+                buildKey: string;
+                name: string;
+                body: string;
+                shape: T;
+                shapeHash: string;
+                faceNames: string[][];
+                properties: Record<string, string | number | boolean>;
+                material?: DesignBuiltMaterial;
+                appearance?: DesignBuiltAppearance;
+                volume?: number;
+                mass?: number;
+                connectors: DesignBuiltConnector[];
+                document?: string;
+                parameters: Record<string, number | string>;
+            }
+            interface DesignBuiltConnector {
+                id: string;
+                frame: Base.Frame;
+            }
+            interface DesignBuiltComponent {
+                path: string;
+                name: string;
+                parent?: string;
+                part?: string;
+                assembly?: boolean;
+                matrix: Base.TransformMatrix;
+                world: Base.TransformMatrix;
+                properties: Record<string, string | number | boolean>;
+            }
+            interface DesignBuiltJoint {
+                path: string;
+                type: DesignJointType;
+                component: string;
+                to?: string;
+                angle: number;
+                offset: number;
+                limits: {
+                    angle?: [
+                        number,
+                        number
+                    ];
+                    offset?: [
+                        number,
+                        number
+                    ];
+                };
+                frame: Base.Frame;
+            }
+            interface DesignBomLine {
+                part: string;
+                name: string;
+                quantity: number;
+                properties: Record<string, string | number | boolean>;
+            }
+            interface DesignSuppliedOutcome<T> {
+                hash: string;
+                shape: T;
+                names?: string[][];
+                roles?: Record<string, number[]>;
+            }
+            interface DesignPendingScript<T> {
+                id: string;
+                path: string;
+                script: string;
+                hash: string;
+                inputs: Record<string, T | number | number[] | unknown>;
+            }
+            interface DesignBuildResult<T> {
+                parts: DesignBuiltPart<T>[];
+                report: DesignFeatureReport[];
+                issues: DesignIssue[];
+                configuration?: string;
+                parameters: Record<string, number | string>;
+                components?: DesignBuiltComponent[];
+                joints?: DesignBuiltJoint[];
+                bom?: DesignBomLine[];
+                structure?: AssemblyStructureDef<T>;
+                properties?: Record<string, string | number | boolean>;
+                units: Required<DesignUnits>;
+                up: "y" | "z";
+                pending?: DesignPendingScript<T>[];
+                sketches?: DesignBuiltSketch<T>[];
+            }
+            interface DesignBuiltSketch<T> {
+                id: string;
+                shape: T;
+                face: boolean;
+                frame: Base.Frame;
+                commands: (string | null)[];
+            }
+            interface DesignClash {
+                components: [
+                    string,
+                    string
+                ];
+                distance: number;
+                volume: number;
+                pointA: Base.Point3;
+                pointB: Base.Point3;
+                joined: boolean;
+            }
+            type DesignNumber = number | string;
+            interface DesignExpression {
+                expr: string;
+            }
+            type DesignText = string | DesignExpression;
+            interface DesignExtensible {
+                extras?: unknown;
+                extensions?: Record<string, unknown>;
+            }
+            type DesignLabel = string | Record<string, string>;
+            interface DesignChoiceOption {
+                value: string;
+                label?: DesignLabel;
+            }
+            interface DesignParameter extends DesignExtensible {
+                value: DesignNumber | boolean | DesignExpression;
+                type?: "number" | "boolean" | "choice" | "text";
+                unit?: "mm" | "cm" | "m" | "in" | "deg" | "none";
+                min?: number;
+                max?: number;
+                step?: number;
+                options?: DesignChoiceOption[];
+                label?: DesignLabel;
+                description?: DesignLabel;
+                group?: string;
+            }
+            interface DesignConfiguration extends DesignExtensible {
+                id: string;
+                name?: DesignLabel;
+                values: Record<string, DesignNumber | boolean | DesignExpression>;
+            }
+            interface DesignFeatureBase extends DesignExtensible {
+                id: string;
+                name?: string;
+                suppressed?: boolean | DesignNumber;
+            }
+            type DesignPoint = [
+                DesignNumber,
+                DesignNumber,
+                DesignNumber
+            ];
+            type DesignExpressions<T> = T extends number ? DesignNumber : T extends object ? {
+                [K in keyof T]: DesignExpressions<T[K]>;
+            } : T;
+            interface DesignCircleCommand {
+                type: "circle";
+                id?: string;
+                centre: [
+                    DesignNumber,
+                    DesignNumber
+                ];
+                radius: DesignNumber;
+            }
+            type DesignPenCommand = DesignExpressions<SketchCommand> | DesignCircleCommand;
+            interface DesignLoop {
+                start?: [
+                    DesignNumber,
+                    DesignNumber
+                ];
+                pen: DesignPenCommand[];
+            }
+            interface DesignFrame {
+                origin: DesignPoint;
+                normal: DesignPoint;
+                direction: DesignPoint;
+            }
+            interface DesignFilter {
+                select: string;
+                [input: string]: unknown;
+            }
+            interface DesignCopy {
+                of: string;
+                index: number | "all";
+            }
+            interface DesignFaceReference {
+                of: string;
+                role: string;
+                from?: string;
+                copy?: DesignCopy | DesignCopy[];
+                filter?: DesignFilter;
+                count?: number;
+                hint?: DesignReferenceHint;
+            }
+            interface DesignReferenceHint {
+                v: 1;
+                box: DesignHintBox;
+                faces: DesignFaceHint[];
+            }
+            interface DesignHintBox {
+                min: [
+                    number,
+                    number,
+                    number
+                ];
+                max: [
+                    number,
+                    number,
+                    number
+                ];
+            }
+            interface DesignFaceHint {
+                type: string;
+                area: number;
+                centre: [
+                    number,
+                    number,
+                    number
+                ];
+                normal: [
+                    number,
+                    number,
+                    number
+                ];
+                neighbours: string[];
+            }
+            interface DesignEdgeReference {
+                between: [
+                    DesignFaceReference,
+                    DesignFaceReference
+                ];
+                filter?: DesignFilter;
+                count: number;
+            }
+            type DesignJoin = "add" | "cut" | "intersect";
+            type DesignSketchPlacement = {
+                plane: "XY" | "XZ" | "YZ";
+                offset?: DesignNumber;
+            } | {
+                frame: DesignFrame;
+            } | {
+                face: DesignFaceReference;
+                origin?: DesignPoint;
+                direction?: DesignPoint;
+            };
+            interface DesignSketchFeature extends DesignFeatureBase {
+                type: "sketch";
+                on: DesignSketchPlacement;
+                start?: [
+                    DesignNumber,
+                    DesignNumber
+                ];
+                pen?: DesignPenCommand[];
+                loops?: DesignLoop[];
+                face?: boolean;
+            }
+            interface DesignExtrudeFeature extends DesignFeatureBase {
+                type: "extrude";
+                profile: string;
+                distance: DesignNumber;
+                direction?: DesignPoint;
+                body?: string;
+                join?: DesignJoin;
+            }
+            interface DesignRevolveFeature extends DesignFeatureBase {
+                type: "revolve";
+                profile: string;
+                axis: {
+                    origin: DesignPoint;
+                    direction: DesignPoint;
+                };
+                angle?: DesignNumber;
+                body?: string;
+                join?: DesignJoin;
+            }
+            interface DesignBooleanFeature extends DesignFeatureBase {
+                type: "boolean";
+                operation: "union" | "difference" | "intersection";
+                body: string;
+                tools: string[];
+            }
+            interface DesignFilletFeature extends DesignFeatureBase {
+                type: "fillet";
+                body: string;
+                edges: DesignEdgeReference;
+                radius: DesignNumber;
+            }
+            interface DesignChamferFeature extends DesignFeatureBase {
+                type: "chamfer";
+                body: string;
+                edges: DesignEdgeReference;
+                distance: DesignNumber;
+            }
+            interface DesignLinearPatternFeature extends DesignFeatureBase {
+                type: "linearPattern";
+                body: string;
+                direction: DesignPoint;
+                spacing: DesignNumber;
+                count: DesignNumber;
+            }
+            interface DesignPolarPatternFeature extends DesignFeatureBase {
+                type: "polarPattern";
+                body: string;
+                axis: {
+                    origin: DesignPoint;
+                    direction: DesignPoint;
+                };
+                count: DesignNumber;
+                angle?: DesignNumber;
+            }
+            interface DesignMirrorFeature extends DesignFeatureBase {
+                type: "mirror";
+                body: string;
+                plane: {
+                    origin: DesignPoint;
+                    normal: DesignPoint;
+                };
+                keepOriginal?: boolean;
+            }
+            interface DesignTransformFeature extends DesignFeatureBase {
+                type: "transform";
+                body: string;
+                translate?: DesignPoint;
+                rotate?: DesignPoint;
+                pivot?: DesignPoint;
+            }
+            type DesignPushPullMode = "extrude" | "offset";
+            interface DesignPushPullFeature extends DesignFeatureBase {
+                type: "pushPull";
+                body: string;
+                face: DesignFaceReference;
+                distance: DesignNumber;
+                mode?: DesignPushPullMode;
+            }
+            interface DesignRemoveFacesFeature extends DesignFeatureBase {
+                type: "removeFaces";
+                body: string;
+                faces: DesignFaceReference;
+            }
+            interface DesignSweepFeature extends DesignFeatureBase {
+                type: "sweep";
+                profile: string;
+                path: string;
+                body?: string;
+                join?: DesignJoin;
+            }
+            interface DesignLoftFeature extends DesignFeatureBase {
+                type: "loft";
+                profiles: string[];
+                solid?: boolean;
+                body?: string;
+                join?: DesignJoin;
+            }
+            interface DesignShellFeature extends DesignFeatureBase {
+                type: "shell";
+                body: string;
+                thickness: DesignNumber;
+                open: DesignFaceReference;
+            }
+            interface DesignHolePosition {
+                id: string;
+                x: DesignNumber;
+                y: DesignNumber;
+            }
+            interface DesignHoleFeature extends DesignFeatureBase {
+                type: "hole";
+                body: string;
+                on: DesignFaceReference;
+                origin?: DesignPoint;
+                direction?: DesignPoint;
+                at: (DesignHolePosition | [
+                    DesignNumber,
+                    DesignNumber
+                ])[];
+                diameter: DesignNumber;
+                depth?: DesignNumber;
+                tipAngle?: DesignNumber;
+                counterbore?: {
+                    diameter: DesignNumber;
+                    depth: DesignNumber;
+                };
+                countersink?: {
+                    diameter: DesignNumber;
+                    angle: DesignNumber;
+                };
+            }
+            interface DesignBossFeature extends DesignFeatureBase {
+                type: "boss";
+                profile: string;
+                body: string;
+                distance?: DesignNumber;
+                until?: DesignFaceReference;
+            }
+            interface DesignPocketFeature extends DesignFeatureBase {
+                type: "pocket";
+                profile: string;
+                body: string;
+                distance?: DesignNumber;
+                until?: DesignFaceReference;
+                through?: boolean;
+            }
+            interface DesignImportFeature extends DesignFeatureBase {
+                type: "import";
+                asset: string;
+                format?: "brep" | "brep-binary" | "step" | "iges";
+            }
+            interface DesignOperationFeature extends DesignFeatureBase {
+                type: "operation";
+                operation: string;
+                params: Record<string, unknown>;
+                body?: string;
+            }
+            interface DesignScriptFeature extends DesignFeatureBase {
+                type: "script";
+                script: string;
+                params?: Record<string, unknown>;
+                body?: string;
+            }
+            type DesignFeature = DesignSketchFeature | DesignExtrudeFeature | DesignRevolveFeature | DesignBooleanFeature | DesignFilletFeature | DesignChamferFeature | DesignLinearPatternFeature | DesignPolarPatternFeature | DesignMirrorFeature | DesignTransformFeature | DesignPushPullFeature | DesignRemoveFacesFeature | DesignSweepFeature | DesignLoftFeature | DesignShellFeature | DesignHoleFeature | DesignBossFeature | DesignPocketFeature | DesignImportFeature | DesignOperationFeature | DesignScriptFeature;
+            interface DesignAppearance {
+                color?: DesignText;
+                metallic?: DesignNumber;
+                roughness?: DesignNumber;
+                opacity?: DesignNumber;
+                emissive?: DesignText;
+                emissiveStrength?: DesignNumber;
+                edgeColor?: DesignText;
+                faces?: DesignFaceAppearance[];
+                edges?: DesignEdgeAppearance[];
+            }
+            interface DesignEdgeAppearance {
+                edges: DesignEdgeReference;
+                color?: DesignText;
+            }
+            interface DesignFaceAppearance {
+                faces: DesignFaceReference;
+                color?: DesignText;
+                metallic?: DesignNumber;
+                roughness?: DesignNumber;
+                opacity?: DesignNumber;
+                emissive?: DesignText;
+                emissiveStrength?: DesignNumber;
+            }
+            type DesignPropertyValue = string | number | boolean | DesignExpression;
+            type DesignProperties = Record<string, DesignPropertyValue>;
+            interface DesignMaterial extends DesignExtensible {
+                id: string;
+                name?: string;
+                density?: DesignNumber;
+                standard?: string;
+                appearance?: DesignAppearance;
+                properties?: DesignProperties;
+            }
+            interface DesignPart extends DesignExtensible {
+                id: string;
+                name?: string;
+                body: string;
+                material?: DesignText;
+                appearance?: DesignAppearance;
+                properties?: DesignProperties;
+                connectors?: DesignConnector[];
+            }
+            interface DesignConnector extends DesignExtensible {
+                id: string;
+                on: DesignFaceReference;
+                origin?: DesignPoint;
+                axis?: DesignFaceReference;
+                centre?: DesignEdgeReference;
+                direction?: DesignPoint;
+            }
+            interface DesignAsset extends DesignExtensible {
+                id: string;
+                uri: string;
+                sha256?: string;
+                mediaType?: string;
+            }
+            interface DesignUnits {
+                length?: "mm" | "cm" | "m" | "in";
+                angle?: "deg";
+            }
+            interface DesignMeta {
+                name?: string;
+                description?: string;
+                authors?: string[];
+                license?: string;
+                generator?: string;
+                revision?: string;
+            }
+            interface DesignApis {
+                occt?: 1;
+            }
+            interface DesignPartDocument extends DesignExtensible {
+                $schema?: string;
+                schemaVersion: 1;
+                kind?: "part";
+                id?: string;
+                units?: DesignUnits;
+                up?: "y" | "z";
+                meta?: DesignMeta;
+                requires?: string[];
+                apis?: DesignApis;
+                parameters?: Record<string, DesignNumber | boolean | DesignParameter>;
+                configurations?: DesignConfiguration[];
+                features: DesignFeature[];
+                parts?: DesignPart[];
+                materials?: DesignMaterial[];
+                assets?: DesignAsset[];
+            }
+            interface DesignComponentSource {
+                document: string;
+                version?: string;
+                part?: string;
+                configuration?: string;
+                parameters?: Record<string, DesignNumber | boolean | DesignExpression>;
+            }
+            type DesignJointType = "fastened" | "revolute" | "slider" | "cylindrical";
+            interface DesignJointLimits {
+                angle?: [
+                    DesignNumber,
+                    DesignNumber
+                ];
+                offset?: [
+                    DesignNumber,
+                    DesignNumber
+                ];
+            }
+            interface DesignJoint extends DesignExtensible {
+                id: string;
+                type: DesignJointType;
+                component: string;
+                connector: string;
+                to: {
+                    component: string;
+                    connector: string;
+                } | {
+                    frame: DesignFrame;
+                };
+                flip?: boolean;
+                angle?: DesignNumber;
+                offset?: DesignNumber;
+                limits?: DesignJointLimits;
+            }
+            interface DesignReplicate {
+                connector: string;
+                to: {
+                    component: string;
+                    connector: string;
+                };
+                flip?: boolean;
+                angle?: DesignNumber;
+                offset?: DesignNumber;
+            }
+            interface DesignAxis {
+                origin: DesignPoint;
+                direction: DesignPoint;
+            }
+            interface DesignPolarComponentPattern {
+                axis: DesignAxis;
+                count: DesignNumber;
+                angle?: DesignNumber;
+                start?: DesignNumber;
+            }
+            interface DesignLinearComponentPattern {
+                direction: DesignPoint;
+                spacing: DesignNumber;
+                count: DesignNumber;
+            }
+            type DesignComponentPattern = {
+                polar: DesignPolarComponentPattern;
+            } | {
+                linear: DesignLinearComponentPattern;
+            };
+            interface DesignComponent extends DesignExtensible {
+                id: string;
+                name?: string;
+                source: DesignComponentSource;
+                at?: DesignFrame;
+                replicate?: DesignReplicate;
+                pattern?: DesignComponentPattern;
+                suppressed?: boolean | DesignNumber;
+                properties?: DesignProperties;
+            }
+            interface DesignAssemblyDocument extends DesignExtensible {
+                $schema?: string;
+                schemaVersion: 1;
+                kind: "assembly";
+                id?: string;
+                units?: DesignUnits;
+                up?: "y" | "z";
+                meta?: DesignMeta;
+                requires?: string[];
+                parameters?: Record<string, DesignNumber | boolean | DesignParameter>;
+                configurations?: DesignConfiguration[];
+                components: DesignComponent[];
+                joints?: DesignJoint[];
+                connectors?: DesignAssemblyConnector[];
+                properties?: DesignProperties;
+            }
+            interface DesignAssemblyConnector extends DesignExtensible {
+                id: string;
+                component: string;
+                connector: string;
+            }
+            type DesignDocument = DesignPartDocument | DesignAssemblyDocument;
+            interface DesignProbeAttempt {
+                value: number;
+                builds: boolean;
+                ms: number;
+                message?: string;
+            }
+            interface DesignFilletProbe {
+                feature: string;
+                type: "fillet" | "chamfer";
+                between: [
+                    number[],
+                    number[]
+                ];
+                edges: EdgeSignature[];
+                count: number;
+                value?: number;
+                builds: boolean;
+                largest?: number;
+                smallestFailing?: number;
+                attempts: DesignProbeAttempt[];
+                messages: string[];
+            }
+            interface DesignReferenceFound {
+                reference?: DesignFaceReference | DesignEdgeReference;
+                refused?: string;
+                nudged: string[];
+                lost: string[];
+            }
             interface PrincipalFrame {
                 frame: Base.Frame;
                 moments: Base.Vector3;
@@ -8634,6 +10243,8 @@ declare namespace Bit {
             interface ShapeHistory {
                 faces: number[][];
                 edges: number[][];
+                facesFromFaces: number[][];
+                edgesFromFaces: number[][];
                 facesFromEdges: number[][];
                 facesFromVertices: number[][];
                 edgesFromVertices: number[][];
@@ -10902,6 +12513,8 @@ declare namespace Bit {
         hull(inputs: Inputs.Manifold.CrossSectionDto<Inputs.Manifold.CrossSectionPointer>): Promise<Inputs.Manifold.CrossSectionPointer>;
         extrude(inputs: Inputs.Manifold.ExtrudeDto<Inputs.Manifold.CrossSectionPointer>): Promise<Inputs.Manifold.ManifoldPointer>;
         revolve(inputs: Inputs.Manifold.RevolveDto<Inputs.Manifold.CrossSectionPointer>): Promise<Inputs.Manifold.ManifoldPointer>;
+        loft(inputs: Inputs.Manifold.LoftDto<Inputs.Manifold.CrossSectionPointer>): Promise<Inputs.Manifold.ManifoldPointer>;
+        sweep(inputs: Inputs.Manifold.SweepDto<Inputs.Manifold.CrossSectionPointer>): Promise<Inputs.Manifold.ManifoldPointer>;
         offset(inputs: Inputs.Manifold.OffsetDto<Inputs.Manifold.CrossSectionPointer>): Promise<Inputs.Manifold.CrossSectionPointer>;
         simplify(inputs: Inputs.Manifold.SimplifyDto<Inputs.Manifold.CrossSectionPointer>): Promise<Inputs.Manifold.CrossSectionPointer>;
         compose(inputs: Inputs.Manifold.ComposeDto<(Inputs.Manifold.CrossSectionPointer | Inputs.Base.Vector2[])[]>): Promise<Inputs.Manifold.CrossSectionPointer>;
@@ -11020,6 +12633,7 @@ declare namespace Bit {
         readonly manifold: Manifold;
         readonly crossSection: ManifoldCrossSection;
         readonly mesh: Mesh;
+        readonly recipes: ManifoldRecipes;
         manifoldToMeshPointer(inputs: Inputs.Manifold.ManifoldToMeshDto<Inputs.Manifold.ManifoldPointer>): Promise<Inputs.Manifold.MeshPointer>;
         decomposeManifoldOrCrossSection(inputs: Inputs.Manifold.DecomposeManifoldOrCrossSectionDto<Inputs.Manifold.ManifoldPointer | Inputs.Manifold.CrossSectionPointer>): Promise<Inputs.Manifold.DecomposedManifoldMeshDto | Inputs.Base.Vector2[][]>;
         toPolygonPoints(inputs: Inputs.Manifold.ManifoldDto<Inputs.Manifold.ManifoldPointer>): Promise<Inputs.Base.Mesh3>;
@@ -11049,6 +12663,222 @@ declare namespace Bit {
         private readonly manifoldWorkerManager;
         merge(inputs: Inputs.Manifold.MeshDto<Inputs.Manifold.MeshPointer>): Promise<boolean>;
     }
+    declare class ManifoldRecipes {
+        private readonly manifoldWorkerManager;
+        build(inputs: Inputs.Manifold.BuildRecipeDto): Promise<Inputs.Manifold.ManifoldPointer[]>;
+        meshes(inputs: Inputs.Manifold.BuildRecipeMeshesDto): Promise<Inputs.Manifold.RecipeMeshesDto>;
+        surfaceMeshes(inputs: Inputs.Manifold.RecipeSurfaceMeshesDto): Promise<Inputs.Manifold.DecomposedManifoldMeshDto[]>;
+    }
+    interface IfcReference {
+        readonly ref: number;
+    }
+    interface IfcEnumerationValue {
+        readonly enum: string;
+    }
+    interface IfcTypedValue {
+        readonly type: string;
+        readonly value: IfcValue;
+    }
+    interface IfcBinaryValue {
+        readonly binary: string;
+    }
+    interface IfcDerivedValue {
+        readonly derived: true;
+    }
+    type IfcValue = null | boolean | number | string | IfcReference | IfcEnumerationValue | IfcTypedValue | IfcBinaryValue | IfcDerivedValue | readonly IfcValue[];
+    interface IfcEntity {
+        readonly id: number;
+        readonly type: string;
+        readonly args: readonly IfcValue[];
+    }
+    interface IfcFileHeader {
+        readonly description: readonly string[];
+        readonly implementationLevel: string;
+        readonly name: string;
+        readonly timeStamp: string;
+        readonly author: readonly string[];
+        readonly organization: readonly string[];
+        readonly preprocessorVersion: string;
+        readonly originatingSystem: string;
+        readonly authorization: string;
+        readonly schemaIdentifiers: readonly string[];
+    }
+    interface StepHeaderEntity {
+        readonly type: string;
+        readonly args: readonly IfcValue[];
+        readonly text: string;
+        readonly offset: number;
+    }
+    interface StepIndex {
+        readonly bytes: Uint8Array;
+        readonly count: number;
+        readonly ids: Int32Array;
+        readonly typeCodes: Uint16Array;
+        readonly typeTable: readonly string[];
+        readonly argStart: Uint32Array;
+        readonly argEnd: Uint32Array;
+        readonly rowStart: Uint32Array;
+        readonly rowEnd: Uint32Array;
+        readonly header: readonly StepHeaderEntity[];
+        readonly headerEnd: number;
+        readonly afterHeader: number;
+        readonly sectionStarts: readonly number[];
+    }
+    interface StepRows {
+        count: number;
+        ids: Int32Array;
+        typeCodes: Uint16Array;
+        readonly typeTable: string[];
+        readonly codesOfHash: Map<number, number[]>;
+        argStart: Uint32Array;
+        argEnd: Uint32Array;
+        rowStart: Uint32Array;
+        rowEnd: Uint32Array;
+    }
+    interface RowSpans {
+        readonly rowStart: number;
+        readonly argStart: number;
+        readonly argEnd: number;
+        readonly rowEnd: number;
+    }
+    interface ParseFrame {
+        readonly items: IfcValue[];
+        readonly typeName: string | undefined;
+    }
+    type TypeSpelling = (typeName: string) => string;
+    declare class IFCAssemblies {
+        private readonly ifcWorkerManager;
+        add(inputs: Inputs.IFC.AddAssemblyDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+    }
+    declare class IFCBeams {
+        private readonly ifcWorkerManager;
+        add(inputs: Inputs.IFC.AddBeamDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+    }
+    declare class BitByBitIFC {
+        ifcWorkerManager: IFCWorkerManager;
+        ifc: IFCBitByBit;
+        constructor();
+        init(worker: Worker | IFCWorkerMock): void;
+    }
+    declare class IFCColumns {
+        private readonly ifcWorkerManager;
+        add(inputs: Inputs.IFC.AddColumnDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+    }
+    declare class IFCDoors {
+        private readonly ifcWorkerManager;
+        addType(inputs: Inputs.IFC.AddDoorTypeDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+        add(inputs: Inputs.IFC.AddDoorDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+    }
+    declare class IFCGeometry {
+        private readonly ifcWorkerManager;
+        recipe(inputs: Inputs.IFC.GeometryDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.Base.Recipe>;
+        unsupported(inputs: Inputs.IFC.GeometryElementsDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.GeometryProblemDto[]>;
+    }
+    declare class IFCBitByBit {
+        readonly model: IFCModels;
+        readonly spatial: IFCSpatial;
+        readonly spaces: IFCSpaces;
+        readonly materials: IFCMaterials;
+        readonly walls: IFCWalls;
+        readonly openings: IFCOpenings;
+        readonly doors: IFCDoors;
+        readonly windows: IFCWindows;
+        readonly slabs: IFCSlabs;
+        readonly roofs: IFCRoofs;
+        readonly site: IFCSite;
+        readonly columns: IFCColumns;
+        readonly beams: IFCBeams;
+        readonly members: IFCMembers;
+        readonly assemblies: IFCAssemblies;
+        readonly properties: IFCProperties;
+        readonly quantities: IFCQuantities;
+        readonly geometry: IFCGeometry;
+    }
+    declare class IFCMaterials {
+        private readonly ifcWorkerManager;
+        add(inputs: Inputs.IFC.AddMaterialDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+        addLayerSet(inputs: Inputs.IFC.AddLayerSetDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+    }
+    declare class IFCMembers {
+        private readonly ifcWorkerManager;
+        add(inputs: Inputs.IFC.AddMemberDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+    }
+    declare class IFCModels {
+        private readonly ifcWorkerManager;
+        create(inputs: Inputs.IFC.CreateModelDto): Promise<Inputs.IFC.IfcModelPointer>;
+        read(inputs: Inputs.IFC.ReadModelDto): Promise<Inputs.IFC.IfcModelPointer>;
+        upgradeToIfc4(inputs: Inputs.IFC.ModelDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+        write(inputs: Inputs.IFC.WriteModelDto<Inputs.IFC.IfcModelPointer>): Promise<string>;
+        writeBytes(inputs: Inputs.IFC.WriteModelDto<Inputs.IFC.IfcModelPointer>): Promise<Uint8Array>;
+        summary(inputs: Inputs.IFC.ModelDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.ModelSummaryDto>;
+        georeference(inputs: Inputs.IFC.ModelDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.GeoreferenceDto>;
+        elements(inputs: Inputs.IFC.ElementsDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.ElementInfoDto[]>;
+        element(inputs: Inputs.IFC.ElementDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.ElementInfoDto>;
+        remove(inputs: Inputs.IFC.ElementDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+        move(inputs: Inputs.IFC.MoveElementDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+        setAttribute(inputs: Inputs.IFC.SetAttributeDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+        getAttribute(inputs: Inputs.IFC.GetAttributeDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcAttributeValue>;
+        globalIdOf(inputs: Inputs.IFC.GlobalIdOfDto<Inputs.IFC.IfcModelPointer>): Promise<string>;
+    }
+    declare class IFCOpenings {
+        private readonly ifcWorkerManager;
+        add(inputs: Inputs.IFC.AddOpeningDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+        edit(inputs: Inputs.IFC.EditOpeningDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+        addInSlab(inputs: Inputs.IFC.AddSlabOpeningDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+    }
+    declare class IFCProperties {
+        private readonly ifcWorkerManager;
+        addSet(inputs: Inputs.IFC.AddPropertySetDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+        getSets(inputs: Inputs.IFC.ElementDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.PropertySetInfoDto[]>;
+        setValues(inputs: Inputs.IFC.SetPropertyValuesDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+        removeValues(inputs: Inputs.IFC.RemovePropertyValuesDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+        removeSet(inputs: Inputs.IFC.RemovePropertySetDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+    }
+    declare class IFCQuantities {
+        private readonly ifcWorkerManager;
+        compute(inputs: Inputs.IFC.ComputeQuantitiesDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+        get(inputs: Inputs.IFC.ElementDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.QuantitySetInfoDto[]>;
+    }
+    declare class IFCRoofs {
+        private readonly ifcWorkerManager;
+        add(inputs: Inputs.IFC.AddRoofDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+    }
+    declare class IFCSite {
+        private readonly ifcWorkerManager;
+        addTerrain(inputs: Inputs.IFC.AddTerrainDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+        addTree(inputs: Inputs.IFC.AddTreeDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+    }
+    declare class IFCSlabs {
+        private readonly ifcWorkerManager;
+        add(inputs: Inputs.IFC.AddSlabDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+    }
+    declare class IFCSpaces {
+        private readonly ifcWorkerManager;
+        add(inputs: Inputs.IFC.AddSpaceDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+        list(inputs: Inputs.IFC.SpacesDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.SpaceInfoDto[]>;
+    }
+    declare class IFCSpatial {
+        private readonly ifcWorkerManager;
+        addStorey(inputs: Inputs.IFC.AddStoreyDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+        setElevation(inputs: Inputs.IFC.SetStoreyElevationDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+        storeys(inputs: Inputs.IFC.ModelDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.StoreyInfoDto[]>;
+    }
+    declare class IFCWalls {
+        private readonly ifcWorkerManager;
+        add(inputs: Inputs.IFC.AddWallDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+        connect(inputs: Inputs.IFC.ConnectWallsDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+        disconnect(inputs: Inputs.IFC.ConnectWallsDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+        edit(inputs: Inputs.IFC.EditWallDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+        parameters(inputs: Inputs.IFC.WallDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.WallParametersDto>;
+        clipByPlane(inputs: Inputs.IFC.ClipWallDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+        clipByRoof(inputs: Inputs.IFC.ClipWallByRoofDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+        addType(inputs: Inputs.IFC.AddWallTypeDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+    }
+    declare class IFCWindows {
+        private readonly ifcWorkerManager;
+        addType(inputs: Inputs.IFC.AddWindowTypeDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+        add(inputs: Inputs.IFC.AddWindowDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+    }
     declare class BitByBitOCCT {
         occtWorkerManager: OCCTWorkerManager;
         occt: OCCT;
@@ -11056,10 +12886,12 @@ declare namespace Bit {
         init(occt: Worker): void;
     }
     declare class OCCTAnalysis {
+        private readonly occWorkerManager;
         readonly curves: OCCTAnalysisCurves;
         readonly surfaces: OCCTAnalysisSurfaces;
         readonly measure: OCCTAnalysisMeasure;
         readonly clashes: OCCTAnalysisClashes;
+        signatures(inputs: Inputs.OCCT.ShapeDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.ShapeSignatures>;
     }
     declare class OCCTAnalysisClashes {
         private readonly occWorkerManager;
@@ -11139,6 +12971,7 @@ declare namespace Bit {
         difference(inputs: Inputs.OCCT.DifferenceDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
         differenceWithHistory(inputs: Inputs.OCCT.DifferenceDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.ShapeWithHistories<Inputs.OCCT.TopoDSShapePointer>>;
         intersection(inputs: Inputs.OCCT.IntersectionDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        intersectionWithHistory(inputs: Inputs.OCCT.IntersectionDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.ShapeWithHistories<Inputs.OCCT.TopoDSShapePointer>>;
         meshMeshIntersectionWires(inputs: Inputs.OCCT.MeshMeshIntersectionTwoShapesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSWirePointer[]>;
         meshMeshIntersectionPoints(inputs: Inputs.OCCT.MeshMeshIntersectionTwoShapesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.Base.Point3[][]>;
         meshMeshIntersectionOfShapesWires(inputs: Inputs.OCCT.MeshMeshesIntersectionOfShapesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSWirePointer[]>;
@@ -11167,6 +13000,18 @@ declare namespace Bit {
         classifyCornerByPoint(inputs: Inputs.OCCT.ClassifyCornerByPointDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.CornerByPointReport>;
         cornerByPointReport(inputs: Inputs.OCCT.FilletCornerByPointDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.CornerByPointReport>;
     }
+    declare class OCCTDesign {
+        private readonly occWorkerManager;
+        validate(inputs: Inputs.OCCT.DesignDocumentDto): Promise<Models.OCCT.DesignIssue[]>;
+        versionOf(inputs: Inputs.OCCT.DesignDocumentDto): Promise<string>;
+        build(inputs: Inputs.OCCT.DesignBuildDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.DesignBuildResult<Inputs.OCCT.TopoDSShapePointer>>;
+        buildWithScripts(inputs: Inputs.OCCT.DesignBuildDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.DesignBuildResult<Inputs.OCCT.TopoDSShapePointer>>;
+        withHints(inputs: Inputs.OCCT.DesignBuildDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.DesignPartDocument>;
+        toTypeScript(inputs: Inputs.OCCT.DesignBuildDto<Inputs.OCCT.TopoDSShapePointer>): Promise<string>;
+        clashes(inputs: Inputs.OCCT.DesignClashesDto): Promise<Models.OCCT.DesignClash[]>;
+        probeFillet(inputs: Inputs.OCCT.DesignProbeFilletDto): Promise<Models.OCCT.DesignFilletProbe>;
+        referenceFor(inputs: Inputs.OCCT.DesignReferenceForDto): Promise<Models.OCCT.DesignReferenceFound>;
+    }
     declare class OCCTDimensions {
         private readonly occWorkerManager;
         simpleLinearLengthDimension(inputs: Inputs.OCCT.SimpleLinearLengthDimensionDto): Promise<Inputs.OCCT.TopoDSCompoundPointer>;
@@ -11182,12 +13027,19 @@ declare namespace Bit {
     declare class OCCTFeatures {
         private readonly occWorkerManager;
         holes(inputs: Inputs.OCCT.HolesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        holesWithHistory(inputs: Inputs.OCCT.HolesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.ShapeWithHistories<Inputs.OCCT.TopoDSShapePointer>>;
         counterboredHoles(inputs: Inputs.OCCT.CounterboredHolesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        counterboredHolesWithHistory(inputs: Inputs.OCCT.CounterboredHolesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.ShapeWithHistories<Inputs.OCCT.TopoDSShapePointer>>;
         countersunkHoles(inputs: Inputs.OCCT.CountersunkHolesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        countersunkHolesWithHistory(inputs: Inputs.OCCT.CountersunkHolesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.ShapeWithHistories<Inputs.OCCT.TopoDSShapePointer>>;
         removeFaces(inputs: Inputs.OCCT.RemoveFacesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        removeFacesWithHistory(inputs: Inputs.OCCT.RemoveFacesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.ShapeWithHistories<Inputs.OCCT.TopoDSShapePointer>>;
         pushPullFaces(inputs: Inputs.OCCT.PushPullFacesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        pushPullFacesWithHistory(inputs: Inputs.OCCT.PushPullFacesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.ShapeWithHistories<Inputs.OCCT.TopoDSShapePointer>>;
         boss(inputs: Inputs.OCCT.PrismFeatureDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        bossWithHistory(inputs: Inputs.OCCT.PrismFeatureDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Models.OCCT.ShapeWithHistories<Inputs.OCCT.TopoDSShapePointer>>;
         pocket(inputs: Inputs.OCCT.PrismFeatureDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        pocketWithHistory(inputs: Inputs.OCCT.PrismFeatureDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Models.OCCT.ShapeWithHistories<Inputs.OCCT.TopoDSShapePointer>>;
         taperedBoss(inputs: Inputs.OCCT.TaperedPrismFeatureDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
         taperedPocket(inputs: Inputs.OCCT.TaperedPrismFeatureDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
         revolvedBoss(inputs: Inputs.OCCT.RevolvedFeatureDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
@@ -11248,6 +13100,8 @@ declare namespace Bit {
         private downloadStl;
         saveShapeBrep(inputs: Inputs.OCCT.SaveBrepDto<Inputs.OCCT.TopoDSShapePointer>): Promise<void>;
         saveShapeBrepAndReturn(inputs: Inputs.OCCT.SaveBrepDto<Inputs.OCCT.TopoDSShapePointer>): Promise<string>;
+        saveShapeBrepBinary(inputs: Inputs.OCCT.SaveBrepBinaryDto<Inputs.OCCT.TopoDSShapePointer>): Promise<void>;
+        saveShapeBrepBinaryAndReturn(inputs: Inputs.OCCT.SaveBrepBinaryDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Uint8Array>;
         saveShapeObj(inputs: Inputs.OCCT.SaveObjDto<Inputs.OCCT.TopoDSShapePointer>): Promise<void>;
         saveShapeObjAndReturn(inputs: Inputs.OCCT.SaveObjDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.ObjFiles>;
         saveShapePly(inputs: Inputs.OCCT.SavePlyDto<Inputs.OCCT.TopoDSShapePointer>): Promise<void>;
@@ -11258,6 +13112,7 @@ declare namespace Bit {
         private downloadFile;
         loadStl(inputs: Inputs.OCCT.LoadStlDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
         loadBrep(inputs: Inputs.OCCT.LoadBrepDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        loadBrepBinary(inputs: Inputs.OCCT.LoadBrepBinaryDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
         shapeToDxfPaths(inputs: Inputs.OCCT.ShapeToDxfPathsDto<Inputs.OCCT.TopoDSShapePointer>): Promise<IO.DxfPathDto[]>;
         dxfPathsWithLayer(inputs: Inputs.OCCT.DxfPathsWithLayerDto): Promise<IO.DxfPathsPartDto>;
         dxfCreate(inputs: Inputs.OCCT.DxfPathsPartsListDto): Promise<string>;
@@ -11288,6 +13143,8 @@ declare namespace Bit {
         readonly path: OCCTPath;
         readonly sketch: OCCTSketch;
         readonly svg: OCCTSVG;
+        readonly design: OCCTDesign;
+        readonly recipes: OCCTRecipes;
         shapeFacesToPolygonPoints(inputs: Inputs.OCCT.ShapeFacesToPolygonPointsDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.Base.Point3[][]>;
         shapeToMesh(inputs: Inputs.OCCT.ShapeToMeshDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.DecomposedMeshDto>;
         shapeToManifoldMesh(inputs: Inputs.OCCT.ShapeToManifoldMeshDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.DecomposedManifoldMeshDto>;
@@ -11301,7 +13158,9 @@ declare namespace Bit {
     declare class OCCTOperations {
         private readonly occWorkerManager;
         loft(inputs: Inputs.OCCT.LoftDto<Inputs.OCCT.TopoDSWirePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        loftWithHistory(inputs: Inputs.OCCT.LoftDto<Inputs.OCCT.TopoDSWirePointer | Inputs.OCCT.TopoDSEdgePointer>): Promise<Models.OCCT.ShapeWithHistories<Inputs.OCCT.TopoDSShapePointer>>;
         loftAdvanced(inputs: Inputs.OCCT.LoftAdvancedDto<Inputs.OCCT.TopoDSWirePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        loftAdvancedWithHistory(inputs: Inputs.OCCT.LoftAdvancedDto<Inputs.OCCT.TopoDSWirePointer | Inputs.OCCT.TopoDSEdgePointer>): Promise<Models.OCCT.ShapeWithHistories<Inputs.OCCT.TopoDSShapePointer>>;
         closestPointsBetweenTwoShapes(inputs: Inputs.OCCT.ClosestPointsBetweenTwoShapesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.Base.Point3[]>;
         closestPointsOnShapeFromPoints(inputs: Inputs.OCCT.ClosestPointsOnShapeFromPointsDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.Base.Point3[]>;
         closestPointsOnShapesFromPoints(inputs: Inputs.OCCT.ClosestPointsOnShapesFromPointsDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.Base.Point3[]>;
@@ -11324,6 +13183,7 @@ declare namespace Bit {
         revolveWithHistory(inputs: Inputs.OCCT.RevolveDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.ShapeWithHistory<Inputs.OCCT.TopoDSShapePointer>>;
         rotatedExtrude(inputs: Inputs.OCCT.RotationExtrudeDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
         pipe(inputs: Inputs.OCCT.ShapeShapesDto<Inputs.OCCT.TopoDSWirePointer, Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        pipeWithHistory(inputs: Inputs.OCCT.ShapeShapesDto<Inputs.OCCT.TopoDSWirePointer, Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.ShapeWithHistories<Inputs.OCCT.TopoDSShapePointer>>;
         pipePolylineWireNGon(inputs: Inputs.OCCT.PipePolygonWireNGonDto<Inputs.OCCT.TopoDSWirePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
         pipeWiresCylindrical(inputs: Inputs.OCCT.PipeWiresCylindricalDto<Inputs.OCCT.TopoDSWirePointer>): Promise<Inputs.OCCT.TopoDSShapePointer[]>;
         pipeWireCylindrical(inputs: Inputs.OCCT.PipeWireCylindricalDto<Inputs.OCCT.TopoDSWirePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
@@ -11332,7 +13192,9 @@ declare namespace Bit {
         offset(inputs: Inputs.OCCT.OffsetDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
         offsetAdv(inputs: Inputs.OCCT.OffsetAdvancedDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
         makeThickSolidSimple(inputs: Inputs.OCCT.ThisckSolidSimpleDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        makeThickSolidSimpleWithHistory(inputs: Inputs.OCCT.ThisckSolidSimpleDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.ShapeWithHistory<Inputs.OCCT.TopoDSShapePointer>>;
         makeThickSolidByJoin(inputs: Inputs.OCCT.ThickSolidByJoinDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        makeThickSolidByJoinWithHistory(inputs: Inputs.OCCT.ThickSolidByJoinDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.ShapeWithHistory<Inputs.OCCT.TopoDSShapePointer>>;
         slice(inputs: Inputs.OCCT.SliceDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSCompoundPointer>;
         sliceInStepPattern(inputs: Inputs.OCCT.SliceInStepPatternDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSCompoundPointer>;
         sectionWires(inputs: Inputs.OCCT.SectionWiresDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSWirePointer[]>;
@@ -11345,6 +13207,11 @@ declare namespace Bit {
     declare class OCCTPath {
         private readonly occWorkerManager;
         shapeFromPath(inputs: Inputs.OCCT.ShapeFromPathDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+    }
+    declare class OCCTRecipes {
+        private readonly occWorkerManager;
+        build(inputs: Inputs.OCCT.BuildRecipeDto): Promise<Inputs.OCCT.TopoDSShapePointer[]>;
+        buildDocument(inputs: Inputs.OCCT.BuildRecipeDocumentDto): Promise<Inputs.OCCT.TDocStdDocumentPointer>;
     }
     declare class OCCTSelectEdges {
         private readonly occWorkerManager;
@@ -12039,7 +13906,7 @@ declare namespace Bit {
         createColorPickerObservableSelector(inputs: Inputs.BabylonGui.ColorPickerObservableSelectorDto): Inputs.BabylonGui.colorPickerObservableSelectorEnum;
     }
     declare class BabylonGuiContainer {
-        addControls(inputs: Inputs.BabylonGui.AddControlsToContainerDto): BABYLON.GUI.Container;
+        addControls<C extends Inputs.BabylonGui.ControlsParent>(inputs: Inputs.BabylonGui.AddControlsToContainerDto<C>): C;
         setBackground(inputs: Inputs.BabylonGui.SetContainerBackgroundDto): BABYLON.GUI.Container;
         setIsReadonly(inputs: Inputs.BabylonGui.SetContainerIsReadonlyDto): BABYLON.GUI.Container;
         getBackground(inputs: Inputs.BabylonGui.ContainerDto): string;
@@ -12506,6 +14373,10 @@ declare namespace Bit {
         optionsOcctShapeSimple(inputs: Inputs.Draw.DrawOcctShapeSimpleOptions): Inputs.Draw.DrawOcctShapeSimpleOptions;
         optionsOcctShapeMaterial(inputs: Inputs.Draw.DrawOcctShapeMaterialOptions): Inputs.Draw.DrawOcctShapeMaterialOptions;
         optionsManifoldShapeMaterial(inputs: Inputs.Draw.DrawManifoldOrCrossSectionOptions): Inputs.Draw.DrawManifoldOrCrossSectionOptions;
+        optionsRecipeMeshes(inputs: Inputs.Draw.DrawRecipeMeshesOptions): Inputs.Draw.DrawRecipeMeshesOptions;
+        setRecipeElementsVisible(inputs: Inputs.Draw.RecipeElementsVisibilityDto<BABYLON.Mesh>): void;
+        setRecipeElementsColour(inputs: Inputs.Draw.RecipeElementsColourDto<BABYLON.Mesh>): void;
+        recipeElementOfPick(inputs: Inputs.Draw.RecipeElementPickDto<BABYLON.Mesh, BABYLON.AbstractMesh>): string | undefined;
         optionsBabylonNode(inputs: Inputs.Draw.DrawNodeOptions): Inputs.Draw.DrawNodeOptions;
         createTexture(inputs: Inputs.Draw.GenericTextureDto): BABYLON.Texture;
         createPBRMaterial(inputs: Inputs.Draw.GenericPBRMaterialDto): BABYLON.PBRMetallicRoughnessMaterial;
@@ -12530,8 +14401,14 @@ declare namespace Bit {
         private handleJscadMeshes;
         private handleManifoldShape;
         private handleManifoldShapes;
+        private handleManifoldMesh;
+        private handleManifoldMeshes;
+        private handleRecipeMeshes;
         private handleOcctShape;
         private handleOcctShapes;
+        private handleShapeWithAppearance;
+        private handleShapesWithAppearance;
+        private handleDesignBuild;
         private handleJscadMesh;
         private applyNodeSettingsAndMetadata;
         private applyGlobalSettingsAndMetadataAndShadowCasting;
@@ -12649,10 +14526,6 @@ declare namespace Bit {
         private offsetBy;
         private turned;
         private flipped;
-        private childToWorld;
-        private childToLocal;
-        private along;
-        private against;
         private combined;
         private withLargestPositive;
         private matrixBetween;
@@ -12681,6 +14554,10 @@ declare namespace Bit {
         arePointsTheSame(pointA: Inputs.Base.Point3 | Inputs.Base.Point2, pointB: Inputs.Base.Point3 | Inputs.Base.Point2, tolerance: number): boolean;
         private transformCoordinates;
     }
+    type Point3 = Inputs.Base.Point3;
+    declare const arcThroughThreePoints: (start: Point3, middle: Point3, end: Point3) => ThreePointArc | undefined;
+    declare const pointsOnArc: (arc: ThreePointArc, start: Point3, end: Point3, segments: number) => Point3[];
+    declare function crc32(data: Uint8Array): number;
     declare class DxfGenerator {
         private entityHandle;
         private colorFormat;
@@ -12737,15 +14614,219 @@ declare namespace Bit {
     declare const isFrameShaped: (value: unknown) => value is Inputs.Base.Frame;
     declare const unitOf: (vector: Vec3) => Vec3 | undefined;
     declare const squareFrame: (origin: Vec3, normal: Vec3, direction: Vec3) => FrameAxes | "normal" | "direction";
+    declare const WORLD_AXES: FrameAxes;
+    declare const vectorToWorld: (axes: FrameAxes, vector: Vec3) => Vec3;
+    declare const pointToWorld: (axes: FrameAxes, point: Vec3) => Vec3;
+    declare const vectorToLocal: (axes: FrameAxes, vector: Vec3) => Vec3;
+    declare const pointToLocal: (axes: FrameAxes, point: Vec3) => Vec3;
+    declare const composeAxes: (parent: FrameAxes, child: FrameAxes) => FrameAxes;
+    declare const relativeAxes: (parent: FrameAxes, child: FrameAxes) => FrameAxes;
+    declare const axesToMatrix: (axes: FrameAxes) => Inputs.Base.TransformMatrix;
+    interface ThreePointArc {
+        readonly center: Inputs.Base.Point3;
+        readonly x: Inputs.Base.Vector3;
+        readonly y: Inputs.Base.Vector3;
+        readonly radius: number;
+        readonly sweep: number;
+    }
+    interface CreasedMesh {
+        readonly positions: Float32Array;
+        readonly normals: Float32Array;
+        readonly indices: Uint32Array;
+    }
+    interface MeshArrays {
+        readonly positions: number[];
+        readonly indices: number[];
+    }
+    interface HuffmanTable {
+        readonly entries: Int32Array;
+        readonly bits: number;
+    }
+    interface ZipEntry {
+        readonly name: string;
+        readonly method: number;
+        readonly crc32: number;
+        readonly compressedSize: number;
+        readonly size: number;
+        readonly localOffset: number;
+        readonly encrypted: boolean;
+    }
+    interface RefinedSurfaceMesh {
+        readonly positions: Inputs.Base.Point3[];
+        readonly triangles: number[];
+    }
+    declare const MAX_CODE_BITS = 15;
+    declare const SYMBOL_SHIFT = 4;
+    declare const LENGTH_MASK = 15;
+    declare const BYTE_BITS = 8;
+    declare const REFILL_BELOW = 24;
+    declare const STORED_BLOCK = 0;
+    declare const FIXED_BLOCK = 1;
+    declare const DYNAMIC_BLOCK = 2;
+    declare const BLOCK_TYPE_BITS = 2;
+    declare const END_OF_BLOCK = 256;
+    declare const FIRST_LENGTH_SYMBOL = 257;
+    declare const LITERAL_LENGTH_SYMBOLS = 288;
+    declare const DISTANCE_SYMBOLS = 32;
+    declare const FIXED_LITERAL_BITS: readonly [
+        8,
+        9,
+        7,
+        8
+    ];
+    declare const FIXED_LITERAL_ENDS: readonly [
+        144,
+        256,
+        280,
+        288
+    ];
+    declare const FIXED_DISTANCE_BITS = 5;
+    declare const STORED_HEADER_BYTES = 4;
+    declare const UINT16_MASK = 65535;
+    declare const HLIT_BITS = 5;
+    declare const HDIST_BITS = 5;
+    declare const HCLEN_BITS = 4;
+    declare const HLIT_BASE = 257;
+    declare const HDIST_BASE = 1;
+    declare const HCLEN_BASE = 4;
+    declare const CODE_LENGTH_BITS = 3;
+    declare const CODE_LENGTH_SYMBOLS = 19;
+    declare const REPEAT_PREVIOUS = 16;
+    declare const REPEAT_ZERO_SHORT = 17;
+    declare const REPEAT_PREVIOUS_BITS = 2;
+    declare const REPEAT_PREVIOUS_BASE = 3;
+    declare const REPEAT_ZERO_SHORT_BITS = 3;
+    declare const REPEAT_ZERO_SHORT_BASE = 3;
+    declare const REPEAT_ZERO_LONG_BITS = 7;
+    declare const REPEAT_ZERO_LONG_BASE = 11;
+    declare const INITIAL_OUTPUT: number;
+    declare const CODE_LENGTH_ORDER: Uint8Array<ArrayBuffer>;
+    declare const LENGTH_BASE: Uint16Array<ArrayBuffer>;
+    declare const LENGTH_EXTRA: Uint8Array<ArrayBuffer>;
+    declare const DISTANCE_BASE: Uint16Array<ArrayBuffer>;
+    declare const DISTANCE_EXTRA: Uint8Array<ArrayBuffer>;
+    declare const STORED_LENGTH_BYTES = 2;
+    declare function huffmanTable(lengths: ArrayLike<number>): HuffmanTable;
+    declare function inflateRaw(data: Uint8Array, expectedSize?: number): Uint8Array;
+    declare const RIGID_TOLERANCE = 1e-7;
+    declare const LINEAR_COLUMN_STARTS: readonly [
+        0,
+        4,
+        8
+    ];
     type Vec3 = Inputs.Base.Vector3;
     declare const isTransformMatrix: (value: unknown) => value is Inputs.Base.TransformMatrix;
     declare const followedBy: (first: readonly number[], second: readonly number[]) => Inputs.Base.TransformMatrix;
+    declare const linearDeterminant: (matrix: readonly number[]) => number;
+    declare const isRigidMatrix: (matrix: readonly number[], tolerance?: number) => boolean;
     declare const composed: (matrices: readonly (readonly number[])[]) => Inputs.Base.TransformMatrix;
     declare const symmetricEigen: (matrix: readonly (readonly number[])[]) => {
         value: number;
         vector: Vec3;
     }[];
+    declare const signedVolumeOf: (positions: ArrayLike<number>, indices: ArrayLike<number>, start?: number, end?: number) => number;
     declare function computeVertexNormals(positions: number[], indices: number[]): number[];
+    declare const creasedMesh: (positions: ArrayLike<number>, indices: ArrayLike<number>, minSharpAngle: number) => CreasedMesh;
+    declare const ICOSAHEDRON_POINTS: [
+        number,
+        number,
+        number
+    ][];
+    declare const ICOSAHEDRON_FACES: [
+        number,
+        number,
+        number
+    ][];
+    declare const icosphere: (detail: number) => MeshArrays;
+    declare const frustum: (sides: number, bottomRadius: number, topRadius: number, height: number) => MeshArrays;
+    type Point3 = Inputs.Base.Point3;
+    declare const expandedKnots: (knots: readonly number[], multiplicities: readonly number[]) => number[];
+    declare const knotDomain: (degree: number, knots: readonly number[]) => [
+        number,
+        number
+    ];
+    declare const nurbsCurvePoint: (degree: number, points: readonly Point3[], weights: readonly number[] | undefined, knots: readonly number[], t: number) => Point3;
+    declare const nurbsSurfacePoint: (degrees: readonly [
+        number,
+        number
+    ], net: readonly (readonly Point3[])[], weights: readonly (readonly number[])[] | undefined, knots: readonly [
+        readonly number[],
+        readonly number[]
+    ], u: number, v: number) => Point3;
+    type Vec3 = Inputs.Base.Vector3;
+    type Point3 = Inputs.Base.Point3;
+    declare const pathTangents: (points: readonly Point3[], start?: Vec3, end?: Vec3) => Vec3[];
+    declare const transportedAxes: (points: readonly Point3[], tangents: readonly Vec3[], first: Vec3) => Vec3[];
+    declare const sweepMatrices: (points: readonly Point3[], tangents: readonly Vec3[], xAxes: readonly Vec3[]) => Inputs.Base.TransformMatrix[];
+    declare const roundedPath3: (points: readonly Point3[], radius: number, segmentsFor: (sweep: number) => number) => Point3[];
+    type Point2 = Inputs.Base.Point2;
+    declare const signedArea2: (points: readonly Point2[]) => number;
+    declare const wound2: (points: readonly Point2[], counterClockwise: boolean) => Point2[];
+    declare const isInsidePolygon2: (point: Point2, outline: readonly Point2[]) => boolean;
+    declare const perimeter2: (points: readonly Point2[]) => number;
+    declare const roundedCorners2: (points: readonly Point2[], radii: readonly number[], segmentsFor: (sweep: number) => number) => Point2[];
+    type Point2 = Inputs.Base.Point2;
+    type Point3 = Inputs.Base.Point3;
+    declare const refinedSurfaceMesh: (uv: readonly Point2[], positions: readonly Point3[], loops: readonly (readonly number[])[], pointAt: (u: number, v: number) => Point3) => RefinedSurfaceMesh;
+    declare function newellNormal(positions: ArrayLike<number>, loop: readonly number[]): [
+        number,
+        number,
+        number
+    ];
+    declare function triangulateFace(positions: ArrayLike<number>, loops: readonly (readonly number[])[]): number[];
+    type Vec2 = Inputs.Base.Vector2;
+    type Vec3 = Inputs.Base.Vector3;
+    declare const add2: (a: Vec2, b: Vec2) => Vec2;
+    declare const subtract2: (a: Vec2, b: Vec2) => Vec2;
+    declare const scale2: (a: Vec2, factor: number) => Vec2;
+    declare const dot2: (a: Vec2, b: Vec2) => number;
+    declare const cross2: (a: Vec2, b: Vec2) => number;
+    declare const length2: (a: Vec2) => number;
+    declare const leftOf2: (a: Vec2) => Vec2;
+    declare const unit2Of: (a: Vec2) => Vec2 | undefined;
+    declare const add3: (a: Vec3, b: Vec3) => Vec3;
+    declare const subtract3: (a: Vec3, b: Vec3) => Vec3;
+    declare const scale3: (a: Vec3, factor: number) => Vec3;
+    declare const dot3: (a: Vec3, b: Vec3) => number;
+    declare const cross3: (a: Vec3, b: Vec3) => Vec3;
+    declare const length3: (a: Vec3) => number;
+    declare const CRC32_POLYNOMIAL = 3988292384;
+    declare const CRC32_ALL_ONES = 4294967295;
+    declare const BYTE_MASK = 255;
+    declare const BYTE_BITS = 8;
+    declare const BYTE_VALUES = 256;
+    declare const LOCAL_HEADER_SIGNATURE = 67324752;
+    declare const CENTRAL_HEADER_SIGNATURE = 33639248;
+    declare const END_OF_CENTRAL_SIGNATURE = 101010256;
+    declare const END_OF_CENTRAL_SIZE = 22;
+    declare const LONGEST_ARCHIVE_COMMENT = 65535;
+    declare const ZIP64_COUNT = 65535;
+    declare const ZIP64_SIZE = 4294967295;
+    declare const END_ENTRY_COUNT = 10;
+    declare const END_DIRECTORY_SIZE = 12;
+    declare const END_DIRECTORY_OFFSET = 16;
+    declare const CENTRAL_FLAGS = 8;
+    declare const CENTRAL_METHOD = 10;
+    declare const CENTRAL_CRC32 = 16;
+    declare const CENTRAL_COMPRESSED_SIZE = 20;
+    declare const CENTRAL_SIZE = 24;
+    declare const CENTRAL_NAME_LENGTH = 28;
+    declare const CENTRAL_EXTRA_LENGTH = 30;
+    declare const CENTRAL_COMMENT_LENGTH = 32;
+    declare const CENTRAL_LOCAL_OFFSET = 42;
+    declare const CENTRAL_HEADER_SIZE = 46;
+    declare const LOCAL_NAME_LENGTH = 26;
+    declare const LOCAL_EXTRA_LENGTH = 28;
+    declare const LOCAL_HEADER_SIZE = 30;
+    declare const ENCRYPTED_FLAG = 1;
+    declare const UTF8_NAME_FLAG = 2048;
+    declare const STORED_METHOD = 0;
+    declare const DEFLATED_METHOD = 8;
+    declare const UINT16_BYTES = 2;
+    declare const UINT32_BYTES = 4;
+    declare function isZip(bytes: Uint8Array): boolean;
+    declare function zipEntries(bytes: Uint8Array): ZipEntry[];
+    declare function zipEntryData(bytes: Uint8Array, entry: ZipEntry): Uint8Array;
     declare class IoBitByBit {
         dxf: Dxf;
         constructor();
@@ -12919,6 +15000,8 @@ declare namespace Bit {
         meshMeshIntersectionPolylines(inputs: Inputs.Mesh.MeshMeshToleranceDto): Inputs.Base.Polyline3[];
         meshMeshIntersectionPoints(inputs: Inputs.Mesh.MeshMeshToleranceDto): Inputs.Base.Point3[][];
         private computeIntersectionPoint;
+        triangulatePolygon(inputs: Inputs.Mesh.PolygonWithHolesDto): Inputs.Base.Mesh3;
+        signedVolume(inputs: Inputs.Mesh.MeshDto): number;
     }
     declare class Point {
         private readonly geometryHelper;
@@ -12961,6 +15044,7 @@ declare namespace Bit {
         twoPointsAlmostEqual(inputs: Inputs.Point.TwoPointsToleranceDto): boolean;
         sortPoints(inputs: Inputs.Point.PointsDto): Inputs.Base.Point3[];
         private getRegularHexagonVertices;
+        arcThroughThreePoints(inputs: Inputs.Point.ArcThroughThreePointsDto): Inputs.Base.Point3[];
     }
     declare class Polyline {
         private readonly vector;
@@ -12981,6 +15065,9 @@ declare namespace Bit {
         sortSegmentsIntoPolylines(inputs: Inputs.Polyline.SegmentsToleranceDto): Inputs.Base.Polyline3[];
         maxFilletsHalfLine(inputs: Inputs.Polyline.PolylineToleranceDto): number[];
         safestFilletRadius(inputs: Inputs.Polyline.PolylineToleranceDto): number;
+        polygonNormal(inputs: Inputs.Polyline.PolylineDto): Inputs.Base.Vector3 | undefined;
+        polygonArea(inputs: Inputs.Polyline.PolylineDto): number;
+        private newellOf;
     }
     declare class TextBitByBit {
         private readonly point;
@@ -13158,6 +15245,15 @@ declare namespace Bit {
         private parseCsvLine;
         private escapeCsvCell;
         private convertEscapeSequences;
+    }
+    declare class IFCWGeometry extends IFCGeometry {
+        private readonly occt;
+        toShapes(inputs: Inputs.IFC.GeometryToShapesDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.OCCT.TopoDSShapePointer[]>;
+        toDocument(inputs: Inputs.IFC.GeometryToDocumentDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.OCCT.TDocStdDocumentPointer>;
+        toStep(inputs: Inputs.IFC.GeometryToStepDto<Inputs.IFC.IfcModelPointer>): Promise<Uint8Array>;
+    }
+    declare class IFCW extends IFCBitByBit {
+        readonly geometry: IFCWGeometry;
     }
     declare class JSONBitByBit {
         private readonly context;
@@ -14150,6 +16246,7 @@ declare namespace Bit {
         readonly things: ThingsAdv;
         readonly jscad: JSCAD;
         readonly manifold: ManifoldBitByBit;
+        readonly ifc: IFCW;
         readonly logic: Logic;
         readonly math: MathBitByBit;
         readonly lists: Lists;
