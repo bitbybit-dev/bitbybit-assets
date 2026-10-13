@@ -11,24 +11,27 @@ respective license, not by the Bitbybit Runner License.
 ===============================================================================
 
 The following components are bundled in or loaded alongside the
-Bitbybit Runner. Your rights under their open-source licenses are
-not restricted.
+Bitbybit Runner. Your rights under their licenses are not restricted.
 
 -------------------------------------------------------------------------------
 
 1. OpenCASCADE Technology (OCCT)
-   License: GNU Lesser General Public License v2.1 (LGPL-2.1)
-   Source:  https://dev.opencascade.org/
-   Usage:   Compiled to WebAssembly, loaded as a separate Web Worker at
-            runtime. The OCCT worker and WASM binary can be independently
-            replaced via the cdnUrl configuration option. See documentation
-            for the worker interface specification.
+   License: GNU Lesser General Public License v2.1 (LGPL-2.1) with the
+            Open CASCADE exception (version 1.0)
+   Source:  https://github.com/bitbybit-dev/OCCT (branch bitbybit-main),
+            the OCCT source the kernel is compiled from
+   Usage:   Compiled to WebAssembly and statically linked with the
+            Bitbybit kernel layer into the Bitbybit OCCT Kernel
+            (bitbybit-dev-occt*.wasm), which the Runner loads at runtime
+            in a separate Web Worker. See "The Bitbybit OCCT Kernel" below.
    LGPL-2.1 full text: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
 
 2. BabylonJS
    License: Apache License 2.0
    Source:  https://github.com/BabylonJS/Babylon.js
-   Usage:   Bundled in bitbybit-runner-babylonjs.js (full version).
+   Usage:   Bundled in bitbybit-runner-babylonjs.js (full version), and
+            in bitbybit-runner-viewer-babylonjs.js reduced to the modules
+            a 3D configurator without scripts uses.
             Excluded from lite version.
    Apache-2.0 full text: https://www.apache.org/licenses/LICENSE-2.0
 
@@ -56,14 +59,15 @@ not restricted.
             runtime.
 
 7. Havok Physics
-   License: Havok License (free for non-commercial use; commercial use
-            requires a separate Havok license agreement)
-   Source:  https://www.havok.com/
+   License: MIT License - the WebAssembly build of Havok for Babylon.js,
+            as published in @babylonjs/havok. Havok's source code is not
+            published, and Havok's other SDKs are licensed separately by
+            Microsoft.
+   Copyright: 2023 Babylon.js
+   Package: https://www.npmjs.com/package/@babylonjs/havok
    Usage:   Optional. Loaded only in the BabylonJS runner when
             enablePhysics: true is set. Loaded as a separate script file.
-            Files located in havok/ and babylonjs/havok/.
-   Note:    If you use the Havok physics feature in a commercial product,
-            you are responsible for obtaining appropriate Havok licensing.
+            Files located in babylonjs/havok/.
 
 8. opentype.js
    License: MIT License
@@ -78,12 +82,15 @@ not restricted.
    Usage:   Bundled into the Runner via @bitbybit-dev/core. Used for
             JSONPath query evaluation.
 
-10. Bitbybit Open-Source Libraries
+10. Bitbybit Libraries (MIT)
    License: MIT License
    Source:  https://github.com/bitbybit-dev/bitbybit
    Packages: @bitbybit-dev/core, @bitbybit-dev/occt, @bitbybit-dev/base,
              @bitbybit-dev/babylonjs, @bitbybit-dev/threejs,
              @bitbybit-dev/playcanvas, and related packages.
+   Note:    The Bitbybit OCCT Kernel the occt package ships is
+            MIT-licensed too, but closed source (see "The Bitbybit OCCT
+            Kernel" below).
 
 ===============================================================================
   PART B — BABYLONJS ECOSYSTEM FILES
@@ -105,6 +112,9 @@ the Runner bundle itself.
              babylonjs/draco_wasm_wrapper.js,
              babylonjs/draco_wasm_wrapper_gltf.js
     License file: babylonjs/draco.license
+    Note:    Draco is also statically linked into the Bitbybit OCCT Kernel
+             (wasm/bitbybit-dev-occt*.wasm) for glTF compression; see "The
+             Bitbybit OCCT Kernel" below.
 
 12. earcut (Mapbox)
     License: ISC License
@@ -152,17 +162,15 @@ the Runner bundle itself.
 
 18. glslang (Khronos Group)
     License: Apache License 2.0 and BSD 3-Clause
-    Source:  https://github.com/AntoscencoVlad662/AntoscencoVlad-glslang
-             (BabylonJS WASM build)
-    Files:   glslang/glslang.js, glslang/glslang.wasm,
-             babylonjs/glslang/glslang.js, babylonjs/glslang/glslang.wasm
+    Source:  https://github.com/KhronosGroup/glslang
+             (the WebAssembly build BabylonJS distributes, @webgpu/glslang)
+    Files:   babylonjs/glslang/glslang.js, babylonjs/glslang/glslang.wasm
     Note:    Compiled to WebAssembly. Used for GLSL to SPIR-V compilation.
 
 19. Tint / Dawn WGSL Transpiler (Google)
     License: BSD 3-Clause License
     Source:  https://dawn.googlesource.com/dawn
-    Files:   twgsl/twgsl.js, twgsl/twgsl.wasm,
-             babylonjs/twgsl/twgsl.js, babylonjs/twgsl/twgsl.wasm
+    Files:   babylonjs/twgsl/twgsl.js, babylonjs/twgsl/twgsl.wasm
     Note:    Compiled to WebAssembly. Used for SPIR-V to WGSL transpilation
              (WebGPU shader support).
 
@@ -293,7 +301,7 @@ Source: https://github.com/BabylonJS/Babylon.js
   LICENSE TEXTS
 ===============================================================================
 
-MIT License text (applies to components 3, 4, 5, 8, 9, 10, 14):
+MIT License text (applies to components 3, 4, 5, 7, 8, 9, 10, 14):
 
   Permission is hereby granted, free of charge, to any person obtaining a
   copy of this software and associated documentation files (the "Software"),
@@ -307,11 +315,15 @@ MIT License text (applies to components 3, 4, 5, 8, 9, 10, 14):
 
   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+  NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+  DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+  OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+  USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 -------------------------------------------------------------------------------
 
-ISC License text (applies to component 11):
+ISC License text (applies to component 12):
 
   Permission to use, copy, modify, and/or distribute this software for any
   purpose with or without fee is hereby granted, provided that the above
@@ -327,23 +339,38 @@ ISC License text (applies to component 11):
 
 -------------------------------------------------------------------------------
 
-LGPL-2.1 Compliance Notice (OpenCASCADE Technology):
+The Bitbybit OCCT Kernel (built on OpenCASCADE Technology):
 
-The OCCT component is dynamically loaded at runtime as a separate Web Worker
-(bitbybit-dev-occt-webworker.js) and WebAssembly binary
-(bitbybit-dev-occt.*.wasm). These files are NOT compiled into the Runner
-bundle. Per LGPL-2.1 Section 6, you may replace the OCCT worker and WASM
-with your own modified version by:
+Each build of the Bitbybit OCCT Kernel (bitbybit-dev-occt*.wasm) is one
+WebAssembly file in which OpenCASCADE Technology (LGPL-2.1 with the Open
+CASCADE exception), Draco (Apache 2.0), RapidJSON (MIT) and, in the
+multithreaded build, mimalloc (MIT) are statically linked with the Bitbybit
+kernel layer, whose source is not published. The kernel is licensed under the
+MIT License: free to use, modify and redistribute in any project, personal or
+commercial, though closed source. Its license and its own NOTICE ship in the
+@bitbybit-dev/occt npm package (LICENSE, NOTICE) and beside the kernel in
+wasm/ (bitbybit-dev-occt.LICENSE.txt, bitbybit-dev-occt.NOTICE.txt, with
+the license texts of its open-source components in wasm/licenses/).
 
-  1. Compiling your modified OpenCASCADE source to WebAssembly.
-  2. Creating a Web Worker that implements the same message protocol
-     (see documentation: https://bitbybit.dev/learn/runners/worker-protocol).
-  3. Hosting your custom worker and WASM files on your own server.
-  4. Using the cdnUrl option when initializing the runner:
-     runner.run({ cdnUrl: 'https://your-server.com/assets/' })
+Relinking with a modified OCCT: because OCCT and the kernel layer are
+linked into one file, using a modified OCCT means relinking that file. Each
+build's relinking kit holds the materials to do so (the kernel layer as
+compiled object files, the Draco build, the script that builds OCCT for
+WebAssembly, the link command and the toolchain version) and is published
+free of charge as the release relink-kit-<kernel file name without .wasm>
+of https://github.com/bitbybit-dev/bitbybit-assets/releases. For a build
+whose kit is not there, write to info@bitbybit.dev; this offer is valid for
+at least three years after we last distribute that build. Each kit names the
+exact OCCT commit its build was compiled from.
 
-The OpenCASCADE source code is publicly available at:
-https://dev.opencascade.org/
+A relinked kernel works with the JavaScript glue its own link produces, and
+the Runner's OCCT worker bundles the glue of the original kernel: to run a
+relinked kernel, use a worker that works with your glue - the Runner's own
+worker, modified for your own use as the Bitbybit Runner License allows, or a
+worker built from the MIT @bitbybit-dev/occt-worker package (without the
+Runner's advanced OCCT functions, such as 3D text) - put the worker and the
+kernel under the original file names in your self-hosted copy of the
+Bitbybit CDN assets, and point the Runner's cdnUrl option at that copy.
 
 -------------------------------------------------------------------------------
 

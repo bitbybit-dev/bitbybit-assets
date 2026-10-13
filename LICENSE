@@ -1,5 +1,5 @@
 Bitbybit Runner License
-Version 1.0, April 2026
+Version 1.1, October 2026
 
 Copyright (c) 2026 MB "Bit by bit developers"
 All rights reserved except as expressly granted below.
@@ -10,16 +10,16 @@ SCOPE OF THIS LICENSE
 
 This repository contains multiple categories of files:
 
-  a) RUNNER FILES (runner/, workers/, wasm/) — governed by this Bitbybit
-     Runner License.
+  a) RUNNER FILES (runner/, workers/) — governed by this Bitbybit Runner
+     License.
 
   b) COMPANY-OWNED ASSETS (assets/, textures/) — governed by this Bitbybit
      Runner License.
 
-  c) THIRD-PARTY OPEN-SOURCE FILES (babylonjs/, glslang/, twgsl/, havok/,
-     fonts/) — governed by their respective licenses (Apache 2.0, MIT,
-     ISC, SIL OFL 1.1, LGPL-2.1, zlib, BSD 3-Clause, Havok License).
-     See the NOTICE file for a complete list.
+  c) THIRD-PARTY FILES (babylonjs/, including its glslang/,
+     twgsl/ and havok/, fonts/, wasm/manifold-*.wasm) — governed by their
+     respective licenses (Apache 2.0, MIT, ISC, SIL OFL 1.1, zlib,
+     BSD 3-Clause). See the NOTICE file for a complete list.
 
   d) MODIFIED FONTS (fonts/) — modified from originals obtained from
      Google Fonts. Governed by their original licenses (SIL Open Font
@@ -27,19 +27,39 @@ This repository contains multiple categories of files:
      geometry processing to remove self-intersecting outlines for
      compatibility with 3D text extrusion. See NOTICE for details.
 
+  e) BITBYBIT OCCT KERNEL (wasm/bitbybit-dev-occt*.wasm) — MIT License
+     (wasm/bitbybit-dev-occt.LICENSE.txt); closed source: the source code of
+     its C++ kernel layer is not published. The OpenCASCADE Technology
+     inside it is LGPL-2.1 with the Open CASCADE exception; see NOTICE. Its
+     license, notice and license texts (wasm/bitbybit-dev-occt.LICENSE.txt,
+     wasm/bitbybit-dev-occt.NOTICE.txt, wasm/licenses/) are reproduced as
+     published.
+
+  f) SCHEMAS (schemas/) — copied from the MIT-licensed @bitbybit-dev/occt
+     package; MIT License.
+
 This Bitbybit Runner License applies ONLY to categories (a) and (b) above.
-It does not restrict your rights under the third-party licenses that govern
-categories (c) and (d).
+It does not restrict your rights under the licenses that govern categories
+(c), (d), (e) and (f).
 
 -------------------------------------------------------------------------------
 
 1. DEFINITIONS
 
 "Runner" means the compiled Bitbybit Runner JavaScript bundle files
-(bitbybit-runner-babylonjs.js, bitbybit-runner-threejs.js,
-bitbybit-runner-playcanvas.js, bitbybit-runner-core.js, and their
-respective "lite" variants), the associated Web Worker files, WebAssembly
-binaries, and any supporting assets distributed alongside them.
+(bitbybit-runner-babylonjs.js, bitbybit-runner-viewer-babylonjs.js,
+bitbybit-runner-threejs.js, bitbybit-runner-playcanvas.js,
+bitbybit-runner-core.js, and their respective "lite" variants), the
+associated Web Worker files, WebAssembly binaries, and any supporting
+assets distributed alongside them, except the Bitbybit OCCT Kernel and the
+license files served beside it.
+
+"Bitbybit OCCT Kernel" means Open CASCADE Technology (OCCT) compiled
+together with the Bitbybit kernel layer, in each of its builds: the
+WebAssembly files bitbybit-dev-occt*.wasm the Runner loads. It does not
+include the Manifold or JSCAD kernels, which are separate open-source
+projects under their own licenses. It is licensed under the MIT License (see
+section 4).
 
 "Open-Source Components" means the portions of the Runner derived from
 third-party open-source projects, as listed in the NOTICE file. These
@@ -71,7 +91,9 @@ a worldwide, royalty-free, non-exclusive, non-sublicensable license to:
 
   c) SELF-HOST the CDN Assets on your own infrastructure for use in your
      own applications, provided you maintain the original directory
-     structure and do not modify the files.
+     structure and do not modify the files, except that you may replace or
+     modify any build of the Bitbybit OCCT Kernel, and replace or modify the
+     Web Worker that loads it, as section 4 allows.
 
 No account registration or fee is required to use the Runner under this
 License.
@@ -96,7 +118,8 @@ You may NOT:
      application for your own end-users.
 
   d) REMOVE or alter any copyright notices, license texts, or attribution
-     notices included in or alongside the Runner.
+     notices included in or alongside the Runner (other than the license
+     files of the Bitbybit OCCT Kernel, which its own licenses govern).
 
   e) USE the Runner to circumvent API authentication, usage limits, or
      access controls of the Bitbybit Platform or API Services.
@@ -106,23 +129,34 @@ You may NOT:
 
 -------------------------------------------------------------------------------
 
-4. OPEN-SOURCE COMPONENTS
+4. OPEN-SOURCE COMPONENTS AND THE BITBYBIT OCCT KERNEL
 
 The Runner incorporates Open-Source Components that are licensed under their
-respective open-source licenses (including MIT, LGPL v2.1, and Apache 2.0).
+respective open-source licenses (including MIT and Apache 2.0).
 Nothing in this License restricts your rights under those open-source
 licenses with respect to those components. A complete list of Open-Source
 Components and their licenses is provided in the accompanying NOTICE file.
 
-LGPL Compliance: The OpenCASCADE Technology (OCCT) component is licensed
-under LGPL v2.1 and is loaded as a separate, dynamically-linked Web Worker
-at runtime. You may replace the OCCT Web Worker and WebAssembly binary with
-your own LGPL-compliant build by using the cdnUrl configuration option or
-by self-hosting modified worker files. See the Bitbybit documentation for
-the worker interface specification.
+Bitbybit OCCT Kernel: the Bitbybit OCCT Kernel contains Open CASCADE
+Technology (OCCT), licensed under LGPL v2.1 with the Open CASCADE exception,
+statically linked with the Bitbybit kernel layer of MB "Bit by bit
+developers". It is licensed under the MIT License, as the @bitbybit-dev/occt
+npm package states, not under this License; it is closed source, and the
+source code of the kernel layer is not published. The NOTICE file describes
+how to obtain the materials to relink the kernel with a modified OCCT. You
+may use a kernel relinked that way with the Runner, by putting it, and a Web
+Worker that works with the JavaScript glue its link produced, in place of the
+originals under the same file names in your self-hosted copy of the CDN
+Assets. For that purpose, and for your own use, you may modify the Runner's
+OCCT Web Worker files so that they work with such a relinked kernel, and
+reverse-engineer them to the extent necessary to debug such modifications;
+sections 3(a) and 3(b) do not restrict this. Nothing in this License
+restricts what the MIT License of the Bitbybit OCCT Kernel or the license of
+OCCT permits.
 
 If you wish to modify or use the Open-Source Components independently of
-the Runner, their source code is available at:
+the Runner, the NOTICE file says where the source code of each is
+available; the Bitbybit open-source libraries are at
 https://github.com/bitbybit-dev/bitbybit
 
 -------------------------------------------------------------------------------
