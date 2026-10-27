@@ -139,6 +139,28 @@ declare namespace Bit {
                  */
             type Mesh3 = Triangle3[];
             /**
+                 * A mesh whose points are stored once and whose triangles refer to them by number, the layout
+                 * glTF and game engines draw. `positions` holds x, y, z for each point in turn, `indices` three
+                 * point numbers, counted from 0, for each triangle, and `normals`, when present, one direction
+                 * x, y, z for each point. Triangles that share a corner share its number, which is how the mesh
+                 * knows its neighbours.
+                 */
+            type IndexedMesh = {
+                positions: number[];
+                indices: number[];
+                normals?: number[];
+            };
+            /**
+                 * The connected pieces of a mesh, and the triangles to turn over so that each piece is wound one
+                 * way. `turnOver` and `pieces` hold one entry per triangle, in the mesh's order; pieces are
+                 * numbered from 0 and `count` says how many there are.
+                 */
+            type MeshWindingPieces = {
+                turnOver: boolean[];
+                pieces: number[];
+                count: number;
+            };
+            /**
                  * A coordinate frame: an origin, a normal (its z axis) and a direction (its x axis, square to the
                  * normal); its y axis is the normal crossed with the direction, so the frame is right-handed. A
                  * frame places things: shapes land on it, profiles are drawn in its plane.
@@ -263,8 +285,9 @@ declare namespace Bit {
             interface RecipeBuffers {
                 /**
                  * Coordinates: flat `x, y` pairs for polygons, `x, y, z` triples for triangle positions and
-                 * sixteen numbers for each frame of a loft. Every number in it is a coordinate, finite and
-                 * between minus and plus one billion.
+                 * vertices, sixteen numbers for each frame of a loft, and the control points, weights and
+                 * knots of a brep node's curves and surfaces. Every number in it is finite and between minus
+                 * and plus one billion.
                  */
                 f64: Float64Array;
                 /**
@@ -523,10 +546,426 @@ declare namespace Bit {
                 frames: RecipeRange;
             }
             /**
+                 * Where a curve or surface of a brep node sits: an origin, its local Z axis and its local X
+                 * axis, as IFC's and STEP's axis placements give them. The X axis is made square to the Z axis
+                 * before use.
+                 * @beta
+                 */
+            interface RecipeBrepPlacement {
+                /**
+                 * The local origin.
+                 */
+                origin: Point3;
+                /**
+                 * The local Z axis: the normal of a plane, the axis of a cylinder, cone, sphere, torus or
+                 * circle. Not a zero vector.
+                 */
+                axis: Vector3;
+                /**
+                 * The local X axis, where a circle's or a surface's parameters start. Not a zero vector, and
+                 * not along `axis`.
+                 */
+                xDirection: Vector3;
+            }
+            /**
+                 * A straight line through `origin` along `direction`.
+                 * @beta
+                 */
+            interface RecipeBrepLine {
+                /**
+                 * Always `line`.
+                 */
+                kind: "line";
+                /**
+                 * A point on the line.
+                 */
+                origin: Point3;
+                /**
+                 * The line's direction, not a zero vector.
+                 */
+                direction: Vector3;
+            }
+            /**
+                 * A circle about its placement's axis, starting on its X axis.
+                 * @beta
+                 */
+            interface RecipeBrepCircle extends RecipeBrepPlacement {
+                /**
+                 * Always `circle`.
+                 */
+                kind: "circle";
+                /**
+                 * The radius, above zero.
+                 */
+                radius: number;
+            }
+            /**
+                 * An ellipse about its placement's axis, with one semi-axis along its X axis and the other
+                 * square to it; either may be the longer.
+                 * @beta
+                 */
+            interface RecipeBrepEllipse extends RecipeBrepPlacement {
+                /**
+                 * Always `ellipse`.
+                 */
+                kind: "ellipse";
+                /**
+                 * The semi-axis along the placement's X axis, above zero.
+                 */
+                xRadius: number;
+                /**
+                 * The semi-axis square to it, above zero.
+                 */
+                yRadius: number;
+            }
+            /**
+                 * A B-spline curve, rational when it has weights, with its knots and their multiplicities as
+                 * STEP and IFC write them: knots rising, and the multiplicities adding up to the number of
+                 * control points plus the degree plus one.
+                 * @beta
+                 */
+            interface RecipeBrepBSplineCurve {
+                /**
+                 * Always `bspline`.
+                 */
+                kind: "bspline";
+                /**
+                 * The degree, from 1 to 25.
+                 */
+                degree: number;
+                /**
+                 * A range of `x, y, z` triples in `f64`: the control points, at least the degree plus one.
+                 */
+                points: RecipeRange;
+                /**
+                 * A range in `f64` with one weight above zero per control point; left out for a curve that
+                 * is not rational.
+                 */
+                weights?: RecipeRange | undefined;
+                /**
+                 * A range in `f64` holding the distinct knots, rising.
+                 */
+                knots: RecipeRange;
+                /**
+                 * How many times each knot repeats, one whole number above zero per knot.
+                 */
+                multiplicities: number[];
+            }
+            /**
+                 * A curve an edge of a brep node lies on.
+                 * @beta
+                 */
+            type RecipeBrepCurve = RecipeBrepLine | RecipeBrepCircle | RecipeBrepEllipse | RecipeBrepBSplineCurve;
+            /**
+                 * A plane through its placement's origin, square to its axis.
+                 * @beta
+                 */
+            interface RecipeBrepPlane extends RecipeBrepPlacement {
+                /**
+                 * Always `plane`.
+                 */
+                kind: "plane";
+            }
+            /**
+                 * A cylinder about its placement's axis.
+                 * @beta
+                 */
+            interface RecipeBrepCylinder extends RecipeBrepPlacement {
+                /**
+                 * Always `cylinder`.
+                 */
+                kind: "cylinder";
+                /**
+                 * The radius, above zero.
+                 */
+                radius: number;
+            }
+            /**
+                 * A cone about its placement's axis, widening along it.
+                 * @beta
+                 */
+            interface RecipeBrepCone extends RecipeBrepPlacement {
+                /**
+                 * Always `cone`.
+                 */
+                kind: "cone";
+                /**
+                 * The radius in the plane through the origin square to the axis, zero or above.
+                 */
+                radius: number;
+                /**
+                 * The angle between the axis and the cone's side, in radians, above zero and below a
+                 * quarter turn.
+                 */
+                semiAngle: number;
+            }
+            /**
+                 * A sphere about its placement's origin.
+                 * @beta
+                 */
+            interface RecipeBrepSphere extends RecipeBrepPlacement {
+                /**
+                 * Always `sphere`.
+                 */
+                kind: "sphere";
+                /**
+                 * The radius, above zero.
+                 */
+                radius: number;
+            }
+            /**
+                 * A torus about its placement's axis.
+                 * @beta
+                 */
+            interface RecipeBrepTorus extends RecipeBrepPlacement {
+                /**
+                 * Always `torus`.
+                 */
+                kind: "torus";
+                /**
+                 * The distance from the axis to the centre of the tube, above zero.
+                 */
+                majorRadius: number;
+                /**
+                 * The radius of the tube, above zero.
+                 */
+                minorRadius: number;
+            }
+            /**
+                 * A B-spline surface, rational when it has weights. Its control points form a net of
+                 * `uCount` rows of `vCount` points, row by row, as STEP's list of lists does.
+                 * @beta
+                 */
+            interface RecipeBrepBSplineSurface {
+                /**
+                 * Always `bspline`.
+                 */
+                kind: "bspline";
+                /**
+                 * The degree along u, from 1 to 25.
+                 */
+                uDegree: number;
+                /**
+                 * The degree along v, from 1 to 25.
+                 */
+                vDegree: number;
+                /**
+                 * How many rows of control points there are along u.
+                 */
+                uCount: number;
+                /**
+                 * How many control points each row holds, along v.
+                 */
+                vCount: number;
+                /**
+                 * A range of `x, y, z` triples in `f64`: `uCount` times `vCount` control points.
+                 */
+                points: RecipeRange;
+                /**
+                 * A range in `f64` with one weight above zero per control point; left out for a surface
+                 * that is not rational.
+                 */
+                weights?: RecipeRange | undefined;
+                /**
+                 * A range in `f64` holding the distinct knots along u, rising.
+                 */
+                uKnots: RecipeRange;
+                /**
+                 * How many times each knot along u repeats; they add up to `uCount` plus `uDegree` plus one.
+                 */
+                uMultiplicities: number[];
+                /**
+                 * A range in `f64` holding the distinct knots along v, rising.
+                 */
+                vKnots: RecipeRange;
+                /**
+                 * How many times each knot along v repeats; they add up to `vCount` plus `vDegree` plus one.
+                 */
+                vMultiplicities: number[];
+            }
+            /**
+                 * The surface a curve sweeps turning about an axis.
+                 * @beta
+                 */
+            interface RecipeBrepRevolution {
+                /**
+                 * Always `revolution`.
+                 */
+                kind: "revolution";
+                /**
+                 * The index of the curve that turns, among the node's curves.
+                 */
+                curve: number;
+                /**
+                 * A point on the axis.
+                 */
+                origin: Point3;
+                /**
+                 * The axis direction, not a zero vector.
+                 */
+                axis: Vector3;
+            }
+            /**
+                 * The surface a curve sweeps moving along a direction.
+                 * @beta
+                 */
+            interface RecipeBrepExtrusion {
+                /**
+                 * Always `extrusion`.
+                 */
+                kind: "extrusion";
+                /**
+                 * The index of the curve that moves, among the node's curves.
+                 */
+                curve: number;
+                /**
+                 * The direction it moves along, not a zero vector.
+                 */
+                direction: Vector3;
+            }
+            /**
+                 * A surface a face of a brep node lies on.
+                 * @beta
+                 */
+            type RecipeBrepSurface = RecipeBrepPlane | RecipeBrepCylinder | RecipeBrepCone | RecipeBrepSphere | RecipeBrepTorus | RecipeBrepBSplineSurface | RecipeBrepRevolution | RecipeBrepExtrusion;
+            /**
+                 * An edge of a brep node: the part of a curve between two vertices. Faces that meet along an
+                 * edge name the same edge.
+                 * @beta
+                 */
+            interface RecipeBrepEdge {
+                /**
+                 * The index of the curve, among the node's curves.
+                 */
+                curve: number;
+                /**
+                 * The index of the vertex the edge starts at.
+                 */
+                start: number;
+                /**
+                 * The index of the vertex the edge ends at; the same as `start` for a closed edge, such as a
+                 * whole circle.
+                 */
+                end: number;
+                /**
+                 * Whether the edge runs from `start` to `end` the way the curve runs; left out, it does.
+                 * A closed edge with no `parameters` takes the whole curve.
+                 */
+                sameSense?: boolean | undefined;
+                /**
+                 * The curve's parameters at the start and the end; left out, they are found from the
+                 * vertices.
+                 */
+                parameters?: [
+                    number,
+                    number
+                ] | undefined;
+            }
+            /**
+                 * A loop bounding a face: edges in order, each run forward or backward, end to end.
+                 * @beta
+                 */
+            interface RecipeBrepBound {
+                /**
+                 * Whether this is the face's outer boundary; a face has at most one.
+                 */
+                outer: boolean;
+                /**
+                 * The indices of the edges, in the order the loop runs.
+                 */
+                edges: number[];
+                /**
+                 * For each edge, whether the loop runs it from its start to its end.
+                 */
+                forward: boolean[];
+            }
+            /**
+                 * A face of a brep node: the part of a surface its bounds enclose.
+                 * @beta
+                 */
+            interface RecipeBrepFace {
+                /**
+                 * The index of the surface, among the node's surfaces.
+                 */
+                surface: number;
+                /**
+                 * Whether the face's outward side is the surface's normal side.
+                 */
+                sameSense: boolean;
+                /**
+                 * The loops bounding the face, at least one.
+                 */
+                bounds: RecipeBrepBound[];
+            }
+            /**
+                 * One solid of a brep node: the faces of its outer shell and of each cavity inside it, by their
+                 * indices among the node's faces, as STEP's brep with voids gives them.
+                 * @beta
+                 */
+            interface RecipeBrepSolid {
+                /**
+                 * The faces of the outer shell, at least one.
+                 */
+                outer: number[];
+                /**
+                 * The faces of each cavity's shell; left out for a solid without cavities.
+                 */
+                voids?: number[][] | undefined;
+            }
+            /**
+                 * A boundary representation given exactly, as STEP and IFC describe one: vertices, edges on
+                 * curves, and faces on surfaces bounded by loops of those edges. Faces meet on shared edges, so
+                 * a closed set of faces is a solid.
+                 *
+                 * A kernel that builds no exact surfaces builds `fallback` instead, a node describing the same
+                 * faces approximately, such as their triangles.
+                 * @beta
+                 */
+            interface RecipeBrepNode {
+                /**
+                 * Always `brep`.
+                 */
+                op: "brep";
+                /**
+                 * A range of `x, y, z` triples in `f64`: the vertices.
+                 */
+                vertices: RecipeRange;
+                /**
+                 * The curves the edges lie on, and the curves surfaces of revolution and extrusion sweep.
+                 */
+                curves: RecipeBrepCurve[];
+                /**
+                 * The surfaces the faces lie on.
+                 */
+                surfaces: RecipeBrepSurface[];
+                /**
+                 * The edges.
+                 */
+                edges: RecipeBrepEdge[];
+                /**
+                 * The faces, at least one.
+                 */
+                faces: RecipeBrepFace[];
+                /**
+                 * Whether the faces close a volume, so the result is a solid rather than a shell.
+                 */
+                closed: boolean;
+                /**
+                 * The solids the faces make, each an outer shell and its cavities; left out, a closed node's
+                 * shells are found from the edges the faces share and a shell inside another is its cavity.
+                 * Every face belongs to one shell at most.
+                 */
+                solids?: RecipeBrepSolid[] | undefined;
+                /**
+                 * The index of an earlier node to build where exact surfaces cannot be, or are not built.
+                 */
+                fallback?: number | undefined;
+            }
+            /**
                  * One step of a recipe. A node refers only to nodes before it, by their position in the list.
                  * @beta
                  */
-            type RecipeNode = RecipePolygonNode | RecipeCircleNode | RecipeExtrudeNode | RecipeHalfSpaceNode | RecipeDifferenceNode | RecipeTransformNode | RecipeVoidsNode | RecipeTrianglesNode | RecipeCompoundNode | RecipeUnionNode | RecipeIntersectionNode | RecipeRevolveNode | RecipeLoftNode;
+            type RecipeNode = RecipePolygonNode | RecipeCircleNode | RecipeExtrudeNode | RecipeHalfSpaceNode | RecipeDifferenceNode | RecipeTransformNode | RecipeVoidsNode | RecipeTrianglesNode | RecipeCompoundNode | RecipeUnionNode | RecipeIntersectionNode | RecipeRevolveNode | RecipeLoftNode | RecipeBrepNode;
             /**
                  * A value a recipe carries through to its results untouched.
                  * @beta
@@ -665,6 +1104,17 @@ declare namespace Bit {
                 bottomLeft = "bottomLeft",
                 bottomMid = "bottomMid",
                 bottomRight = "bottomRight"
+            }
+            /**
+                 * A unit of length: millimetres, centimetres, metres or inches. Model units carry no unit of
+                 * their own; this names the one they are in where a file, a standard's sizes or a conversion
+                 * needs to know it. The values are the short codes design documents and assembly structures use.
+                 */
+            enum unitOfLengthEnum {
+                millimetre = "mm",
+                centimetre = "cm",
+                metre = "m",
+                inch = "in"
             }
             /**
                  * Defines how colors are mapped to entities when there are more entities than colors.
@@ -1142,7 +1592,8 @@ declare namespace Bit {
                  */
                 fileName?: string | undefined;
                 /**
-                 * Options handed to the DXF or 3MF writer as they are; leave it out for the defaults
+                 * Options for the file writer, left out for the defaults; 3MF takes `unit` (`millimeter` unless
+                 * given), `defaultcolor`, `metadata` and `compress`
                  * @default undefined
                  * @optional true
                  */
@@ -5578,8 +6029,8 @@ declare namespace Bit {
                  */
                 schema: string;
                 /**
-                 * Whether the model can be changed: false for an `IFC2X3` file, which is read through `IFC4`
-                 * to be shown and queried.
+                 * Whether the model can be changed: false for an `IFC2X3` file or one naming the bare `IFC4X3`,
+                 * each read through a newer table to be shown and queried.
                  * @default true
                  */
                 editable: boolean;
@@ -6905,6 +7356,104 @@ declare namespace Bit {
                 trunkMaterial?: string | undefined;
             }
             /**
+             * What every element `elements.add` and `elements.addShape` add shares: the model, the storey it
+             * stands on, its class, names, placement and material.
+             */
+            abstract class ElementSharedDto<T> {
+                /**
+                 * The model to change; it stays as it was, and the call returns the changed model.
+                 * @default undefined
+                 */
+                model: T;
+                /**
+                 * The storey the element stands on, by GlobalId or by the id it was added with.
+                 * @default undefined
+                 */
+                storey: string;
+                /**
+                 * An id of your own for the element. Leave it out for a generated one.
+                 * @default undefined
+                 * @optional true
+                 */
+                id?: string | undefined;
+                /**
+                 * A name for the element, which other tools show.
+                 * @default Element
+                 */
+                name?: string | undefined;
+                /**
+                 * The IFC class of the element, any kind of IfcElement that is not abstract, such as
+                 * `IfcBuildingElementProxy`, `IfcFurniture` or `IfcPipeFitting`.
+                 * @default IfcBuildingElementProxy
+                 */
+                type?: string | undefined;
+                /**
+                 * The predefined type of a class that has one, as IFC writes it, such as `NOTDEFINED`; left
+                 * out, `NOTDEFINED`, or `USERDEFINED` when `objectType` is given.
+                 * @default undefined
+                 * @optional true
+                 */
+                predefinedType?: string | undefined;
+                /**
+                 * What the element is, in words, when no predefined type says it, such as `Bracket`.
+                 * @default undefined
+                 * @optional true
+                 */
+                objectType?: string | undefined;
+                /**
+                 * Where the body's origin stands, as `[x, y, z]` in the storey's plan, z up from its floor.
+                 * @default [0, 0, 0]
+                 */
+                position?: Base.Point3 | undefined;
+                /**
+                 * How far the body turns about the vertical, in degrees, counterclockwise seen from above.
+                 * @default 0
+                 * @minimum -360
+                 * @maximum 360
+                 * @step 15
+                 */
+                rotation?: number | undefined;
+                /**
+                 * The name of a material the model holds, given to the element.
+                 * @default undefined
+                 * @optional true
+                 */
+                material?: string | undefined;
+            }
+            /**
+             * An element to add for `elements.add`: any kind of element, its body given as exact boundary
+             * representations or triangle meshes, standing on a storey.
+             */
+            class AddElementDto<T> extends ElementSharedDto<T> {
+                constructor(model?: T, storey?: string, body?: Base.Recipe, id?: string, name?: string, type?: string, predefinedType?: string, objectType?: string, position?: Base.Point3, rotation?: number, material?: string);
+                /**
+                 * The element's body: a recipe whose roots are brep steps, written as advanced breps, or
+                 * triangle steps, written as triangulated face sets, such as `occt.recipes.describe` gives.
+                 * @default undefined
+                 */
+                body: Base.Recipe;
+            }
+            /**
+             * An element to add for `elements.addShape`: any kind of element whose body is an OpenCascade shape,
+             * standing on a storey.
+             */
+            class AddShapeElementDto<T, S> extends ElementSharedDto<T> {
+                constructor(model?: T, storey?: string, shape?: S, millimetresPerUnit?: number, id?: string, name?: string, type?: string, predefinedType?: string, objectType?: string, position?: Base.Point3, rotation?: number, material?: string);
+                /**
+                 * The element's body: a solid, several, a shell or faces, described exactly.
+                 * @default undefined
+                 */
+                shape: S;
+                /**
+                 * How many millimetres one unit of the shape's coordinates is.
+                 * @default 1
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                millimetresPerUnit?: number | undefined;
+            }
+            /**
              * One property of a property set: its name, its value and, when the value needs one, its IFC type.
              * Used by `properties.addSet` and `properties.setValues`. A type outside `IfcValue`, or a value it
              * cannot hold, is refused.
@@ -7086,7 +7635,7 @@ declare namespace Bit {
              * A model, the elements to describe and how to group them for `geometry.recipe`.
              */
             class GeometryDto<T> {
-                constructor(model?: T, elements?: string[], groupByClass?: boolean);
+                constructor(model?: T, elements?: string[], groupByClass?: boolean, propertySets?: boolean);
                 /**
                  * The model whose elements are described.
                  * @default undefined
@@ -7105,6 +7654,12 @@ declare namespace Bit {
                  * @default true
                  */
                 groupByClass?: boolean | undefined;
+                /**
+                 * When true, each element's property set values join its results' tags, named like
+                 * `Pset_WallCommon.IsExternal`, so they reach what the results become, such as STEP properties.
+                 * @default false
+                 */
+                propertySets?: boolean | undefined;
             }
             /**
              * A model and the elements to check for `geometry.unsupported`.
@@ -7175,7 +7730,7 @@ declare namespace Bit {
              * model's recipe into an OpenCascade assembly document.
              */
             class GeometryToDocumentDto<T> {
-                constructor(model?: T, elements?: string[], name?: string, emptyWhenFailed?: boolean, facetedMeshes?: boolean, maxTriangles?: number, groupByClass?: boolean);
+                constructor(model?: T, elements?: string[], name?: string, emptyWhenFailed?: boolean, facetedMeshes?: boolean, maxTriangles?: number, groupByClass?: boolean, propertySets?: boolean);
                 /**
                  * The model whose elements are built.
                  * @default undefined
@@ -7220,13 +7775,19 @@ declare namespace Bit {
                  * @default true
                  */
                 groupByClass?: boolean | undefined;
+                /**
+                 * When true, each element's product carries its property set values as properties, named by set
+                 * and property, such as `Pset_WallCommon.IsExternal`, beside its GlobalId and IFC type.
+                 * @default true
+                 */
+                propertySets?: boolean | undefined;
             }
             /**
              * A model, the elements to write, and the file options for `geometry.toStep`, which writes the
              * model's elements as a STEP file of OpenCascade shapes.
              */
             class GeometryToStepDto<T> {
-                constructor(model?: T, elements?: string[], name?: string, fileName?: string, emptyWhenFailed?: boolean, facetedMeshes?: boolean, maxTriangles?: number, compress?: boolean, tryDownload?: boolean, groupByClass?: boolean);
+                constructor(model?: T, elements?: string[], name?: string, fileName?: string, emptyWhenFailed?: boolean, facetedMeshes?: boolean, maxTriangles?: number, compress?: boolean, tryDownload?: boolean, groupByClass?: boolean, propertySets?: boolean);
                 /**
                  * The model whose elements are written.
                  * @default undefined
@@ -7287,6 +7848,12 @@ declare namespace Bit {
                  * @default true
                  */
                 groupByClass?: boolean | undefined;
+                /**
+                 * When true, each element's product carries its property set values as properties, named by set
+                 * and property, such as `Pset_WallCommon.IsExternal`, beside its GlobalId and IFC type.
+                 * @default true
+                 */
+                propertySets?: boolean | undefined;
             }
             /**
              * An element `geometry.recipe` had to leave out, as `geometry.unsupported` lists it.
@@ -7314,7 +7881,7 @@ declare namespace Bit {
      * OCCT package uses the same foundational types without additions.
      */
         /**
-         * Every parameter object the OpenCascade kernel accepts. The kernel works on a boundary
+         * Every parameter object the Bitbybit OCCT Kernel accepts. The kernel works on a boundary
          * representation - vertices, edges, wires, faces, shells, solids and compounds - so most DTOs here
          * carry one or more shape handles plus the numbers that drive the operation: radii, lengths,
          * directions, tolerances and fillet or chamfer sizes.
@@ -7330,7 +7897,7 @@ declare namespace Bit {
              * A 3D geometric curve - the underlying mathematical curve, as opposed to the topological edge
              * that carries it.
              *
-             * A handle to a shape living inside the OpenCascade kernel, not the geometry itself. The kernel
+             * A handle to a shape living inside the Bitbybit OCCT Kernel, not the geometry itself. The kernel
              * runs as WebAssembly with its own memory, so what crosses back into JavaScript is this small
              * reference; pass it to the next operation to keep building. It cannot be inspected or edited
              * directly - use the shapes and query APIs for that - and it stays valid until the kernel's cache
@@ -7344,7 +7911,7 @@ declare namespace Bit {
              * A curve in 2D parameter space, used when working on a surface's own UV domain rather than in
              * world coordinates.
              *
-             * A handle to a shape living inside the OpenCascade kernel, not the geometry itself. The kernel
+             * A handle to a shape living inside the Bitbybit OCCT Kernel, not the geometry itself. The kernel
              * runs as WebAssembly with its own memory, so what crosses back into JavaScript is this small
              * reference; pass it to the next operation to keep building. It cannot be inspected or edited
              * directly - use the shapes and query APIs for that - and it stays valid until the kernel's cache
@@ -7358,7 +7925,7 @@ declare namespace Bit {
              * A geometric surface - the underlying mathematical surface, as opposed to the topological face
              * bounded by wires that sits on it.
              *
-             * A handle to a shape living inside the OpenCascade kernel, not the geometry itself. The kernel
+             * A handle to a shape living inside the Bitbybit OCCT Kernel, not the geometry itself. The kernel
              * runs as WebAssembly with its own memory, so what crosses back into JavaScript is this small
              * reference; pass it to the next operation to keep building. It cannot be inspected or edited
              * directly - use the shapes and query APIs for that - and it stays valid until the kernel's cache
@@ -7371,7 +7938,7 @@ declare namespace Bit {
             /**
              * A vertex: a single point in the topological structure, the end of an edge.
              *
-             * A handle to a shape living inside the OpenCascade kernel, not the geometry itself. The kernel
+             * A handle to a shape living inside the Bitbybit OCCT Kernel, not the geometry itself. The kernel
              * runs as WebAssembly with its own memory, so what crosses back into JavaScript is this small
              * reference; pass it to the next operation to keep building. It cannot be inspected or edited
              * directly - use the shapes and query APIs for that - and it stays valid until the kernel's cache
@@ -7384,7 +7951,7 @@ declare namespace Bit {
             /**
              * An edge: a bounded piece of a curve between two vertices.
              *
-             * A handle to a shape living inside the OpenCascade kernel, not the geometry itself. The kernel
+             * A handle to a shape living inside the Bitbybit OCCT Kernel, not the geometry itself. The kernel
              * runs as WebAssembly with its own memory, so what crosses back into JavaScript is this small
              * reference; pass it to the next operation to keep building. It cannot be inspected or edited
              * directly - use the shapes and query APIs for that - and it stays valid until the kernel's cache
@@ -7397,7 +7964,7 @@ declare namespace Bit {
             /**
              * A wire: a connected sequence of edges. A closed planar wire is what you turn into a face.
              *
-             * A handle to a shape living inside the OpenCascade kernel, not the geometry itself. The kernel
+             * A handle to a shape living inside the Bitbybit OCCT Kernel, not the geometry itself. The kernel
              * runs as WebAssembly with its own memory, so what crosses back into JavaScript is this small
              * reference; pass it to the next operation to keep building. It cannot be inspected or edited
              * directly - use the shapes and query APIs for that - and it stays valid until the kernel's cache
@@ -7411,7 +7978,7 @@ declare namespace Bit {
              * A face: a bounded region of a surface, outlined by wires. Extrude, revolve or loft a face to
              * get a solid.
              *
-             * A handle to a shape living inside the OpenCascade kernel, not the geometry itself. The kernel
+             * A handle to a shape living inside the Bitbybit OCCT Kernel, not the geometry itself. The kernel
              * runs as WebAssembly with its own memory, so what crosses back into JavaScript is this small
              * reference; pass it to the next operation to keep building. It cannot be inspected or edited
              * directly - use the shapes and query APIs for that - and it stays valid until the kernel's cache
@@ -7424,7 +7991,7 @@ declare namespace Bit {
             /**
              * A shell: a set of faces joined along their edges. Close a shell and it can become a solid.
              *
-             * A handle to a shape living inside the OpenCascade kernel, not the geometry itself. The kernel
+             * A handle to a shape living inside the Bitbybit OCCT Kernel, not the geometry itself. The kernel
              * runs as WebAssembly with its own memory, so what crosses back into JavaScript is this small
              * reference; pass it to the next operation to keep building. It cannot be inspected or edited
              * directly - use the shapes and query APIs for that - and it stays valid until the kernel's cache
@@ -7438,7 +8005,7 @@ declare namespace Bit {
              * A solid: a closed, watertight volume, and the shape kind most downstream operations and
              * exporters expect.
              *
-             * A handle to a shape living inside the OpenCascade kernel, not the geometry itself. The kernel
+             * A handle to a shape living inside the Bitbybit OCCT Kernel, not the geometry itself. The kernel
              * runs as WebAssembly with its own memory, so what crosses back into JavaScript is this small
              * reference; pass it to the next operation to keep building. It cannot be inspected or edited
              * directly - use the shapes and query APIs for that - and it stays valid until the kernel's cache
@@ -7451,7 +8018,7 @@ declare namespace Bit {
             /**
              * A compound solid: several solids sharing faces, as in a partitioned volume.
              *
-             * A handle to a shape living inside the OpenCascade kernel, not the geometry itself. The kernel
+             * A handle to a shape living inside the Bitbybit OCCT Kernel, not the geometry itself. The kernel
              * runs as WebAssembly with its own memory, so what crosses back into JavaScript is this small
              * reference; pass it to the next operation to keep building. It cannot be inspected or edited
              * directly - use the shapes and query APIs for that - and it stays valid until the kernel's cache
@@ -7465,7 +8032,7 @@ declare namespace Bit {
              * A compound: an arbitrary grouping of shapes of any kind, moved and exported as one while
              * remaining separate inside.
              *
-             * A handle to a shape living inside the OpenCascade kernel, not the geometry itself. The kernel
+             * A handle to a shape living inside the Bitbybit OCCT Kernel, not the geometry itself. The kernel
              * runs as WebAssembly with its own memory, so what crosses back into JavaScript is this small
              * reference; pass it to the next operation to keep building. It cannot be inspected or edited
              * directly - use the shapes and query APIs for that - and it stays valid until the kernel's cache
@@ -7837,6 +8404,21 @@ declare namespace Bit {
                 report = "report"
             }
             /**
+             * What cutting with several frames keeps: `behindAll` what lies behind every plane, such as the
+             * inside of a box of six frames; `behindAny` what lies behind any of them, so only what lies in
+             * front of every plane is taken away, such as a corner cut away by two frames.
+             */
+            enum sectionKeepEnum {
+                behindAll = "behindAll",
+                behindAny = "behindAny"
+            }
+            /**
+             * Which faces carry which color: the face indexes of each color, keyed by `#rrggbbaa`.
+             */
+            interface FaceColorGroups {
+                [color: string]: number[];
+            }
+            /**
              * The triangle mesh of a shape as `shapeToMesh` returns it: one entry per face with its triangles,
              * one per edge with its points, and the vertex points, ready for drawing.
              */
@@ -7859,9 +8441,7 @@ declare namespace Bit {
                  * assembly document.
                  * @optional true
                  */
-                colorGroups?: {
-                    [color: string]: number[];
-                } | undefined;
+                colorGroups?: FaceColorGroups | undefined;
                 /**
                  * The faces' iso curves as polylines, face by face with u curves before v curves; a curve crossing
                  * a hole comes in pieces. Present only when asked for.
@@ -8020,6 +8600,115 @@ declare namespace Bit {
                  * @optional true
                  */
                 edgeUid?: number | undefined;
+            }
+            /**
+             * One face of a `DecomposedMeshBuffersDto`: the numbers of a `DecomposedFaceDto` in single-precision
+             * typed arrays, each a view into a buffer the whole mesh shares, so it crosses threads uncopied.
+             */
+            class DecomposedFaceBuffersDto {
+                /**
+                 * The position of the face in the shape, counting from 0 in the order `shapes.face.getFaces`
+                 * uses.
+                 */
+                faceIndex: number;
+                /**
+                 * The vertex positions, x, y and z one vertex after another.
+                 */
+                vertexCoord: Float32Array;
+                /**
+                 * The vertex normals, x, y and z one vertex after another.
+                 */
+                normalCoord: Float32Array;
+                /**
+                 * The triangles as vertex indexes into this face's vertices, three per triangle.
+                 */
+                triIndexes: Uint32Array;
+                /**
+                 * How many triangles the face was cut into.
+                 */
+                numberOfTriangles: number;
+                /**
+                 * The texture coordinates, u and v one vertex after another; empty when the face has none.
+                 */
+                uvs: Float32Array;
+                /**
+                 * A point in the middle of the face's parameter range, on the surface, or null for a face with
+                 * no surface to place it on.
+                 */
+                centerPoint: Base.Point3 | null;
+                /**
+                 * The surface normal at `centerPoint`, or null where `centerPoint` is.
+                 */
+                centerNormal: Base.Vector3 | null;
+                /**
+                 * The surface area of the face in square model units; present only with `computeMetadata`.
+                 * @optional true
+                 */
+                area?: number | undefined;
+                /**
+                 * The center of mass of the face; present only with `computeMetadata`.
+                 * @optional true
+                 */
+                centerOfMass?: Base.Point3 | undefined;
+                /**
+                 * The kind of surface the face lies on, such as `Plane`, `Cylinder` or `BSplineSurface`;
+                 * present only with `computeMetadata`.
+                 * @optional true
+                 */
+                surfaceType?: string | undefined;
+                /**
+                 * The geometric tolerance of the face in model units; present only with `computeMetadata`.
+                 * @optional true
+                 */
+                tolerance?: number | undefined;
+                /**
+                 * The indexes of the faces that share an edge with this one; present only with
+                 * `computeMetadata`.
+                 * @optional true
+                 */
+                adjacentFaces?: number[] | undefined;
+                /**
+                 * The face's stable id in the shape's graph, or -1 when unavailable; present only with
+                 * `computeMetadata`.
+                 * @optional true
+                 */
+                faceUid?: number | undefined;
+                /**
+                 * The surface analysis value at each vertex in `vertexCoord` order, NaN where undefined;
+                 * present only with `surfaceAnalysis`.
+                 * @optional true
+                 */
+                analysisValues?: Float32Array | undefined;
+            }
+            /**
+             * The triangulated mesh of a shape the way the drawing code takes it: the faces' numbers in typed
+             * arrays that share their buffers, and the edges and vertices as a `DecomposedMeshDto` holds them.
+             */
+            class DecomposedMeshBuffersDto {
+                /**
+                 * One entry per face with its triangulation.
+                 */
+                faceList: DecomposedFaceBuffersDto[];
+                /**
+                 * One entry per edge with the points that trace it.
+                 */
+                edgeList: DecomposedEdgeDto[];
+                /**
+                 * The points of the shape's standalone vertices.
+                 */
+                pointsList: Base.Point3[];
+                /**
+                 * Which faces carry which color, keyed by `#rrggbbaa`; present only for meshes made from an
+                 * assembly document.
+                 * @optional true
+                 */
+                colorGroups?: FaceColorGroups | undefined;
+                /**
+                 * The faces' iso curves as polylines, face by face with u curves before v curves. Present only
+                 * when asked for.
+                 * @optional true
+                 */
+                isoCurveList?: Base.Point3[][] | undefined;
             }
             /**
              * A list of shapes for the methods that take several at once, such as `shapes.face.getFacesAreas`
@@ -8229,6 +8918,7 @@ declare namespace Bit {
                  * The radius of the circles to draw, in model units.
                  * @default 0.3
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
@@ -8262,6 +8952,7 @@ declare namespace Bit {
                  * The radius of the circles to draw, in model units.
                  * @default 0.3
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
@@ -10551,8 +11242,8 @@ declare namespace Bit {
                 sense?: boolean | undefined;
             }
             /**
-             * A circle edge, a point on it and an angle for `shapes.edge.arcFromCirclePointAndAngle`, which
-             * cuts an arc of that angle from the point.
+             * A circle edge, a point on it and an angle on it for `shapes.edge.arcFromCirclePointAndAngle`,
+             * which cuts the arc from the point to that angle.
              */
             class ArcEdgeCirclePointAngleDto<T> {
                 constructor(circle?: T, alphaAngle?: number, sense?: boolean);
@@ -10567,7 +11258,8 @@ declare namespace Bit {
                  */
                 point: Base.Point3;
                 /**
-                 * How far the arc spans from the point, in degrees.
+                 * Where the arc ends, in degrees on the circle, measured from the circle's own start rather
+                 * than from `point`; an angle that lands on `point` is refused.
                  * @default 90
                  * @minimum -Infinity
                  * @maximum Infinity
@@ -12242,9 +12934,10 @@ declare namespace Bit {
             class CircleDto {
                 constructor(radius?: number, center?: Base.Point3, direction?: Base.Vector3);
                 /**
-                 * The distance from the center to the circle, in model units.
+                 * The distance from the center to the circle, in model units, above 0.
                  * @default 1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
@@ -12421,8 +13114,12 @@ declare namespace Bit {
                  */
                 useSmoothing?: boolean | undefined;
                 /**
-                 * The highest polynomial degree the surface may use across the sections.
+                 * The highest polynomial degree the surface may use across the sections, a whole number up to
+                 * 25; 0 leaves the kernel's own limit.
                  * @default 3
+                 * @minimum 0
+                 * @maximum 25
+                 * @step 1
                  */
                 maxUDegree?: number | undefined;
                 /**
@@ -12603,78 +13300,69 @@ declare namespace Bit {
                 face: U;
             }
             /**
+             * How a round tube is swept along a path, shared by `PipeWireCylindricalDto` and
+             * `PipeWiresCylindricalDto`: its radius, whether it is solid, how its profile turns, smoothing, and the
+             * bend at each corner.
+             */
+            abstract class PipeWireCylindricalSharedDto {
+                /**
+                 * The radius of each tube, in model units.
+                 * @default 0.1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                radius?: number | undefined;
+                /**
+                 * When true, each tube is a solid; when false it is an open shell.
+                 * @default true
+                 */
+                makeSolid?: boolean | undefined;
+                /**
+                 * How the profile turns as it follows the path; `isConstantNormal` keeps it steady, the Frenet
+                 * modes follow the curve's bending.
+                 * @default isConstantNormal
+                 */
+                trihedronEnum?: geomFillTrihedronEnum | undefined;
+                /**
+                 * When true, a swept surface that came out with kinks is refitted to be smooth.
+                 * @default false
+                 */
+                forceApproxC1?: boolean | undefined;
+                /**
+                 * The radius every corner of the path is bent round first, so a polyline gives an exact tube; 0
+                 * leaves corners sharp. Each bend must fit its edges.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.5
+                 */
+                bendRadius?: number | undefined;
+            }
+            /**
              * Path wires, a radius and sweep options for `operations.pipeWiresCylindrical`, which makes a round
              * tube along each wire.
              */
-            class PipeWiresCylindricalDto<T> {
-                constructor(shapes?: T[], radius?: number, makeSolid?: boolean, trihedronEnum?: geomFillTrihedronEnum, forceApproxC1?: boolean);
+            class PipeWiresCylindricalDto<T> extends PipeWireCylindricalSharedDto {
+                constructor(shapes?: T[], radius?: number, makeSolid?: boolean, trihedronEnum?: geomFillTrihedronEnum, forceApproxC1?: boolean, bendRadius?: number);
                 /**
                  * The path wires, one tube per wire.
                  * @default undefined
                  */
                 shapes: T[];
-                /**
-                 * The radius of the tubes, in model units.
-                 * @default 0.1
-                 * @minimum 0
-                 * @exclusiveMinimum true
-                 * @maximum Infinity
-                 * @step 1
-                 */
-                radius?: number | undefined;
-                /**
-                 * When true, the tubes are solids; when false they are open shells.
-                 * @default true
-                 */
-                makeSolid?: boolean | undefined;
-                /**
-                 * How the profile turns as it follows the path; `isConstantNormal` keeps it steady, the Frenet
-                 * modes follow the curve's bending.
-                 * @default isConstantNormal
-                 */
-                trihedronEnum?: geomFillTrihedronEnum | undefined;
-                /**
-                 * When true, a swept surface that came out with kinks is refitted to be smooth.
-                 * @default false
-                 */
-                forceApproxC1?: boolean | undefined;
             }
             /**
              * A path wire, a radius and sweep options for `operations.pipeWireCylindrical`, which makes a round
              * tube along the wire.
              */
-            class PipeWireCylindricalDto<T> {
-                constructor(shape?: T, radius?: number, makeSolid?: boolean, trihedronEnum?: geomFillTrihedronEnum, forceApproxC1?: boolean);
+            class PipeWireCylindricalDto<T> extends PipeWireCylindricalSharedDto {
+                constructor(shape?: T, radius?: number, makeSolid?: boolean, trihedronEnum?: geomFillTrihedronEnum, forceApproxC1?: boolean, bendRadius?: number);
                 /**
                  * The path wire the tube follows.
                  * @default undefined
                  */
                 shape: T;
-                /**
-                 * The radius of the tube, in model units.
-                 * @default 0.1
-                 * @minimum 0
-                 * @exclusiveMinimum true
-                 * @maximum Infinity
-                 * @step 1
-                 */
-                radius?: number | undefined;
-                /**
-                 * When true, the tube is a solid; when false it is an open shell.
-                 * @default true
-                 */
-                makeSolid?: boolean | undefined;
-                /**
-                 * How the profile turns as it follows the path; `isConstantNormal` keeps it steady, the Frenet
-                 * modes follow the curve's bending.
-                 * @default isConstantNormal
-                 */
-                trihedronEnum?: geomFillTrihedronEnum | undefined;
-                /**
-                 * When true, a swept surface that came out with kinks is refitted to be smooth.
-                 * @default false
-                 */
-                forceApproxC1?: boolean | undefined;
             }
             /**
              * A path wire, a polygon size and sweep options for `operations.pipePolylineWireNGon`, which makes
@@ -12697,10 +13385,10 @@ declare namespace Bit {
                  */
                 radius?: number | undefined;
                 /**
-                 * How many corners, and so flat sides, the tube has.
+                 * How many corners, and so flat sides, the tube has, from 3 to 1000.
                  * @default 6
                  * @minimum 3
-                 * @maximum Infinity
+                 * @maximum 1000
                  * @step 1
                  */
                 nrCorners?: number | undefined;
@@ -13088,9 +13776,10 @@ declare namespace Bit {
                  */
                 shape: T;
                 /**
-                 * How far the profile is extruded along Y, in model units.
+                 * How far the profile is extruded along Y, in model units; 0 leaves nothing to twist along.
                  * @default 1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
@@ -14888,7 +15577,7 @@ declare namespace Bit {
              * file.
              */
             class SaveStepDto<T> {
-                constructor(shape?: T, fileName?: string, adjustYtoZ?: boolean, tryDownload?: boolean);
+                constructor(shape?: T, fileName?: string, adjustYtoZ?: boolean, tryDownload?: boolean, unit?: Base.unitOfLengthEnum);
                 /**
                  * The shape written to the file.
                  * @default undefined
@@ -14917,6 +15606,12 @@ declare namespace Bit {
                  * @default true
                  */
                 tryDownload?: boolean | undefined;
+                /**
+                 * The unit the shape's numbers are in. The file is written in millimetres, the shape scaled
+                 * from this unit, so any CAD tool opens it at its true size.
+                 * @default millimetre
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
             }
             /**
              * A shape, a file name and meshing options for `io.saveShapeStl`, which triangulates the shape and
@@ -15039,7 +15734,7 @@ declare namespace Bit {
              * Layered DXF parts and file options for `io.dxfCreate`, which writes them into one DXF file.
              */
             class DxfPathsPartsListDto {
-                constructor(pathsParts?: IO.DxfPathsPartDto[], colorFormat?: dxfColorFormatEnum, acadVersion?: dxfAcadVersionEnum, tryDownload?: boolean);
+                constructor(pathsParts?: IO.DxfPathsPartDto[], colorFormat?: dxfColorFormatEnum, acadVersion?: dxfAcadVersionEnum, tryDownload?: boolean, unit?: Base.unitOfLengthEnum);
                 /**
                  * The parts from `io.dxfPathsWithLayer`, each with its own layer and color.
                  * @default undefined
@@ -15055,6 +15750,13 @@ declare namespace Bit {
                  * @default AC1009
                  */
                 acadVersion?: dxfAcadVersionEnum | undefined;
+                /**
+                 * The unit the drawing is in, written into its header so CAD programs open it at true size;
+                 * `AC1015` only. Left out, no unit is stated.
+                 * @default undefined
+                 * @optional true
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
                 /**
                  * The name the downloaded file gets.
                  * @default bitbybit-dev.dxf
@@ -15072,7 +15774,7 @@ declare namespace Bit {
              * a shape.
              */
             class ImportStepIgesFromTextDto {
-                constructor(text?: string, fileType?: fileTypeEnum, adjustZtoY?: boolean);
+                constructor(text?: string, fileType?: fileTypeEnum, adjustZtoY?: boolean, unit?: Base.unitOfLengthEnum);
                 /**
                  * The full text of the STEP or IGES file.
                  * @default undefined
@@ -15088,12 +15790,17 @@ declare namespace Bit {
                  * @default true
                  */
                 adjustZtoY?: boolean | undefined;
+                /**
+                 * The unit the shape comes back in, scaled from whatever unit the file is written in.
+                 * @default millimetre
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
             }
             /**
              * A STEP or IGES file for the core `occt.io.loadSTEPorIGES`, which reads it into a shape.
              */
             class ImportStepIgesDto {
-                constructor(assetFile?: File, adjustZtoY?: boolean);
+                constructor(assetFile?: File, adjustZtoY?: boolean, unit?: Base.unitOfLengthEnum);
                 /**
                  * The file to read; its extension decides whether it is STEP or IGES.
                  * @default undefined
@@ -15104,13 +15811,18 @@ declare namespace Bit {
                  * @default true
                  */
                 adjustZtoY?: boolean | undefined;
+                /**
+                 * The unit the shape comes back in, scaled from whatever unit the file is written in.
+                 * @default millimetre
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
             }
             /**
              * File content, a file name and an axis option for `io.loadSTEPorIGES`, which reads STEP or IGES
              * into a shape.
              */
             class LoadStepOrIgesDto {
-                constructor(filetext?: string | ArrayBuffer, fileName?: string, adjustZtoY?: boolean);
+                constructor(filetext?: string | ArrayBuffer, fileName?: string, adjustZtoY?: boolean, unit?: Base.unitOfLengthEnum);
                 /**
                  * The file's text for `.step`, `.stp`, `.iges` and `.igs`, or an ArrayBuffer for the compressed
                  * `.stpz` and `.igz` forms.
@@ -15128,6 +15840,29 @@ declare namespace Bit {
                  * @default true
                  */
                 adjustZtoY?: boolean | undefined;
+                /**
+                 * The unit the shape comes back in, scaled from whatever unit the file is written in.
+                 * `io.fileLengthUnit` tells which that is.
+                 * @default millimetre
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+            }
+            /**
+             * A STEP or IGES file for `io.fileLengthUnit`, which reads the unit its lengths are written in.
+             */
+            class FileLengthUnitDto {
+                constructor(filetext?: string | ArrayBuffer, fileName?: string);
+                /**
+                 * The file's text, or an ArrayBuffer of its bytes, the compressed `.stpz` and `.igz` forms
+                 * included.
+                 * @default undefined
+                 */
+                filetext: string | ArrayBuffer;
+                /**
+                 * The file name; its extension decides whether it is read as STEP or IGES.
+                 * @default shape.step
+                 */
+                fileName?: string | undefined;
             }
             /**
              * A STEP file for `io.parseStepToJson`, which reads its assembly structure without building
@@ -15966,6 +16701,13 @@ declare namespace Bit {
                  */
                 up?: upAxisEnum | undefined;
                 /**
+                 * The unit the document is modelled in. Given, the file is in metres, glTF's unit, through one
+                 * scaled root node; left out, the numbers are written as they are.
+                 * @default undefined
+                 * @optional true
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+                /**
                  * The name the downloaded file gets; it should end in `.glb`.
                  * @default assembly.glb
                  */
@@ -16226,8 +16968,26 @@ declare namespace Bit {
                 inside?: boolean | undefined;
             }
             /**
-             * Faces and a tolerance for `shapes.shell.sewFaces`, which stitches faces that share edges into one
-             * shell.
+             * Wires and a guiding face for `shapes.face.createFaceBoundedByWiresOnFace`, which makes the one face
+             * of the guiding surface the wires bound.
+             */
+            class FaceBoundedByWiresOnFaceDto<T, U> {
+                constructor(wires?: T[], face?: U);
+                /**
+                 * The wires on the guiding surface, in any order and either way round: the outer boundary and the
+                 * holes, or two loops that go round a closed surface.
+                 * @default undefined
+                 */
+                wires: T[];
+                /**
+                 * The face whose surface the new face is cut from.
+                 * @default undefined
+                 */
+                face: U;
+            }
+            /**
+             * Faces and a tolerance for `shapes.shell.sewFaces` and its twin with history, and for
+             * `shapes.solid.fromFaces`, which stitch faces that share edges into one shell or solid.
              */
             class SewDto<T> {
                 constructor(shapes?: T[], tolerance?: number);
@@ -16262,17 +17022,19 @@ declare namespace Bit {
                  */
                 direction?: Base.Vector2 | undefined;
                 /**
-                 * The half-width across the ellipse's short axis; must not exceed `radiusMajor`.
+                 * The half-width across the ellipse's short axis, above 0; must not exceed `radiusMajor`.
                  * @default 1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
                 radiusMinor?: number | undefined;
                 /**
-                 * The half-width along the ellipse's long axis.
+                 * The half-width along the ellipse's long axis, above 0.
                  * @default 2
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
@@ -16299,9 +17061,10 @@ declare namespace Bit {
                  */
                 direction?: Base.Vector2 | undefined;
                 /**
-                 * The distance from the center to the curve.
+                 * The distance from the center to the curve, above 0.
                  * @default 1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
@@ -16581,18 +17344,20 @@ declare namespace Bit {
                  */
                 direction?: Base.Vector3 | undefined;
                 /**
-                 * The half-width across the ellipse's short axis, in model units; must not exceed
-                 * `radiusMajor`.
+                 * The half-width across the ellipse's short axis, in model units, above 0; must not
+                 * exceed `radiusMajor`.
                  * @default 1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
                 radiusMinor?: number | undefined;
                 /**
-                 * The half-width along the ellipse's long axis, in model units.
+                 * The half-width along the ellipse's long axis, in model units, above 0.
                  * @default 2
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
@@ -16605,25 +17370,28 @@ declare namespace Bit {
             class HelixWireDto {
                 constructor(radius?: number, pitch?: number, height?: number, center?: Base.Point3, direction?: Base.Vector3, clockwise?: boolean, tolerance?: number);
                 /**
-                 * The distance from the axis to the coil, in model units.
+                 * The distance from the axis to the coil, in model units, above 0.
                  * @default 1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
                 radius?: number | undefined;
                 /**
-                 * How far the coil climbs along the axis in one full turn, in model units.
+                 * How far the coil climbs along the axis in one full turn, in model units, above 0.
                  * @default 1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
                 pitch?: number | undefined;
                 /**
-                 * The total climb of the coil along the axis, in model units.
+                 * The total climb of the coil along the axis, in model units, above 0.
                  * @default 5
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
@@ -16659,25 +17427,28 @@ declare namespace Bit {
             class HelixWireByTurnsDto {
                 constructor(radius?: number, pitch?: number, numTurns?: number, center?: Base.Point3, direction?: Base.Vector3, clockwise?: boolean, tolerance?: number);
                 /**
-                 * The distance from the axis to the coil, in model units.
+                 * The distance from the axis to the coil, in model units, above 0.
                  * @default 1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
                 radius?: number | undefined;
                 /**
-                 * How far the coil climbs along the axis in one full turn, in model units.
+                 * How far the coil climbs along the axis in one full turn, in model units, above 0.
                  * @default 1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
                 pitch?: number | undefined;
                 /**
-                 * How many full turns the coil makes; fractions are allowed.
+                 * How many full turns the coil makes, above 0; fractions are allowed.
                  * @default 5
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.5
                  */
@@ -16713,33 +17484,37 @@ declare namespace Bit {
             class TaperedHelixWireDto {
                 constructor(startRadius?: number, endRadius?: number, pitch?: number, height?: number, center?: Base.Point3, direction?: Base.Vector3, clockwise?: boolean, tolerance?: number);
                 /**
-                 * The distance from the axis to the coil at its base, in model units.
+                 * The distance from the axis to the coil at its base, in model units, above 0.
                  * @default 2
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
                 startRadius?: number | undefined;
                 /**
-                 * The distance from the axis to the coil at its top, in model units.
+                 * The distance from the axis to the coil at its top, in model units, above 0.
                  * @default 0.5
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
                 endRadius?: number | undefined;
                 /**
-                 * How far the coil climbs along the axis in one full turn, in model units.
+                 * How far the coil climbs along the axis in one full turn, in model units, above 0.
                  * @default 1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
                 pitch?: number | undefined;
                 /**
-                 * The total climb of the coil along the axis, in model units.
+                 * The total climb of the coil along the axis, in model units, above 0.
                  * @default 5
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
@@ -16783,17 +17558,20 @@ declare namespace Bit {
                  */
                 startRadius?: number | undefined;
                 /**
-                 * The distance from the center where the spiral ends, in model units.
+                 * The distance from the center where the spiral ends, in model units, above 0.
                  * @default 5
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
                 endRadius?: number | undefined;
                 /**
-                 * How many full turns the spiral makes between the two radii; fractions are allowed.
+                 * How many full turns the spiral makes between the two radii, above 0; fractions are
+                 * allowed.
                  * @default 5
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.5
                  */
@@ -16900,9 +17678,10 @@ declare namespace Bit {
             class GeomCylindricalSurfaceDto {
                 constructor(radius?: number, center?: Base.Point3, direction?: Base.Vector3);
                 /**
-                 * The distance from the axis to the surface, in model units.
+                 * The distance from the axis to the surface, in model units, above 0.
                  * @default 1
                  * @minimum 0
+                 * @exclusiveMinimum true
                  * @maximum Infinity
                  * @step 0.1
                  */
@@ -19728,7 +20507,7 @@ declare namespace Bit {
              * overlap or come within the clearance of each other.
              */
             class ClashesBetweenShapesDto<T> {
-                constructor(shapes?: T[], clearance?: number);
+                constructor(shapes?: T[], clearance?: number, prefilter?: boolean);
                 /**
                  * The shapes to check against each other; a clash names two of them by their positions here.
                  * @default undefined
@@ -19743,6 +20522,12 @@ declare namespace Bit {
                  * @step 0.1
                  */
                 clearance?: number | undefined;
+                /**
+                 * Whether pairs whose boxes or meshes stay clear by more than the clearance are ruled out before
+                 * the rest are measured exactly, with the same clashes; false measures every pair.
+                 * @default true
+                 */
+                prefilter?: boolean | undefined;
             }
             /**
              * Two shapes, a clearance and a meshing precision for `analysis.clashes.facesWithin`, which finds
@@ -19877,6 +20662,60 @@ declare namespace Bit {
                  * @default undefined
                  */
                 frame: Base.Frame;
+            }
+            /**
+             * Shapes, frames and drawing options for `operations.sectionByFrames`, which gives the faces or wires
+             * where each frame's plane passes through each shape.
+             */
+            class SectionByFramesDto<T> {
+                constructor(shapes?: T[], frames?: Base.Frame[], makeFaces?: boolean, tolerance?: number);
+                /**
+                 * The shapes to section; each gives its own list of sections.
+                 * @default undefined
+                 */
+                shapes: T[];
+                /**
+                 * The planes to section along, each through its frame's origin square to its normal.
+                 * @default undefined
+                 */
+                frames: Base.Frame[];
+                /**
+                 * Whether to give the faces inside the solids, holes included, or only the section wires.
+                 * @default true
+                 */
+                makeFaces?: boolean | undefined;
+                /**
+                 * How close the ends of two section edges must lie to be joined into one wire, in model units.
+                 * @default 1e-7
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.00001
+                 */
+                tolerance?: number | undefined;
+            }
+            /**
+             * Shapes, frames and what to keep for `operations.cutByFrames`, which cuts each shape with the
+             * frames' planes and keeps what lies behind them.
+             */
+            class CutByFramesDto<T> {
+                constructor(shapes?: T[], frames?: Base.Frame[], keep?: sectionKeepEnum);
+                /**
+                 * The shapes to cut; each gives its own result.
+                 * @default undefined
+                 */
+                shapes: T[];
+                /**
+                 * The planes to cut along, each through its frame's origin; what lies on the side a normal
+                 * points to is in front of that plane.
+                 * @default undefined
+                 */
+                frames: Base.Frame[];
+                /**
+                 * Whether to keep what lies behind every plane, such as the inside of a box of six frames, or
+                 * behind any, cutting away only what lies in front of all.
+                 * @default behindAll
+                 */
+                keep?: sectionKeepEnum | undefined;
             }
             /**
              * A face and the edges or wires that cut it for `operations.splitFaceByWires`, which returns the
@@ -20577,7 +21416,7 @@ declare namespace Bit {
              * SVG drawing, and the edges other faces cover dashed when asked.
              */
             class SaveSvgDto<T> {
-                constructor(shape?: T, frame?: Base.Frame, drawHidden?: boolean, precision?: number, fileName?: string, tryDownload?: boolean);
+                constructor(shape?: T, frame?: Base.Frame, drawHidden?: boolean, precision?: number, fileName?: string, tryDownload?: boolean, unit?: Base.unitOfLengthEnum);
                 /**
                  * The shape to draw.
                  * @default undefined
@@ -20604,6 +21443,13 @@ declare namespace Bit {
                  * @step 0.001
                  */
                 precision?: number | undefined;
+                /**
+                 * The unit the shape is modelled in. Given, the drawing states its true width and height; left
+                 * out, it has only a view box.
+                 * @default undefined
+                 * @optional true
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
                 /**
                  * The name the downloaded file gets.
                  * @default shape.svg
@@ -20945,6 +21791,75 @@ declare namespace Bit {
                 clearance?: number | undefined;
             }
             /**
+             * A STEP file, its name, the seed of the ids and the folder of the shapes file, for
+             * `design.fromStep`, which turns the file into design documents.
+             */
+            class DesignFromStepDto {
+                constructor(step?: string | Uint8Array | ArrayBuffer, name?: string, seed?: string, folder?: string, unit?: Base.unitOfLengthEnum);
+                /**
+                 * The STEP file, as text or bytes.
+                 * @default undefined
+                 */
+                step: string | Uint8Array | ArrayBuffer;
+                /**
+                 * The file's name, which names the shapes file, a lone part or assembly the file leaves unnamed,
+                 * and the assembly that places shapes the file holds side by side.
+                 * @default model.step
+                 */
+                name?: string | undefined;
+                /**
+                 * Text mixed into the documents' ids: the same file and seed give the same ids, so a second
+                 * import replaces the first; another seed makes a copy.
+                 * @default
+                 */
+                seed?: string | undefined;
+                /**
+                 * The folder of the shapes file's `uri`, relative to the documents, such as `assets`; empty
+                 * keeps the file beside them.
+                 * @default
+                 */
+                folder?: string | undefined;
+                /**
+                 * The unit the documents are in: the shapes and the placements are scaled from the file's own
+                 * unit into it.
+                 * @default millimetre
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+            }
+            /**
+             * A design build and the frame whose plane cuts it, for `design.section`, which gives the faces where
+             * the plane passes through the parts and, when asked, what is left of the parts behind it.
+             */
+            class DesignSectionDto<T> {
+                constructor(build?: Models.OCCT.DesignSectionSource<T>, frame?: Base.Frame, cut?: boolean, tolerance?: number);
+                /**
+                 * The build to cut, as `design.build` returns it: its `parts` and, for an assembly, the
+                 * `components` that place them.
+                 * @default undefined
+                 */
+                build: Models.OCCT.DesignSectionSource<T>;
+                /**
+                 * The plane to cut along, through the frame's origin: what lies on the side its normal points to
+                 * is taken away.
+                 * @default undefined
+                 */
+                frame: Base.Frame;
+                /**
+                 * Whether to give, besides the caps, the pieces of the parts the plane cuts and the parts that
+                 * lie wholly behind it, for a view of the cut model.
+                 * @default false
+                 */
+                cut?: boolean | undefined;
+                /**
+                 * How close the ends of two section edges must lie to be joined, in model units.
+                 * @default 1e-7
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.00001
+                 */
+                tolerance?: number | undefined;
+            }
+            /**
              * A recipe for `recipes.build`, with whether Z turns into Y, whether a root that cannot be built
              * stops the build, and how large a triangle mesh is built. Experimental: the recipe format may still
              * change.
@@ -21033,6 +21948,1793 @@ declare namespace Bit {
                  */
                 maxTriangles?: number | undefined;
             }
+            /**
+             * A shape for `recipes.describe`, and how many millimetres one unit of its coordinates is.
+             * Experimental: the recipe format may still change.
+             * @beta
+             */
+            class DescribeRecipeDto<T> {
+                constructor(shape?: T, millimetresPerUnit?: number, ifcSurfaces?: boolean);
+                /**
+                 * The shape to describe: a solid, several, a shell, faces or a compound of them.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * How many millimetres one unit of the shape's coordinates is, recorded in the recipe for
+                 * whoever reads it.
+                 * @default 1
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                millimetresPerUnit?: number | undefined;
+                /**
+                 * Writes cones and swept surfaces as B-splines, so the recipe holds only the surfaces an IFC4
+                 * advanced face takes: planes, cylinders, spheres, tori and B-splines.
+                 * @default false
+                 */
+                ifcSurfaces?: boolean | undefined;
+            }
+            /**
+             * The teeth of an involute spur gear, shared by `parts.mechanical.gears.spurGearProfile` and
+             * `parts.mechanical.gears.spurGear`: their size, their shape, how loosely they fit and where the gear lies.
+             */
+            abstract class SpurGearSharedDto {
+                /**
+                 * The size of the teeth: the pitch circle's diameter divided by the number of teeth, in model
+                 * units. Gears mesh only with gears of the same module.
+                 * @default 0.2
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                module?: number | undefined;
+                /**
+                 * How many teeth the gear has, at least 3.
+                 * @default 20
+                 * @minimum 3
+                 * @maximum 1000
+                 * @step 1
+                 */
+                teeth?: number | undefined;
+                /**
+                 * The angle at which meshing teeth push on each other, in degrees; 20 is the common standard, and
+                 * meshing gears share it.
+                 * @default 20
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum 45
+                 * @exclusiveMaximum true
+                 * @step 0.5
+                 */
+                pressureAngle?: number | undefined;
+                /**
+                 * How far the teeth are moved out from the pitch circle, as a share of the module. Positive values
+                 * give thicker teeth that small gears need, negative values thinner ones.
+                 * @default 0
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                profileShift?: number | undefined;
+                /**
+                 * How much thinner each tooth is at the pitch circle than a tight fit, in model units; two meshing
+                 * gears leave the sum of their backlash between their teeth.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.01
+                 */
+                backlash?: number | undefined;
+                /**
+                 * How far the teeth reach above the pitch circle, as a share of the module.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                addendum?: number | undefined;
+                /**
+                 * How deep the gaps reach below the pitch circle, as a share of the module; more than `addendum`
+                 * leaves room for the tips of the mating gear.
+                 * @default 1.25
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                dedendum?: number | undefined;
+                /**
+                 * The radius that rounds the bottom of each gap, as a share of the module. It shrinks to fit a
+                 * narrow gap, and 0 leaves a sharp corner.
+                 * @default 0.38
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.01
+                 */
+                rootFillet?: number | undefined;
+                /**
+                 * How far the gear is turned about its centre, in degrees. At 0 a tooth points along the frame's
+                 * direction.
+                 * @default 0
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                rotation?: number | undefined;
+                /**
+                 * The frame the gear lies in: its centre at the origin, a tooth along the direction, its face
+                 * toward the normal. Left out, the ground, facing +Y.
+                 * @default undefined
+                 * @optional true
+                 */
+                frame?: Base.Frame | undefined;
+            }
+            /**
+             * The teeth and the frame of a spur gear for `parts.mechanical.gears.spurGearProfile`, which draws the gear's
+             * outline, with whether the outline becomes a face.
+             */
+            class SpurGearProfileDto extends SpurGearSharedDto {
+                constructor(makeFace?: boolean, module?: number, teeth?: number, pressureAngle?: number, profileShift?: number, backlash?: number, addendum?: number, dedendum?: number, rootFillet?: number, rotation?: number, frame?: Base.Frame);
+                /**
+                 * When true, the outline becomes a face whose normal is the frame's normal; when false it stays a
+                 * closed wire.
+                 * @default true
+                 */
+                makeFace?: boolean | undefined;
+            }
+            /**
+             * The teeth and the frame of a spur gear for `parts.mechanical.gears.spurGear` and its twin with face roles,
+             * with how thick the gear is and the hole through its middle.
+             */
+            class SpurGearDto extends SpurGearSharedDto {
+                constructor(width?: number, bore?: number, hub?: number, hubLength?: number, keyway?: boolean, module?: number, teeth?: number, pressureAngle?: number, profileShift?: number, backlash?: number, addendum?: number, dedendum?: number, rootFillet?: number, rotation?: number, frame?: Base.Frame, unit?: Base.unitOfLengthEnum, keyStandard?: Engineering.keyStandardEnum);
+                /**
+                 * How thick the gear is along the frame's normal, in model units.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                width?: number | undefined;
+                /**
+                 * The diameter of the hole through the middle of the gear, in model units; 0 leaves the gear
+                 * whole. It must stay inside the root circle.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                bore?: number | undefined;
+                /**
+                 * The diameter of a hub standing out from the gear's end face, in model units, between the
+                 * bore and the root circle; 0 leaves no hub.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                hub?: number | undefined;
+                /**
+                 * How far the hub stands out beyond the gear's end face along the normal, in model units.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                hubLength?: number | undefined;
+                /**
+                 * When true, a keyway is cut along the bore, sized by `keyStandard` for a shaft of the bore's
+                 * diameter in `unit`, toward the tooth at rotation 0.
+                 * @default false
+                 */
+                keyway?: boolean | undefined;
+                /**
+                 * The unit the gear's numbers are in, which sizes its keyway from the key standard's table; the
+                 * teeth themselves take any unit.
+                 * @default millimetre
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+                /**
+                 * The standard the keyway is sized by: DIN 6885 or the inch ANSI B17.1.
+                 * @default din
+                 */
+                keyStandard?: Engineering.keyStandardEnum | undefined;
+            }
+            /**
+             * The teeth of an involute rack, shared by `parts.mechanical.gears.rackProfile` and `parts.mechanical.gears.rack`: their
+             * size and shape, how loosely they fit, how deep the rack is and where it lies.
+             */
+            abstract class RackSharedDto {
+                /**
+                 * The module of the gears the rack meshes with, in model units.
+                 * @default 0.2
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                module?: number | undefined;
+                /**
+                 * How many teeth the rack has, at least 1.
+                 * @default 10
+                 * @minimum 1
+                 * @maximum 1000
+                 * @step 1
+                 */
+                teeth?: number | undefined;
+                /**
+                 * The angle of each flank from square to the pitch line, in degrees; it matches the gears'.
+                 * @default 20
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum 45
+                 * @exclusiveMaximum true
+                 * @step 0.5
+                 */
+                pressureAngle?: number | undefined;
+                /**
+                 * How much thinner each tooth is at the pitch line than a tight fit, in model units.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.01
+                 */
+                backlash?: number | undefined;
+                /**
+                 * How far the teeth reach above the pitch line, as a share of the module.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                addendum?: number | undefined;
+                /**
+                 * How deep the gaps reach below the pitch line, as a share of the module.
+                 * @default 1.25
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                dedendum?: number | undefined;
+                /**
+                 * The radius that rounds the bottom of each gap, as a share of the module; it shrinks to fit.
+                 * @default 0.38
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.01
+                 */
+                rootFillet?: number | undefined;
+                /**
+                 * How far the back of the rack lies below the pitch line, in model units, beyond the gaps.
+                 * @default 0.6
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                height?: number | undefined;
+                /**
+                 * The frame the rack lies in: the first tooth's middle at the origin, the rack along the
+                 * direction, its face toward the normal. Left out, the ground, facing +Y.
+                 * @default undefined
+                 * @optional true
+                 */
+                frame?: Base.Frame | undefined;
+            }
+            /**
+             * The teeth and the frame of a rack for `parts.mechanical.gears.rackProfile`, which draws its outline, with
+             * whether the outline becomes a face.
+             */
+            class RackProfileDto extends RackSharedDto {
+                constructor(makeFace?: boolean, module?: number, teeth?: number, pressureAngle?: number, backlash?: number, addendum?: number, dedendum?: number, rootFillet?: number, height?: number, frame?: Base.Frame);
+                /**
+                 * When true, the outline becomes a face whose normal is the frame's normal; when false it stays a
+                 * closed wire.
+                 * @default true
+                 */
+                makeFace?: boolean | undefined;
+            }
+            /**
+             * The teeth and the frame of a rack for `parts.mechanical.gears.rack` and its twin with face roles, with how
+             * thick the rack is.
+             */
+            class RackDto extends RackSharedDto {
+                constructor(width?: number, module?: number, teeth?: number, pressureAngle?: number, backlash?: number, addendum?: number, dedendum?: number, rootFillet?: number, height?: number, frame?: Base.Frame);
+                /**
+                 * How thick the rack is along the frame's normal, in model units.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                width?: number | undefined;
+            }
+            /**
+             * The teeth of an involute ring gear, cut on the inside of a ring, shared by
+             * `parts.mechanical.gears.ringGearProfile` and `parts.mechanical.gears.ringGear`: their size, their shape, how loosely they
+             * fit, how thick the ring is outside them and where the ring lies.
+             */
+            abstract class RingGearSharedDto {
+                /**
+                 * The size of the teeth: the pitch circle's diameter divided by the number of teeth, in model
+                 * units. A gear meshes inside the ring only with the same module.
+                 * @default 0.2
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                module?: number | undefined;
+                /**
+                 * How many teeth the ring has. Their tips must stay outside the base circle, which takes at least
+                 * 34 teeth at a pressure angle of 20 degrees.
+                 * @default 40
+                 * @minimum 3
+                 * @maximum 1000
+                 * @step 1
+                 */
+                teeth?: number | undefined;
+                /**
+                 * The angle at which meshing teeth push on each other, in degrees; 20 is the common standard, and
+                 * the ring shares it with the gears inside it.
+                 * @default 20
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum 45
+                 * @exclusiveMaximum true
+                 * @step 0.5
+                 */
+                pressureAngle?: number | undefined;
+                /**
+                 * How much thinner each tooth is at the pitch circle than a tight fit, in model units; the ring
+                 * and a gear inside it leave both backlashes between their teeth.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.01
+                 */
+                backlash?: number | undefined;
+                /**
+                 * How far the teeth reach in from the pitch circle toward the centre, as a share of the module.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                addendum?: number | undefined;
+                /**
+                 * How deep the gaps reach out beyond the pitch circle, as a share of the module; more than
+                 * `addendum` leaves room for the tips of the gear inside.
+                 * @default 1.25
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                dedendum?: number | undefined;
+                /**
+                 * The radius that rounds the bottom of each gap, as a share of the module. It shrinks to fit a
+                 * narrow gap, and 0 leaves a sharp corner.
+                 * @default 0.38
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.01
+                 */
+                rootFillet?: number | undefined;
+                /**
+                 * How thick the ring is outside the bottoms of its gaps, in model units.
+                 * @default 0.5
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                rim?: number | undefined;
+                /**
+                 * How far the ring is turned about its centre, in degrees. At 0 a tooth points along the frame's
+                 * direction.
+                 * @default 0
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                rotation?: number | undefined;
+                /**
+                 * The frame the ring lies in: its centre at the origin, a tooth along the direction, its face
+                 * toward the normal. Left out, the ground, facing +Y.
+                 * @default undefined
+                 * @optional true
+                 */
+                frame?: Base.Frame | undefined;
+            }
+            /**
+             * The teeth, the rim and the frame of a ring gear for `parts.mechanical.gears.ringGearProfile`, with whether the
+             * ring becomes a face.
+             */
+            class RingGearProfileDto extends RingGearSharedDto {
+                constructor(makeFace?: boolean, module?: number, teeth?: number, pressureAngle?: number, backlash?: number, addendum?: number, dedendum?: number, rootFillet?: number, rim?: number, rotation?: number, frame?: Base.Frame);
+                /**
+                 * When true, the ring between its outer circle and its teeth becomes a face facing the frame's
+                 * normal; when false only the teeth's outline stays, as a closed wire.
+                 * @default true
+                 */
+                makeFace?: boolean | undefined;
+            }
+            /**
+             * The teeth, the rim and the frame of a ring gear for `parts.mechanical.gears.ringGear` and its twin with face
+             * roles, with how thick the ring is.
+             */
+            class RingGearDto extends RingGearSharedDto {
+                constructor(width?: number, module?: number, teeth?: number, pressureAngle?: number, backlash?: number, addendum?: number, dedendum?: number, rootFillet?: number, rim?: number, rotation?: number, frame?: Base.Frame);
+                /**
+                 * How thick the ring is along the frame's normal, in model units.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                width?: number | undefined;
+            }
+            /**
+             * An involute helical gear for `parts.mechanical.gears.helicalGear` and its twin with face roles: its teeth and
+             * their lean, measured square to the teeth, how thick it is, its bore and hub, and where it lies.
+             */
+            class HelicalGearDto {
+                constructor(width?: number, bore?: number, hub?: number, hubLength?: number, keyway?: boolean, module?: number, teeth?: number, helixAngle?: number, herringbone?: boolean, pressureAngle?: number, profileShift?: number, backlash?: number, addendum?: number, dedendum?: number, rootFillet?: number, rotation?: number, frame?: Base.Frame, unit?: Base.unitOfLengthEnum, keyStandard?: Engineering.keyStandardEnum);
+                /**
+                 * The normal module: the tooth size measured square to the teeth, in model units, as the
+                 * cutter's module. Only gears of one module mesh.
+                 * @default 0.2
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                module?: number | undefined;
+                /**
+                 * How many teeth the gear has, at least 3.
+                 * @default 20
+                 * @minimum 3
+                 * @maximum 1000
+                 * @step 1
+                 */
+                teeth?: number | undefined;
+                /**
+                 * The teeth's lean from the axis in degrees: positive for a right hand, negative for a left.
+                 * Two external helical gears mesh at one angle in opposite hands.
+                 * @default 15
+                 * @minimum -45
+                 * @exclusiveMinimum true
+                 * @maximum 45
+                 * @exclusiveMaximum true
+                 * @step 1
+                 */
+                helixAngle?: number | undefined;
+                /**
+                 * When true, two halves of opposite hands meet halfway across the width, cancelling the push
+                 * along the axis; the half at the frame leans as `helixAngle` says.
+                 * @default false
+                 */
+                herringbone?: boolean | undefined;
+                /**
+                 * The angle at which meshing teeth push on each other, in degrees, measured square to the
+                 * teeth; 20 is the common standard, and meshing gears share it.
+                 * @default 20
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum 45
+                 * @exclusiveMaximum true
+                 * @step 0.5
+                 */
+                pressureAngle?: number | undefined;
+                /**
+                 * How far the teeth are moved out from the pitch circle, as a share of the module. Positive
+                 * values give thicker teeth that small gears need, negative values thinner ones.
+                 * @default 0
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                profileShift?: number | undefined;
+                /**
+                 * How much thinner each tooth is round the pitch circle than a tight fit, in model units; two
+                 * meshing gears leave the sum of their backlash between their teeth.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.01
+                 */
+                backlash?: number | undefined;
+                /**
+                 * How far the teeth reach above the pitch circle, as a share of the module.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                addendum?: number | undefined;
+                /**
+                 * How deep the gaps reach below the pitch circle, as a share of the module; more than
+                 * `addendum` leaves room for the tips of the mating gear.
+                 * @default 1.25
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                dedendum?: number | undefined;
+                /**
+                 * The radius that rounds the bottom of each gap, as a share of the module. It shrinks to
+                 * fit a narrow gap, and 0 leaves a sharp corner.
+                 * @default 0.38
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.01
+                 */
+                rootFillet?: number | undefined;
+                /**
+                 * How far the gear is turned about its axis, in degrees. At 0 a tooth points along the frame's
+                 * direction where the gear meets the frame.
+                 * @default 0
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                rotation?: number | undefined;
+                /**
+                 * The frame the gear lies in: its centre at the origin, a tooth along the direction, its face
+                 * toward the normal. Left out, the ground, facing +Y.
+                 * @default undefined
+                 * @optional true
+                 */
+                frame?: Base.Frame | undefined;
+                /**
+                 * How thick the gear is along the frame's normal, in model units. The teeth twist through at
+                 * most 1000 degrees across it, or across each half of a herringbone gear.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                width?: number | undefined;
+                /**
+                 * The diameter of the hole through the middle of the gear, in model units; 0 leaves the gear
+                 * whole. It must stay inside the root circle.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                bore?: number | undefined;
+                /**
+                 * The diameter of a hub standing out from the gear's end face, in model units, between the
+                 * bore and the root circle; 0 leaves no hub.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                hub?: number | undefined;
+                /**
+                 * How far the hub stands out beyond the gear's end face along the normal, in model units.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                hubLength?: number | undefined;
+                /**
+                 * When true, a keyway is cut along the bore, sized by `keyStandard` for a shaft of the bore's
+                 * diameter in `unit`, toward the tooth at rotation 0.
+                 * @default false
+                 */
+                keyway?: boolean | undefined;
+                /**
+                 * The unit the gear's numbers are in, which sizes its keyway from the key standard's table; the
+                 * teeth themselves take any unit.
+                 * @default millimetre
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+                /**
+                 * The standard the keyway is sized by: DIN 6885 or the inch ANSI B17.1.
+                 * @default din
+                 */
+                keyStandard?: Engineering.keyStandardEnum | undefined;
+            }
+            /**
+             * A straight bevel gear for `parts.mechanical.gears.bevelGear` and its twin with face roles: its teeth at the
+             * back, the gear it meshes with and the angle between them, how long the teeth are, its bore and where
+             * its apex lies.
+             */
+            class BevelGearDto {
+                constructor(faceWidth?: number, bore?: number, module?: number, teeth?: number, mateTeeth?: number, shaftAngle?: number, pressureAngle?: number, backlash?: number, addendum?: number, dedendum?: number, rootFillet?: number, rotation?: number, frame?: Base.Frame);
+                /**
+                 * The tooth size at the back, the gear's outer end: the outer pitch diameter divided by the
+                 * teeth, in model units. Only gears of one module mesh.
+                 * @default 0.2
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                module?: number | undefined;
+                /**
+                 * How many teeth the gear has, at least 3.
+                 * @default 20
+                 * @minimum 3
+                 * @maximum 1000
+                 * @step 1
+                 */
+                teeth?: number | undefined;
+                /**
+                 * How many teeth the gear it meshes with has. With `shaftAngle` it sets the cone the gear
+                 * rolls on.
+                 * @default 20
+                 * @minimum 3
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                mateTeeth?: number | undefined;
+                /**
+                 * The angle between the two gears' axes, in degrees; 90 turns a drive through a right angle.
+                 * @default 90
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum 180
+                 * @exclusiveMaximum true
+                 * @step 1
+                 */
+                shaftAngle?: number | undefined;
+                /**
+                 * The angle at which meshing teeth push on each other, in degrees; 20 is the common
+                 * standard, and meshing gears share it.
+                 * @default 20
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum 45
+                 * @exclusiveMaximum true
+                 * @step 0.5
+                 */
+                pressureAngle?: number | undefined;
+                /**
+                 * How much thinner each tooth is at the outer pitch circle than a tight fit, in model units.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.01
+                 */
+                backlash?: number | undefined;
+                /**
+                 * How far the teeth reach above the pitch cone at the back, as a share of the module.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                addendum?: number | undefined;
+                /**
+                 * How deep the gaps reach below the pitch cone at the back, as a share of the module.
+                 * @default 1.25
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                dedendum?: number | undefined;
+                /**
+                 * The radius that rounds the bottom of each gap at the back, as a share of the module; it
+                 * shrinks to fit a narrow gap.
+                 * @default 0.38
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.01
+                 */
+                rootFillet?: number | undefined;
+                /**
+                 * How long the teeth are along the cone, from the back toward the apex, in model units; at most a
+                 * third of the cone distance.
+                 * @default 0.8
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                faceWidth?: number | undefined;
+                /**
+                 * The diameter of the hole along the axis, in model units; 0 leaves the gear whole. It must stay
+                 * inside the roots at the front.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                bore?: number | undefined;
+                /**
+                 * How far the gear is turned about its axis, in degrees. At 0 a tooth points along the frame's
+                 * direction where the gear meets the frame.
+                 * @default 0
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                rotation?: number | undefined;
+                /**
+                 * The apex, where the axes meet, at the origin; the axis along the normal toward the back; a
+                 * tooth along the direction. Left out, the ground, facing +Y.
+                 * @default undefined
+                 * @optional true
+                 */
+                frame?: Base.Frame | undefined;
+            }
+            /**
+             * The size of an ISO metric fastener, the unit it is made in and where it sits, shared by the screws,
+             * nuts and washers of `parts.mechanical.fasteners.iso`.
+             */
+            abstract class IsoFastenerSharedDto {
+                /**
+                 * The thread size, such as M8.
+                 * @default m3
+                 */
+                size?: Engineering.isoThreadSizeEnum | undefined;
+                /**
+                 * The unit the fastener is made in and its lengths are read in; the size names a metric thread
+                 * whatever it is.
+                 * @default millimetre
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+                /**
+                 * Where it sits: the origin where it bears, as under a head, the normal along its axis away from
+                 * the part. Left out, the ground, facing +Y.
+                 * @default undefined
+                 * @optional true
+                 */
+                frame?: Base.Frame | undefined;
+            }
+            /**
+             * An ISO screw's thread size, its length under the head, the unit and where its head sits, for
+             * `parts.mechanical.fasteners.iso.socketHeadCapScrew` and `parts.mechanical.fasteners.iso.hexBolt`.
+             */
+            abstract class IsoScrewSharedDto extends IsoFastenerSharedDto {
+                /**
+                 * The length of the screw from under its head to its tip, in `unit`.
+                 * @default 10
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                length?: number | undefined;
+                /**
+                 * When true the threaded length is modelled, as `parts.mechanical.machining.iso.thread` cuts it, its
+                 * faces all named `thread`; when false the thread is a light cosmetic face.
+                 * @default false
+                 */
+                modelledThread?: boolean | undefined;
+            }
+            /**
+             * An ISO 4762 cap screw with a hexagon recess in its round head, for
+             * `parts.mechanical.fasteners.iso.socketHeadCapScrew` and its twin with face roles: its size, its length,
+             * the unit and where its head sits.
+             */
+            class IsoSocketHeadCapScrewDto extends IsoScrewSharedDto {
+                constructor(size?: Engineering.isoThreadSizeEnum, length?: number, modelledThread?: boolean, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+            }
+            /**
+             * An ISO hexagon head bolt for `parts.mechanical.fasteners.iso.hexBolt` and its twin with face roles:
+             * threaded to the head after ISO 4017, or only part of its length after ISO 4014.
+             */
+            class IsoHexBoltDto extends IsoScrewSharedDto {
+                constructor(size?: Engineering.isoThreadSizeEnum, length?: number, fullyThreaded?: boolean, modelledThread?: boolean, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+                /**
+                 * When true the bolt is threaded to its head (ISO 4017); when false only for the length ISO 4014
+                 * gives, leaving a plain shank a modelled thread shows.
+                 * @default true
+                 */
+                fullyThreaded?: boolean | undefined;
+            }
+            /**
+             * An ISO 4032 hexagon nut for `parts.mechanical.fasteners.iso.hexNut` and its twin with face roles: its size,
+             * the unit and where it bears.
+             */
+            class IsoHexNutDto extends IsoFastenerSharedDto {
+                constructor(size?: Engineering.isoThreadSizeEnum, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+            }
+            /**
+             * An ISO plain washer for `parts.mechanical.fasteners.iso.washer` and its twin with face roles: its size,
+             * whether it is the ISO 7090 washer chamfered on one face or the flat ISO 7089 one, the unit and where
+             * it bears.
+             */
+            class IsoWasherDto extends IsoFastenerSharedDto {
+                constructor(size?: Engineering.isoThreadSizeEnum, chamfered?: boolean, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+                /**
+                 * When true, the ISO 7090 washer, chamfered on the outside of the face away from the seat, from
+                 * M5; when false, the flat ISO 7089 one.
+                 * @default false
+                 */
+                chamfered?: boolean | undefined;
+            }
+            /**
+             * An ISO set screw with a hexagon recess for `parts.mechanical.fasteners.iso.setScrew` and its twin with
+             * face roles: its size, its length, its point, the unit and where its recessed end sits.
+             */
+            class IsoSetScrewDto extends IsoFastenerSharedDto {
+                constructor(size?: Engineering.isoThreadSizeEnum, length?: number, point?: Engineering.isoSetScrewPointEnum, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+                /**
+                 * The shape of the end that bears on the part: flat (ISO 4026), cone (ISO 4027), dog (ISO 4028)
+                 * or cup (ISO 4029).
+                 * @default flat
+                 */
+                point?: Engineering.isoSetScrewPointEnum | undefined;
+                /**
+                 * The length of the set screw, in `unit`.
+                 * @default 5
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                length?: number | undefined;
+            }
+            /**
+             * A cylindrical pin with a chamfer at each end, after ISO 2338, for `parts.mechanical.fasteners.dowelPin` and
+             * its twin with face roles.
+             */
+            class DowelPinDto {
+                constructor(diameter?: number, length?: number, frame?: Base.Frame);
+                /**
+                 * The diameter of the pin, in model units.
+                 * @default 3
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.5
+                 */
+                diameter?: number | undefined;
+                /**
+                 * The length of the pin, in model units.
+                 * @default 10
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                length?: number | undefined;
+                /**
+                 * Where the pin starts: its origin at the centre of one end and its normal along the pin. Left
+                 * out, the origin facing +Z.
+                 * @default undefined
+                 * @optional true
+                 */
+                frame?: Base.Frame | undefined;
+            }
+            /**
+             * A compression spring with closed and ground ends for `parts.mechanical.springs.compressionSpring` and its
+             * twin with face roles: its wire, its coils, its length as it stands and where it stands.
+             */
+            class CompressionSpringDto {
+                constructor(wireDiameter?: number, diameter?: number, activeCoils?: number, length?: number, frame?: Base.Frame);
+                /**
+                 * The diameter of the wire, in model units.
+                 * @default 0.2
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                wireDiameter?: number | undefined;
+                /**
+                 * The outside diameter of the coils, in model units; more than three times the wire's.
+                 * @default 2
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                diameter?: number | undefined;
+                /**
+                 * How many coils spring, besides the closed coil at each end; it may be a fraction.
+                 * @default 6
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.5
+                 */
+                activeCoils?: number | undefined;
+                /**
+                 * The spring's length from one ground end to the other, free or compressed; at least the solid
+                 * length, where every coil touches the next.
+                 * @default 4
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                length?: number | undefined;
+                /**
+                 * Where the spring stands: its bottom end's centre on the origin and its axis along the normal.
+                 * Left out, the ground, facing +Y.
+                 * @default undefined
+                 * @optional true
+                 */
+                frame?: Base.Frame | undefined;
+            }
+            /**
+             * A metric deep groove ball bearing for `parts.mechanical.bearings.iso.ballBearing` and its twin with
+             * face roles: which bearing, whether shields close its sides, the unit and where it sits.
+             */
+            class IsoBallBearingDto {
+                constructor(designation?: Engineering.isoBallBearingEnum, shields?: boolean, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+                /**
+                 * The bearing, such as 6204 or 608.
+                 * @default b608
+                 */
+                designation?: Engineering.isoBallBearingEnum | undefined;
+                /**
+                 * When true, a shield closes each side between the rings, as on a 2Z bearing.
+                 * @default false
+                 */
+                shields?: boolean | undefined;
+                /**
+                 * The unit the bearing is made in.
+                 * @default millimetre
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+                /**
+                 * Where the bearing sits: the centre of one side on the origin and its axis along the normal.
+                 * Left out, the ground, facing +Y.
+                 * @default undefined
+                 * @optional true
+                 */
+                frame?: Base.Frame | undefined;
+            }
+            /**
+             * A DIN 6885 form A parallel key with round ends for `parts.mechanical.keys.din.parallelKey` and its twin
+             * with face roles: sized for its shaft, its length, the unit and where it lies.
+             */
+            class DinParallelKeyDto {
+                constructor(shaftDiameter?: number, length?: number, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+                /**
+                 * The diameter of the shaft the key sits in, in `unit`, which sets its width and height; DIN 6885
+                 * keys shafts over 6 and up to 65 millimetres.
+                 * @default 20
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                shaftDiameter?: number | undefined;
+                /**
+                 * The key's length from one round end to the other, in `unit`; at least its width.
+                 * @default 20
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                length?: number | undefined;
+                /**
+                 * The unit the key is made in and its lengths are read in.
+                 * @default millimetre
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+                /**
+                 * Where the key lies: its bottom face's centre on the origin, its height along the normal, its
+                 * length along the direction. Left out, the ground, facing +Y.
+                 * @default undefined
+                 * @optional true
+                 */
+                frame?: Base.Frame | undefined;
+            }
+            /**
+             * A DIN 471 retaining ring for a shaft or a DIN 472 ring for a bore, for
+             * `parts.mechanical.retainingRings.din.retainingRing` and its twin with face roles: which ring, the unit
+             * and where it sits.
+             */
+            class DinRetainingRingDto {
+                constructor(kind?: Engineering.retainingRingKindEnum, diameter?: number, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+                /**
+                 * Whether the ring sits on a shaft or in a bore.
+                 * @default shaft
+                 */
+                kind?: Engineering.retainingRingKindEnum | undefined;
+                /**
+                 * The shaft's or the bore's diameter in `unit`, one DIN 471 or DIN 472 lists: from 3 to 100
+                 * millimetres for shafts, from 8 to 100 for bores.
+                 * @default 20
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                diameter?: number | undefined;
+                /**
+                 * The unit the ring is made in and its diameter is read in.
+                 * @default millimetre
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+                /**
+                 * Where the ring sits: its centre on the origin, one side on the frame's plane, its lugs toward
+                 * the direction. Left out, the ground, facing +Y.
+                 * @default undefined
+                 * @optional true
+                 */
+                frame?: Base.Frame | undefined;
+            }
+            /**
+             * The size of an ASME inch fastener, the unit it is made in and where it sits, shared by the screws,
+             * nuts and washers of `parts.mechanical.fasteners.ansi`.
+             */
+            abstract class AnsiFastenerSharedDto {
+                /**
+                 * The thread size, such as 1/4 or #10.
+                 * @default in1_4
+                 */
+                size?: Engineering.ansiThreadSizeEnum | undefined;
+                /**
+                 * The unit the fastener is made in and its lengths are read in; the size names an inch thread
+                 * whatever it is.
+                 * @default inch
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+                /**
+                 * Where it sits: the origin where it bears, as under a head, the normal along its axis away from
+                 * the part. Left out, the ground, facing +Y.
+                 * @default undefined
+                 * @optional true
+                 */
+                frame?: Base.Frame | undefined;
+            }
+            /**
+             * An ASME screw's thread size and series, its length under the head, the unit and where its head
+             * sits, for `parts.mechanical.fasteners.ansi.socketHeadCapScrew` and `parts.mechanical.fasteners.ansi.hexBolt`.
+             */
+            abstract class AnsiScrewSharedDto extends AnsiFastenerSharedDto {
+                /**
+                 * Whether the thread is coarse (UNC) or fine (UNF), setting a modelled thread's pitch and the
+                 * tip's chamfer; #0, which has no coarse thread, is cut fine.
+                 * @default unc
+                 */
+                series?: Engineering.ansiThreadSeriesEnum | undefined;
+                /**
+                 * The length of the screw from under its head to its tip, in `unit`.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.125
+                 */
+                length?: number | undefined;
+                /**
+                 * When true the threaded length is modelled, as `parts.mechanical.machining.ansi.thread` cuts it, its
+                 * faces all named `thread`; when false the thread is a light cosmetic face.
+                 * @default false
+                 */
+                modelledThread?: boolean | undefined;
+            }
+            /**
+             * An ASME B18.3 cap screw, for `parts.mechanical.fasteners.ansi.socketHeadCapScrew` and its
+             * twin with face roles: its size and series, its length, the unit and where its head sits.
+             */
+            class AnsiSocketHeadCapScrewDto extends AnsiScrewSharedDto {
+                constructor(size?: Engineering.ansiThreadSizeEnum, series?: Engineering.ansiThreadSeriesEnum, length?: number, modelledThread?: boolean, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+            }
+            /**
+             * An ASME B18.2.1 hex cap screw for `parts.mechanical.fasteners.ansi.hexBolt` and its twin with face roles:
+             * threaded to the head, or only for the length the standard gives.
+             */
+            class AnsiHexBoltDto extends AnsiScrewSharedDto {
+                constructor(size?: Engineering.ansiThreadSizeEnum, series?: Engineering.ansiThreadSeriesEnum, length?: number, fullyThreaded?: boolean, modelledThread?: boolean, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+                /**
+                 * When true the screw is threaded to its head; when false only for the length ASME B18.2.1 gives,
+                 * leaving a plain shank a modelled thread shows.
+                 * @default false
+                 */
+                fullyThreaded?: boolean | undefined;
+            }
+            /**
+             * An ASME hex nut for `parts.mechanical.fasteners.ansi.hexNut` and its twin with face roles: a machine
+             * screw nut to #12, a hex nut from 1/4, the unit and where it bears.
+             */
+            class AnsiHexNutDto extends AnsiFastenerSharedDto {
+                constructor(size?: Engineering.ansiThreadSizeEnum, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+            }
+            /**
+             * An ASME B18.22.1 type A plain washer for `parts.mechanical.fasteners.ansi.washer` and its twin with face
+             * roles: its size, narrow or wide, the unit and where it bears.
+             */
+            class AnsiWasherDto extends AnsiFastenerSharedDto {
+                constructor(size?: Engineering.ansiThreadSizeEnum, series?: Engineering.ansiWasherSeriesEnum, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+                /**
+                 * Whether the washer is narrow or wide around its hole.
+                 * @default narrow
+                 */
+                series?: Engineering.ansiWasherSeriesEnum | undefined;
+            }
+            /**
+             * An ASME B18.3 set screw with a hexagon recess for `parts.mechanical.fasteners.ansi.setScrew` and its twin with face roles:
+             * its size and series, its length, its point, the unit and where its recess end sits.
+             */
+            class AnsiSetScrewDto extends AnsiFastenerSharedDto {
+                constructor(size?: Engineering.ansiThreadSizeEnum, series?: Engineering.ansiThreadSeriesEnum, length?: number, point?: Engineering.ansiSetScrewPointEnum, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+                /**
+                 * Whether the thread is coarse (UNC) or fine (UNF), which sets the root the point starts from;
+                 * #0, which has no coarse thread, is cut fine.
+                 * @default unc
+                 */
+                series?: Engineering.ansiThreadSeriesEnum | undefined;
+                /**
+                 * The shape of the end that bears on the part: cup, flat, cone, oval or half dog.
+                 * @default cup
+                 */
+                point?: Engineering.ansiSetScrewPointEnum | undefined;
+                /**
+                 * The length of the set screw, in `unit`.
+                 * @default 0.25
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.0625
+                 */
+                length?: number | undefined;
+            }
+            /**
+             * An inch R-series deep groove ball bearing for `parts.mechanical.bearings.ansi.ballBearing` and its twin
+             * with face roles: which bearing, whether shields close its sides, the unit and where it sits.
+             */
+            class AnsiBallBearingDto {
+                constructor(designation?: Engineering.ansiBallBearingEnum, shields?: boolean, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+                /**
+                 * The bearing, such as R8 or R188.
+                 * @default r8
+                 */
+                designation?: Engineering.ansiBallBearingEnum | undefined;
+                /**
+                 * When true, a shield closes each side between the rings, at the shielded bearing's width.
+                 * @default false
+                 */
+                shields?: boolean | undefined;
+                /**
+                 * The unit the bearing is made in.
+                 * @default inch
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+                /**
+                 * Where the bearing sits: the centre of one side on the origin and its axis along the normal.
+                 * Left out, the ground, facing +Y.
+                 * @default undefined
+                 * @optional true
+                 */
+                frame?: Base.Frame | undefined;
+            }
+            /**
+             * An ANSI B17.1 square parallel key with round ends for `parts.mechanical.keys.ansi.parallelKey` and its
+             * twin with face roles: sized for its shaft, its length, the unit and where it lies.
+             */
+            class AnsiParallelKeyDto {
+                constructor(shaftDiameter?: number, length?: number, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+                /**
+                 * The diameter of the shaft the key sits in, in `unit`, which sets its size; ANSI B17.1's square
+                 * keys cover shafts over 5/16 and up to 6-1/2 inches.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.125
+                 */
+                shaftDiameter?: number | undefined;
+                /**
+                 * The key's length from one round end to the other, in `unit`; at least its width.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.125
+                 */
+                length?: number | undefined;
+                /**
+                 * The unit the key is made in and its lengths are read in.
+                 * @default inch
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+                /**
+                 * Where the key lies: its bottom face's centre on the origin, its height along the normal, its
+                 * length along the direction. Left out, the ground, facing +Y.
+                 * @default undefined
+                 * @optional true
+                 */
+                frame?: Base.Frame | undefined;
+            }
+            /**
+             * An inch tapered retaining ring for a shaft or a bore, for `parts.mechanical.retainingRings.ansi.retainingRing`
+             * and its twin with face roles: which ring, the unit and where it sits.
+             */
+            class AnsiRetainingRingDto {
+                constructor(kind?: Engineering.retainingRingKindEnum, diameter?: number, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+                /**
+                 * Whether the ring sits on a shaft or in a bore.
+                 * @default shaft
+                 */
+                kind?: Engineering.retainingRingKindEnum | undefined;
+                /**
+                 * The shaft's or the bore's diameter in `unit`, one the inch rings list: from 1/8 to 2 inches for
+                 * shafts, from 1/4 to 2 for bores.
+                 * @default 0.75
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.125
+                 */
+                diameter?: number | undefined;
+                /**
+                 * The unit the ring is made in and its diameter is read in.
+                 * @default inch
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+                /**
+                 * Where the ring sits: its centre on the origin, one side on the frame's plane, its lugs toward
+                 * the direction. Left out, the ground, facing +Y.
+                 * @default undefined
+                 * @optional true
+                 */
+                frame?: Base.Frame | undefined;
+            }
+            /**
+             * Where a machined feature sits, shared by the tools of `parts.mechanical.machining`: on the axis where it
+             * starts, the axis along the normal, the side it faces along the direction.
+             */
+            abstract class MachiningFrameSharedDto {
+                /**
+                 * Where the feature starts on the axis, the axis along the normal and the side it faces along the
+                 * direction. Left out, the ground, facing +Y.
+                 * @default undefined
+                 * @optional true
+                 */
+                frame?: Base.Frame | undefined;
+            }
+            /**
+             * The unit a DIN feature is cut in and where it sits, shared by the tools of
+             * `parts.mechanical.machining.din`, which size it from the metric DIN tables.
+             */
+            abstract class DinMachiningSharedDto extends MachiningFrameSharedDto {
+                /**
+                 * The unit the feature is cut in and its lengths and diameter are read in.
+                 * @default millimetre
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+            }
+            /**
+             * A DIN 6885 keyway for `parts.mechanical.machining.din.keywayTool`: the shaft or bore it is sized for, its
+             * length and whether it is milled into the shaft or cut through the hub.
+             */
+            class DinKeywayToolDto extends DinMachiningSharedDto {
+                constructor(diameter?: number, length?: number, inHub?: boolean, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+                /**
+                 * The shaft's or the bore's diameter in `unit`, which sets the keyway's width and depth; DIN 6885
+                 * keys shafts over 6 and up to 65 millimetres.
+                 * @default 20
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                diameter?: number | undefined;
+                /**
+                 * The keyway's length along the axis, in `unit`; in a shaft, end to end of its round ends.
+                 * @default 20
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                length?: number | undefined;
+                /**
+                 * When true, the straight keyway cut through a hub's bore; when false, the round-ended pocket
+                 * milled into a shaft.
+                 * @default false
+                 */
+                inHub?: boolean | undefined;
+            }
+            /**
+             * A body and a DIN 6885 keyway to cut into it, for `parts.mechanical.machining.din.keyway`.
+             */
+            class DinKeywayDto<T> extends DinKeywayToolDto {
+                constructor(shape?: T, diameter?: number, length?: number, inHub?: boolean, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+                /**
+                 * The shaft or the hub to cut.
+                 * @default undefined
+                 */
+                shape: T;
+            }
+            /**
+             * A flat on a round shaft for `parts.mechanical.machining.flatTool`: the shaft's diameter, how deep the flat
+             * goes and how long it is.
+             */
+            class FlatToolDto extends MachiningFrameSharedDto {
+                constructor(diameter?: number, depth?: number, length?: number, frame?: Base.Frame);
+                /**
+                 * The shaft's diameter in model units.
+                 * @default 8
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.5
+                 */
+                diameter?: number | undefined;
+                /**
+                 * How far the flat cuts in from the shaft's surface, in model units, less than the diameter.
+                 * @default 0.5
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                depth?: number | undefined;
+                /**
+                 * The flat's length along the axis, in model units.
+                 * @default 10
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                length?: number | undefined;
+            }
+            /**
+             * A body and a flat to cut into it, for `parts.mechanical.machining.flat`.
+             */
+            class FlatDto<T> extends FlatToolDto {
+                constructor(shape?: T, diameter?: number, depth?: number, length?: number, frame?: Base.Frame);
+                /**
+                 * The shaft to cut.
+                 * @default undefined
+                 */
+                shape: T;
+            }
+            /**
+             * The groove a DIN 471 or DIN 472 retaining ring sits in, for
+             * `parts.mechanical.machining.din.ringGrooveTool`.
+             */
+            class DinRingGrooveToolDto extends DinMachiningSharedDto {
+                constructor(kind?: Engineering.retainingRingKindEnum, diameter?: number, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+                /**
+                 * Whether the groove is in a shaft or in a bore.
+                 * @default shaft
+                 */
+                kind?: Engineering.retainingRingKindEnum | undefined;
+                /**
+                 * The shaft's or the bore's diameter in `unit`, one DIN 471 or DIN 472 lists.
+                 * @default 20
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                diameter?: number | undefined;
+            }
+            /**
+             * A body and a DIN retaining ring's groove to cut into it, for `parts.mechanical.machining.din.ringGroove`.
+             */
+            class DinRingGrooveDto<T> extends DinRingGrooveToolDto {
+                constructor(shape?: T, kind?: Engineering.retainingRingKindEnum, diameter?: number, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+                /**
+                 * The shaft or the bored body to cut.
+                 * @default undefined
+                 */
+                shape: T;
+            }
+            /**
+             * A DIN 82 knurl on a round shaft, for `parts.mechanical.machining.din.knurlTool`: the shaft's diameter, the
+             * knurl's length, its pitch and its pattern.
+             */
+            class DinKnurlToolDto extends DinMachiningSharedDto {
+                constructor(diameter?: number, length?: number, pitch?: number, pattern?: Engineering.knurlPatternEnum, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+                /**
+                 * The shaft's diameter in `unit`; the knurl's crests sit on the nearest diameter its pitch
+                 * divides evenly.
+                 * @default 10
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                diameter?: number | undefined;
+                /**
+                 * The knurl's length along the axis, in `unit`. A left, right or diamond knurl's grooves twist
+                 * through at most 1000 degrees along it.
+                 * @default 10
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                length?: number | undefined;
+                /**
+                 * The distance between grooves round the circumference, in millimetres as DIN 82 names it, one of
+                 * 0.5, 0.6, 0.8, 1, 1.2 or 1.6.
+                 * @default 1
+                 * @minimum 0.5
+                 * @maximum 1.6
+                 * @step 0.1
+                 */
+                pitch?: number | undefined;
+                /**
+                 * The grooves' pattern.
+                 * @default straight
+                 */
+                pattern?: Engineering.knurlPatternEnum | undefined;
+            }
+            /**
+             * A body and a DIN 82 knurl to cut into it, for `parts.mechanical.machining.din.knurl`.
+             */
+            class DinKnurlDto<T> extends DinKnurlToolDto {
+                constructor(shape?: T, diameter?: number, length?: number, pitch?: number, pattern?: Engineering.knurlPatternEnum, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+                /**
+                 * The shaft to knurl.
+                 * @default undefined
+                 */
+                shape: T;
+            }
+            /**
+             * A DIN 5480 involute spline, for `parts.mechanical.machining.din.splinedShaft` and
+             * `parts.mechanical.machining.din.splinedHubTool`: its reference diameter, module and length.
+             */
+            class DinSplineDto extends DinMachiningSharedDto {
+                constructor(referenceDiameter?: number, module?: number, length?: number, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+                /**
+                 * The diameter the spline is named by, in millimetres as DIN 5480 names it, such as 25 in
+                 * W 25x1.25x18.
+                 * @default 25
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                referenceDiameter?: number | undefined;
+                /**
+                 * The module of its teeth in millimetres, one of DIN 5480's from 0.5 to 10.
+                 * @default 1.25
+                 * @minimum 0.5
+                 * @maximum 10
+                 * @step 0.25
+                 */
+                module?: number | undefined;
+                /**
+                 * The spline's length along the axis, in `unit`.
+                 * @default 20
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                length?: number | undefined;
+            }
+            /**
+             * A body and a DIN 5480 hub spline to cut through it, for `parts.mechanical.machining.din.splinedHub`.
+             */
+            class DinSplinedHubDto<T> extends DinSplineDto {
+                constructor(shape?: T, referenceDiameter?: number, module?: number, length?: number, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+                /**
+                 * The hub to cut.
+                 * @default undefined
+                 */
+                shape: T;
+            }
+            /**
+             * An ISO metric thread modelled on a shank or in a hole, for `parts.mechanical.machining.iso.threadTool`: its
+             * size, a fine pitch if wanted, its length, whether it is cut inside a hole and the unit.
+             */
+            class IsoThreadToolDto {
+                constructor(size?: Engineering.isoThreadSizeEnum, pitch?: number, length?: number, internal?: boolean, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+                /**
+                 * The thread size, such as M8; the default is the default screw's and bolt's.
+                 * @default m3
+                 */
+                size?: Engineering.isoThreadSizeEnum | undefined;
+                /**
+                 * The distance from one crest to the next, in millimetres as ISO names it. Left out, the size's
+                 * coarse pitch.
+                 * @default undefined
+                 * @optional true
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum 3
+                 * @step 0.05
+                 */
+                pitch?: number | undefined;
+                /**
+                 * The threaded length along the axis, in `unit`: at most 400 turns of the pitch.
+                 * @default 10
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                length?: number | undefined;
+                /**
+                 * When true, the thread is cut in a hole drilled to the minor diameter, as in a nut; when false,
+                 * on a shank turned to the nominal.
+                 * @default false
+                 */
+                internal?: boolean | undefined;
+                /**
+                 * The unit the thread is cut in and its length is read in.
+                 * @default millimetre
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+                /**
+                 * Where the thread starts, at a hole's mouth or under a head, its normal out of the part: the
+                 * thread runs against it. Left out, the ground, facing +Y.
+                 * @default undefined
+                 * @optional true
+                 */
+                frame?: Base.Frame | undefined;
+            }
+            /**
+             * A body and an ISO metric thread to cut into it, for `parts.mechanical.machining.iso.thread`.
+             */
+            class IsoThreadCutDto<T> extends IsoThreadToolDto {
+                constructor(shape?: T, size?: Engineering.isoThreadSizeEnum, pitch?: number, length?: number, internal?: boolean, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+                /**
+                 * The shank or the body with the hole to cut.
+                 * @default undefined
+                 */
+                shape: T;
+            }
+            /**
+             * The unit an ANSI feature is cut in and where it sits, shared by the tools of
+             * `parts.mechanical.machining.ansi`, which size it from the inch tables.
+             */
+            abstract class AnsiMachiningSharedDto extends MachiningFrameSharedDto {
+                /**
+                 * The unit the feature is cut in and its lengths and diameter are read in.
+                 * @default inch
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+            }
+            /**
+             * An ANSI B17.1 keyseat for `parts.mechanical.machining.ansi.keywayTool`: the shaft or bore it is sized for,
+             * its length and whether it is milled into the shaft or cut through the hub.
+             */
+            class AnsiKeywayToolDto extends AnsiMachiningSharedDto {
+                constructor(diameter?: number, length?: number, inHub?: boolean, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+                /**
+                 * The shaft's or the bore's diameter in `unit`, which sets the keyseat's width and depth; ANSI
+                 * B17.1's square keys cover shafts over 5/16 and up to 6-1/2 inches.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.125
+                 */
+                diameter?: number | undefined;
+                /**
+                 * The keyseat's length along the axis, in `unit`; in a shaft, end to end of its round ends.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.125
+                 */
+                length?: number | undefined;
+                /**
+                 * When true, the straight keyseat cut through a hub's bore; when false, the round-ended pocket
+                 * milled into a shaft.
+                 * @default false
+                 */
+                inHub?: boolean | undefined;
+            }
+            /**
+             * A body and an ANSI B17.1 keyseat to cut into it, for `parts.mechanical.machining.ansi.keyway`.
+             */
+            class AnsiKeywayDto<T> extends AnsiKeywayToolDto {
+                constructor(shape?: T, diameter?: number, length?: number, inHub?: boolean, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+                /**
+                 * The shaft or the hub to cut.
+                 * @default undefined
+                 */
+                shape: T;
+            }
+            /**
+             * The groove an inch tapered retaining ring sits in, for `parts.mechanical.machining.ansi.ringGrooveTool`.
+             */
+            class AnsiRingGrooveToolDto extends AnsiMachiningSharedDto {
+                constructor(kind?: Engineering.retainingRingKindEnum, diameter?: number, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+                /**
+                 * Whether the groove is in a shaft or in a bore.
+                 * @default shaft
+                 */
+                kind?: Engineering.retainingRingKindEnum | undefined;
+                /**
+                 * The shaft's or the bore's diameter in `unit`, one the inch rings list.
+                 * @default 0.75
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.125
+                 */
+                diameter?: number | undefined;
+            }
+            /**
+             * A body and an inch retaining ring's groove to cut into it, for `parts.mechanical.machining.ansi.ringGroove`.
+             */
+            class AnsiRingGrooveDto<T> extends AnsiRingGrooveToolDto {
+                constructor(shape?: T, kind?: Engineering.retainingRingKindEnum, diameter?: number, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+                /**
+                 * The shaft or the bored body to cut.
+                 * @default undefined
+                 */
+                shape: T;
+            }
+            /**
+             * An ASME B94.6 diametral pitch knurl on a round shaft, for `parts.mechanical.machining.ansi.knurlTool`: the
+             * shaft's diameter, the knurl's length, its pitch and its pattern.
+             */
+            class AnsiKnurlToolDto extends AnsiMachiningSharedDto {
+                constructor(diameter?: number, length?: number, diametralPitch?: number, pattern?: Engineering.knurlPatternEnum, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+                /**
+                 * The shaft's diameter in `unit`; the knurl's crests sit on the nearest diameter its teeth track
+                 * on.
+                 * @default 0.5
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.125
+                 */
+                diameter?: number | undefined;
+                /**
+                 * The knurl's length along the axis, in `unit`. A left, right or diamond knurl's grooves twist
+                 * through at most 1000 degrees along it.
+                 * @default 0.5
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.125
+                 */
+                length?: number | undefined;
+                /**
+                 * Teeth to an inch of diameter, one of ASME B94.6's: 64, 96, 128 or 160.
+                 * @default 96
+                 * @minimum 64
+                 * @maximum 160
+                 * @step 32
+                 */
+                diametralPitch?: number | undefined;
+                /**
+                 * The grooves' pattern; left and right are B94.6's diagonal knurls.
+                 * @default straight
+                 */
+                pattern?: Engineering.knurlPatternEnum | undefined;
+            }
+            /**
+             * A body and an ASME B94.6 knurl to cut into it, for `parts.mechanical.machining.ansi.knurl`.
+             */
+            class AnsiKnurlDto<T> extends AnsiKnurlToolDto {
+                constructor(shape?: T, diameter?: number, length?: number, diametralPitch?: number, pattern?: Engineering.knurlPatternEnum, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+                /**
+                 * The shaft to knurl.
+                 * @default undefined
+                 */
+                shape: T;
+            }
+            /**
+             * An ANSI B92.1 involute spline, for `parts.mechanical.machining.ansi.splinedShaft` and
+             * `parts.mechanical.machining.ansi.splinedHubTool`: its teeth, pitch and length.
+             */
+            class AnsiSplineDto extends AnsiMachiningSharedDto {
+                constructor(teeth?: number, pitch?: Engineering.ansiSplinePitchEnum, length?: number, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+                /**
+                 * How many teeth the spline has, a whole number from 6 to 60.
+                 * @default 24
+                 * @minimum 6
+                 * @maximum 60
+                 * @step 1
+                 */
+                teeth?: number | undefined;
+                /**
+                 * The pitch over the stub pitch, such as 16/32.
+                 * @default p16_32
+                 */
+                pitch?: Engineering.ansiSplinePitchEnum | undefined;
+                /**
+                 * The spline's length along the axis, in `unit`.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.125
+                 */
+                length?: number | undefined;
+            }
+            /**
+             * A body and an ANSI B92.1 hub spline to cut through it, for `parts.mechanical.machining.ansi.splinedHub`.
+             */
+            class AnsiSplinedHubDto<T> extends AnsiSplineDto {
+                constructor(shape?: T, teeth?: number, pitch?: Engineering.ansiSplinePitchEnum, length?: number, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+                /**
+                 * The hub to cut.
+                 * @default undefined
+                 */
+                shape: T;
+            }
+            /**
+             * A Unified inch thread modelled on a shank or in a hole, for `parts.mechanical.machining.ansi.threadTool`: its
+             * size and series or pitch, its length, whether it is cut inside a hole and the unit.
+             */
+            class AnsiThreadToolDto {
+                constructor(size?: Engineering.ansiThreadSizeEnum, series?: Engineering.ansiThreadSeriesEnum, threadsPerInch?: number, length?: number, internal?: boolean, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+                /**
+                 * The thread size, such as 1/4 or #10.
+                 * @default in1_4
+                 */
+                size?: Engineering.ansiThreadSizeEnum | undefined;
+                /**
+                 * Whether the thread is coarse (UNC) or fine (UNF); #0, which has no coarse thread, is cut fine.
+                 * @default unc
+                 */
+                series?: Engineering.ansiThreadSeriesEnum | undefined;
+                /**
+                 * A pitch of the thread's own, as threads to the inch, at least the size's coarsest; it overrides
+                 * `series`. Left out, the series' pitch.
+                 * @default undefined
+                 * @optional true
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                threadsPerInch?: number | undefined;
+                /**
+                 * The threaded length along the axis, in `unit`: at most 400 turns of the pitch.
+                 * @default 0.5
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.125
+                 */
+                length?: number | undefined;
+                /**
+                 * When true, the thread is cut in a hole drilled to the minor diameter, as in a nut; when false,
+                 * on a shank turned to the nominal.
+                 * @default false
+                 */
+                internal?: boolean | undefined;
+                /**
+                 * The unit the thread is cut in and its length is read in.
+                 * @default inch
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+                /**
+                 * Where the thread starts, at a hole's mouth or under a head, its normal out of the part: the
+                 * thread runs against it. Left out, the ground, facing +Y.
+                 * @default undefined
+                 * @optional true
+                 */
+                frame?: Base.Frame | undefined;
+            }
+            /**
+             * A body and a Unified inch thread to cut into it, for `parts.mechanical.machining.ansi.thread`.
+             */
+            class AnsiThreadCutDto<T> extends AnsiThreadToolDto {
+                constructor(shape?: T, size?: Engineering.ansiThreadSizeEnum, series?: Engineering.ansiThreadSeriesEnum, threadsPerInch?: number, length?: number, internal?: boolean, unit?: Base.unitOfLengthEnum, frame?: Base.Frame);
+                /**
+                 * The shank or the body with the hole to cut.
+                 * @default undefined
+                 */
+                shape: T;
+            }
         }
         /**
      * The PlayCanvas build's re-export of the shared primitive types, so engine-specific code sees Point3,
@@ -21052,7 +23754,7 @@ declare namespace Bit {
              * one mesh.
              */
             interface ShapeWithAppearance {
-                /** The shape to draw, as the OCCT kernel returns it. */
+                /** The shape to draw, as the Bitbybit OCCT Kernel returns it. */
                 shape: Inputs.OCCT.TopoDSShapePointer;
                 /**
                  * How the shape looks. Each `faces` entry gives its values to the faces it lists, `edgeColor`
@@ -21085,7 +23787,7 @@ declare namespace Bit {
              * `number[]`, and drawing one is ordinary. Dropping these arms would narrow the union at the cost
              * of making the library's own output undrawable without a cast.
              */
-            type Entity = number[] | Base.Point3 | Base.Line3 | Base.Segment3 | Base.Polyline3 | Base.Frame | Base.VerbCurve | Base.VerbSurface | Inputs.OCCT.TopoDSShapePointer | ShapeWithAppearance | Models.OCCT.DesignBuildResult<Inputs.OCCT.TopoDSShapePointer> | Inputs.OCCT.DecomposedMeshDto | Inputs.Manifold.ManifoldPointer | Inputs.Manifold.CrossSectionPointer | Inputs.Manifold.DecomposedManifoldMeshDto | Inputs.Manifold.RecipeMeshesDto | Inputs.JSCAD.JSCADEntity | Inputs.Tag.TagDto | CustomGeometryDrawable | number[][] | Base.Point3[] | Base.Line3[] | Base.Segment3[] | Base.Polyline3[] | Base.Frame[] | Base.VerbCurve[] | Base.VerbSurface[] | Inputs.OCCT.TopoDSShapePointer[] | ShapeWithAppearance[] | Inputs.OCCT.DecomposedMeshDto[] | Inputs.Manifold.ManifoldPointer[] | Inputs.Manifold.CrossSectionPointer[] | Inputs.Manifold.DecomposedManifoldMeshDto[] | Inputs.JSCAD.JSCADEntity[] | Inputs.Tag.TagDto[];
+            type Entity = number[] | Base.Point3 | Base.Line3 | Base.Segment3 | Base.Polyline3 | Base.Frame | Base.VerbCurve | Base.VerbSurface | Inputs.OCCT.TopoDSShapePointer | ShapeWithAppearance | Models.OCCT.DesignBuildResult<Inputs.OCCT.TopoDSShapePointer> | Models.OCCT.DesignSection<Inputs.OCCT.TopoDSShapePointer> | Inputs.OCCT.DecomposedMeshDto | Inputs.Manifold.ManifoldPointer | Inputs.Manifold.CrossSectionPointer | Inputs.Manifold.DecomposedManifoldMeshDto | Inputs.Manifold.RecipeMeshesDto | Inputs.JSCAD.JSCADEntity | Inputs.Tag.TagDto | CustomGeometryDrawable | number[][] | Base.Point3[] | Base.Line3[] | Base.Segment3[] | Base.Polyline3[] | Base.Frame[] | Base.VerbCurve[] | Base.VerbSurface[] | Inputs.OCCT.TopoDSShapePointer[] | ShapeWithAppearance[] | Inputs.OCCT.DecomposedMeshDto[] | Inputs.Manifold.ManifoldPointer[] | Inputs.Manifold.CrossSectionPointer[] | Inputs.Manifold.DecomposedManifoldMeshDto[] | Inputs.JSCAD.JSCADEntity[] | Inputs.Tag.TagDto[];
             /**
              * Metadata stored on drawn entities to track their type and options for updates
              */
@@ -22493,6 +25195,20 @@ declare namespace Bit {
          */
         declare namespace Color {
             /**
+             * One color channel for `color.srgbToLinear` and `color.linearToSrgb`.
+             */
+            class ChannelDto {
+                constructor(channel?: number);
+                /**
+                 * The channel, from 0 to 1.
+                 * @default 0.5
+                 * @minimum 0
+                 * @maximum 1
+                 * @step 0.01
+                 */
+                channel?: number | undefined;
+            }
+            /**
              * A hex color for `color.hexColor` and `color.hexToRgb`.
              */
             class HexDto {
@@ -23071,6 +25787,1544 @@ declare namespace Bit {
                  * @step 1
                  */
                 milliseconds?: number | undefined;
+            }
+        }
+        /**
+         * Parameters for `engineering`: the teeth of gears, and the sizes of fasteners, threads, ball
+         * bearings, keys, retaining rings, splines, knurls and compression springs by the standard that
+         * sets them. Each standard's sizes come in the `unit` asked for; gears and springs in model units.
+         */
+        declare namespace Engineering {
+            /**
+             * An ISO metric thread size, from M1.6 to M24: the nominal diameter in millimetres after the M.
+             * @optionLabels value
+             */
+            enum isoThreadSizeEnum {
+                m1_6 = "M1.6",
+                m2 = "M2",
+                m2_5 = "M2.5",
+                m3 = "M3",
+                m4 = "M4",
+                m5 = "M5",
+                m6 = "M6",
+                m8 = "M8",
+                m10 = "M10",
+                m12 = "M12",
+                m14 = "M14",
+                m16 = "M16",
+                m20 = "M20",
+                m24 = "M24"
+            }
+            /**
+             * How much room a clearance hole leaves around its screw: close (fine), normal (medium) or loose
+             * (coarse), as ISO 273 and ASME B18.2.8 grade it.
+             */
+            enum clearanceFitEnum {
+                close = "close",
+                normal = "normal",
+                loose = "loose"
+            }
+            /**
+             * The point of an ISO hexagon socket set screw: flat (ISO 4026), cone (ISO 4027), dog (ISO 4028)
+             * or cup (ISO 4029).
+             */
+            enum isoSetScrewPointEnum {
+                flat = "flat",
+                cone = "cone",
+                dog = "dog",
+                cup = "cup"
+            }
+            /**
+             * A Unified inch thread size, from #0 to 1 inch: a number for the small sizes, a fraction of an
+             * inch for the larger ones.
+             * @optionLabels value
+             */
+            enum ansiThreadSizeEnum {
+                n0 = "#0",
+                n1 = "#1",
+                n2 = "#2",
+                n3 = "#3",
+                n4 = "#4",
+                n5 = "#5",
+                n6 = "#6",
+                n8 = "#8",
+                n10 = "#10",
+                n12 = "#12",
+                in1_4 = "1/4",
+                in5_16 = "5/16",
+                in3_8 = "3/8",
+                in7_16 = "7/16",
+                in1_2 = "1/2",
+                in9_16 = "9/16",
+                in5_8 = "5/8",
+                in3_4 = "3/4",
+                in7_8 = "7/8",
+                in1 = "1"
+            }
+            /**
+             * The series of a Unified inch thread: coarse (UNC) or fine (UNF).
+             * @optionLabels value
+             */
+            enum ansiThreadSeriesEnum {
+                unc = "UNC",
+                unf = "UNF"
+            }
+            /**
+             * The point of an ASME B18.3 hexagon socket set screw: cup, flat, cone, oval or half dog.
+             */
+            enum ansiSetScrewPointEnum {
+                cup = "cup",
+                flat = "flat",
+                cone = "cone",
+                oval = "oval",
+                halfDog = "halfDog"
+            }
+            /**
+             * The series of an ASME B18.22.1 type A plain washer: narrow, the former SAE sizes, or wide, the
+             * former standard plate sizes.
+             */
+            enum ansiWasherSeriesEnum {
+                narrow = "narrow",
+                wide = "wide"
+            }
+            /**
+             * An inch deep groove ball bearing by its R-series designation: the miniature R1-4 to R1810, and
+             * R2 to R20, whose number is the bore in sixteenths of an inch.
+             * @optionLabels value
+             */
+            enum ansiBallBearingEnum {
+                r1_4 = "R1-4",
+                r1_5 = "R1-5",
+                r133 = "R133",
+                r144 = "R144",
+                r155 = "R155",
+                r156 = "R156",
+                r166 = "R166",
+                r168 = "R168",
+                r188 = "R188",
+                r1810 = "R1810",
+                r2 = "R2",
+                r2_5 = "R2-5",
+                r2_6 = "R2-6",
+                r3 = "R3",
+                r4 = "R4",
+                r4a = "R4A",
+                r6 = "R6",
+                r8 = "R8",
+                r10 = "R10",
+                r12 = "R12",
+                r14 = "R14",
+                r16 = "R16",
+                r18 = "R18",
+                r20 = "R20"
+            }
+            /**
+             * The diametral pitch of an ANSI B92.1 involute spline as the standard writes it: the pitch over
+             * the stub pitch that sets the teeth's depth, such as 16/32. These are the pitches the standard
+             * gives its 30 degree flat root side fit, 2.5/5 to 32/64; the finer ones it makes only with a
+             * fillet root or at 45 degrees.
+             * @optionLabels value
+             */
+            enum ansiSplinePitchEnum {
+                p2_5_5 = "2.5/5",
+                p3_6 = "3/6",
+                p4_8 = "4/8",
+                p5_10 = "5/10",
+                p6_12 = "6/12",
+                p8_16 = "8/16",
+                p10_20 = "10/20",
+                p12_24 = "12/24",
+                p16_32 = "16/32",
+                p20_40 = "20/40",
+                p24_48 = "24/48",
+                p32_64 = "32/64"
+            }
+            /**
+             * The standard a key and its keyway are sized by: the metric DIN 6885 or the inch ANSI B17.1.
+             */
+            enum keyStandardEnum {
+                din = "din",
+                ansi = "ansi"
+            }
+            /**
+             * Where a retaining ring sits: on a shaft (DIN 471, or an external ASME B18.27 ring) or in a bore
+             * (DIN 472, or an internal one).
+             */
+            enum retainingRingKindEnum {
+                shaft = "shaft",
+                bore = "bore"
+            }
+            /**
+             * The pattern of a knurl: straight grooves (DIN 82 RAA), helical grooves turning left (RBL) or
+             * right (RBR), or both crossing in a raised diamond (RGE); ASME B94.6 names the helical ones
+             * diagonal.
+             */
+            enum knurlPatternEnum {
+                straight = "straight",
+                left = "left",
+                right = "right",
+                diamond = "diamond"
+            }
+            /**
+             * A deep groove ball bearing by its ISO designation, from the 60 and 62 series and the small 62x
+             * and 60x sizes.
+             * @optionLabels value
+             */
+            enum isoBallBearingEnum {
+                b623 = "623",
+                b624 = "624",
+                b625 = "625",
+                b626 = "626",
+                b608 = "608",
+                b609 = "609",
+                b6000 = "6000",
+                b6001 = "6001",
+                b6002 = "6002",
+                b6003 = "6003",
+                b6004 = "6004",
+                b6005 = "6005",
+                b6006 = "6006",
+                b6007 = "6007",
+                b6008 = "6008",
+                b6009 = "6009",
+                b6010 = "6010",
+                b6200 = "6200",
+                b6201 = "6201",
+                b6202 = "6202",
+                b6203 = "6203",
+                b6204 = "6204",
+                b6205 = "6205",
+                b6206 = "6206",
+                b6207 = "6207",
+                b6208 = "6208",
+                b6209 = "6209",
+                b6210 = "6210"
+            }
+            /**
+             * The teeth of an involute spur gear, shared by `engineering.mechanical.gears.spurGearSizes` and
+             * `engineering.mechanical.gears.spurGearOutline`: their size, their shape and how loosely they fit.
+             */
+            abstract class SpurGearSharedDto {
+                /**
+                 * The size of the teeth: the pitch circle's diameter divided by the number of teeth, in
+                 * model units. Gears mesh only with gears of the same module.
+                 * @default 0.2
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                module?: number | undefined;
+                /**
+                 * How many teeth the gear has, at least 3.
+                 * @default 20
+                 * @minimum 3
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                teeth?: number | undefined;
+                /**
+                 * The angle at which meshing teeth push on each other, in degrees; 20 is the common
+                 * standard, and meshing gears share it.
+                 * @default 20
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum 45
+                 * @exclusiveMaximum true
+                 * @step 0.5
+                 */
+                pressureAngle?: number | undefined;
+                /**
+                 * How far the teeth are moved out from the pitch circle, as a share of the module. Positive
+                 * values give thicker teeth that small gears need, negative values thinner ones.
+                 * @default 0
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                profileShift?: number | undefined;
+                /**
+                 * How much thinner each tooth is at the pitch circle than a tight fit, in model units; two
+                 * meshing gears leave the sum of their backlash between their teeth.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.01
+                 */
+                backlash?: number | undefined;
+                /**
+                 * How far the teeth reach above the pitch circle, as a share of the module.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                addendum?: number | undefined;
+                /**
+                 * How deep the gaps reach below the pitch circle, as a share of the module; more than
+                 * `addendum` leaves room for the tips of the mating gear.
+                 * @default 1.25
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                dedendum?: number | undefined;
+                /**
+                 * The radius that rounds the bottom of each gap, as a share of the module. It shrinks to
+                 * fit a narrow gap, and 0 leaves a sharp corner.
+                 * @default 0.38
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.01
+                 */
+                rootFillet?: number | undefined;
+            }
+            /**
+             * The teeth of a spur gear for `engineering.mechanical.gears.spurGearSizes`.
+             */
+            class SpurGearSizesDto extends SpurGearSharedDto {
+                constructor(module?: number, teeth?: number, pressureAngle?: number, profileShift?: number, backlash?: number, addendum?: number, dedendum?: number, rootFillet?: number);
+            }
+            /**
+             * The teeth of a spur gear for `engineering.mechanical.gears.spurGearOutline`, with how far it is turned and
+             * how finely its curves become points.
+             */
+            class SpurGearOutlineDto extends SpurGearSharedDto {
+                constructor(rotation?: number, segments?: number, module?: number, teeth?: number, pressureAngle?: number, profileShift?: number, backlash?: number, addendum?: number, dedendum?: number, rootFillet?: number);
+                /**
+                 * How far the gear is turned about its centre, in degrees. At 0 a tooth points along +X.
+                 * @default 0
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                rotation?: number | undefined;
+                /**
+                 * How many straight pieces stand for each curve of the outline: each tip, flank piece and
+                 * root.
+                 * @default 8
+                 * @minimum 1
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                segments?: number | undefined;
+            }
+            /**
+             * The teeth of an involute ring gear, cut on the inside of a ring, shared by
+             * `engineering.mechanical.gears.ringGearSizes` and `engineering.mechanical.gears.ringGearOutline`: their size, their
+             * shape and how loosely they fit.
+             */
+            abstract class RingGearSharedDto {
+                /**
+                 * The size of the teeth: the pitch circle's diameter divided by the number of teeth, in
+                 * model units. It meshes only with gears of the same module.
+                 * @default 0.2
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                module?: number | undefined;
+                /**
+                 * How many teeth the ring has; about 34 at least at 20 degrees, so that the tips of its
+                 * teeth stay outside the base circle.
+                 * @default 40
+                 * @minimum 3
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                teeth?: number | undefined;
+                /**
+                 * The angle at which meshing teeth push on each other, in degrees; 20 is the common
+                 * standard, and meshing gears share it.
+                 * @default 20
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum 45
+                 * @exclusiveMaximum true
+                 * @step 0.5
+                 */
+                pressureAngle?: number | undefined;
+                /**
+                 * How much thinner each tooth is at the pitch circle than a tight fit, in model units; two
+                 * meshing gears leave the sum of their backlash between their teeth.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.01
+                 */
+                backlash?: number | undefined;
+                /**
+                 * How far the teeth reach in from the pitch circle toward the centre, as a share of the
+                 * module.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                addendum?: number | undefined;
+                /**
+                 * How deep the gaps reach out beyond the pitch circle, as a share of the module; more than
+                 * `addendum` leaves room for the tips of the mating gear.
+                 * @default 1.25
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                dedendum?: number | undefined;
+                /**
+                 * The radius that rounds the bottom of each gap, as a share of the module. It shrinks to
+                 * fit a narrow gap, and 0 leaves a sharp corner.
+                 * @default 0.38
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.01
+                 */
+                rootFillet?: number | undefined;
+            }
+            /**
+             * The teeth of a ring gear for `engineering.mechanical.gears.ringGearSizes`.
+             */
+            class RingGearSizesDto extends RingGearSharedDto {
+                constructor(module?: number, teeth?: number, pressureAngle?: number, backlash?: number, addendum?: number, dedendum?: number, rootFillet?: number);
+            }
+            /**
+             * The teeth of a ring gear for `engineering.mechanical.gears.ringGearOutline`, with how far it is turned and
+             * how finely its curves become points.
+             */
+            class RingGearOutlineDto extends RingGearSharedDto {
+                constructor(rotation?: number, segments?: number, module?: number, teeth?: number, pressureAngle?: number, backlash?: number, addendum?: number, dedendum?: number, rootFillet?: number);
+                /**
+                 * How far the ring is turned about its centre, in degrees. At 0 a tooth points along +X.
+                 * @default 0
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                rotation?: number | undefined;
+                /**
+                 * How many straight pieces stand for each curve of the outline: each tip, flank piece and
+                 * root.
+                 * @default 8
+                 * @minimum 1
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                segments?: number | undefined;
+            }
+            /**
+             * The teeth of an involute rack, shared by `engineering.mechanical.gears.rackSizes` and
+             * `engineering.mechanical.gears.rackOutline`: their size and shape, how loosely they fit and how deep the
+             * rack is.
+             */
+            abstract class RackSharedDto {
+                /**
+                 * The module of the gears the rack meshes with, in model units.
+                 * @default 0.2
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                module?: number | undefined;
+                /**
+                 * How many teeth the rack has, at least 1.
+                 * @default 10
+                 * @minimum 1
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                teeth?: number | undefined;
+                /**
+                 * The angle of each flank from square to the pitch line, in degrees; it matches the gears'.
+                 * @default 20
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum 45
+                 * @exclusiveMaximum true
+                 * @step 0.5
+                 */
+                pressureAngle?: number | undefined;
+                /**
+                 * How much thinner each tooth is at the pitch line than a tight fit, in model units.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.01
+                 */
+                backlash?: number | undefined;
+                /**
+                 * How far the teeth reach above the pitch line, as a share of the module.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                addendum?: number | undefined;
+                /**
+                 * How deep the gaps reach below the pitch line, as a share of the module.
+                 * @default 1.25
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                dedendum?: number | undefined;
+                /**
+                 * The radius that rounds the bottom of each gap, as a share of the module; it shrinks to
+                 * fit.
+                 * @default 0.38
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.01
+                 */
+                rootFillet?: number | undefined;
+                /**
+                 * How far the back of the rack lies below the pitch line, in model units, beyond the gaps.
+                 * @default 0.6
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                height?: number | undefined;
+            }
+            /**
+             * The teeth of a rack for `engineering.mechanical.gears.rackSizes`.
+             */
+            class RackSizesDto extends RackSharedDto {
+                constructor(module?: number, teeth?: number, pressureAngle?: number, backlash?: number, addendum?: number, dedendum?: number, rootFillet?: number, height?: number);
+            }
+            /**
+             * The teeth of a rack for `engineering.mechanical.gears.rackOutline`, with how finely its curves become
+             * points.
+             */
+            class RackOutlineDto extends RackSharedDto {
+                constructor(segments?: number, module?: number, teeth?: number, pressureAngle?: number, backlash?: number, addendum?: number, dedendum?: number, rootFillet?: number, height?: number);
+                /**
+                 * How many straight pieces stand for each rounded root.
+                 * @default 8
+                 * @minimum 1
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                segments?: number | undefined;
+            }
+            /**
+             * The teeth of an involute helical gear, shared by `engineering.mechanical.gears.helicalGearSizes` and
+             * `engineering.mechanical.gears.helicalGearOutline`: their size and lean, their shape and how loosely they
+             * fit, measured square to the teeth.
+             */
+            abstract class HelicalGearSharedDto {
+                /**
+                 * The normal module: the tooth size measured square to the teeth, in model units, as the
+                 * cutter's module. Only gears of one module mesh.
+                 * @default 0.2
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                module?: number | undefined;
+                /**
+                 * How many teeth the gear has, at least 3.
+                 * @default 20
+                 * @minimum 3
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                teeth?: number | undefined;
+                /**
+                 * The teeth's lean from the axis in degrees: positive for a right hand, negative for a left.
+                 * Two external helical gears mesh at one angle in opposite hands.
+                 * @default 15
+                 * @minimum -45
+                 * @exclusiveMinimum true
+                 * @maximum 45
+                 * @exclusiveMaximum true
+                 * @step 1
+                 */
+                helixAngle?: number | undefined;
+                /**
+                 * The angle at which meshing teeth push on each other, in degrees, measured square to the
+                 * teeth; 20 is the common standard, and meshing gears share it.
+                 * @default 20
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum 45
+                 * @exclusiveMaximum true
+                 * @step 0.5
+                 */
+                pressureAngle?: number | undefined;
+                /**
+                 * How far the teeth are moved out from the pitch circle, as a share of the module. Positive
+                 * values give thicker teeth that small gears need, negative values thinner ones.
+                 * @default 0
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                profileShift?: number | undefined;
+                /**
+                 * How much thinner each tooth is round the pitch circle than a tight fit, in model units; two
+                 * meshing gears leave the sum of their backlash between their teeth.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.01
+                 */
+                backlash?: number | undefined;
+                /**
+                 * How far the teeth reach above the pitch circle, as a share of the module.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                addendum?: number | undefined;
+                /**
+                 * How deep the gaps reach below the pitch circle, as a share of the module; more than
+                 * `addendum` leaves room for the tips of the mating gear.
+                 * @default 1.25
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                dedendum?: number | undefined;
+                /**
+                 * The radius that rounds the bottom of each gap, as a share of the module. It shrinks to
+                 * fit a narrow gap, and 0 leaves a sharp corner.
+                 * @default 0.38
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.01
+                 */
+                rootFillet?: number | undefined;
+            }
+            /**
+             * The teeth of a helical gear for `engineering.mechanical.gears.helicalGearSizes`.
+             */
+            class HelicalGearSizesDto extends HelicalGearSharedDto {
+                constructor(module?: number, teeth?: number, helixAngle?: number, pressureAngle?: number, profileShift?: number, backlash?: number, addendum?: number, dedendum?: number, rootFillet?: number);
+            }
+            /**
+             * The teeth of a helical gear for `engineering.mechanical.gears.helicalGearOutline`, with how far it is turned
+             * and how finely its curves become points.
+             */
+            class HelicalGearOutlineDto extends HelicalGearSharedDto {
+                constructor(rotation?: number, segments?: number, module?: number, teeth?: number, helixAngle?: number, pressureAngle?: number, profileShift?: number, backlash?: number, addendum?: number, dedendum?: number, rootFillet?: number);
+                /**
+                 * How far the gear is turned about its centre, in degrees. At 0 a tooth points along +X.
+                 * @default 0
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                rotation?: number | undefined;
+                /**
+                 * How many straight pieces stand for each curve of the outline: each tip, flank piece and
+                 * root.
+                 * @default 8
+                 * @minimum 1
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                segments?: number | undefined;
+            }
+            /**
+             * The teeth of a straight bevel gear, shared by `engineering.mechanical.gears.bevelGearSizes` and
+             * `engineering.mechanical.gears.bevelGearOutline`: their size at the back, the gear they mesh with and the
+             * angle between the two, their shape and how loosely they fit.
+             */
+            abstract class BevelGearSharedDto {
+                /**
+                 * The tooth size at the back, the gear's outer end: the outer pitch diameter divided by the
+                 * teeth, in model units. Only gears of one module mesh.
+                 * @default 0.2
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                module?: number | undefined;
+                /**
+                 * How many teeth the gear has, at least 3.
+                 * @default 20
+                 * @minimum 3
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                teeth?: number | undefined;
+                /**
+                 * How many teeth the gear it meshes with has. With `shaftAngle` it sets the cone the gear
+                 * rolls on.
+                 * @default 20
+                 * @minimum 3
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                mateTeeth?: number | undefined;
+                /**
+                 * The angle between the two gears' axes, in degrees; 90 turns a drive through a right angle.
+                 * @default 90
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum 180
+                 * @exclusiveMaximum true
+                 * @step 1
+                 */
+                shaftAngle?: number | undefined;
+                /**
+                 * The angle at which meshing teeth push on each other, in degrees; 20 is the common
+                 * standard, and meshing gears share it.
+                 * @default 20
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum 45
+                 * @exclusiveMaximum true
+                 * @step 0.5
+                 */
+                pressureAngle?: number | undefined;
+                /**
+                 * How much thinner each tooth is at the outer pitch circle than a tight fit, in model units.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.01
+                 */
+                backlash?: number | undefined;
+                /**
+                 * How far the teeth reach above the pitch cone at the back, as a share of the module.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                addendum?: number | undefined;
+                /**
+                 * How deep the gaps reach below the pitch cone at the back, as a share of the module.
+                 * @default 1.25
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                dedendum?: number | undefined;
+                /**
+                 * The radius that rounds the bottom of each gap at the back, as a share of the module; it
+                 * shrinks to fit a narrow gap.
+                 * @default 0.38
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.01
+                 */
+                rootFillet?: number | undefined;
+            }
+            /**
+             * The teeth of a bevel gear for `engineering.mechanical.gears.bevelGearSizes`.
+             */
+            class BevelGearSizesDto extends BevelGearSharedDto {
+                constructor(module?: number, teeth?: number, mateTeeth?: number, shaftAngle?: number, pressureAngle?: number, backlash?: number, addendum?: number, dedendum?: number, rootFillet?: number);
+            }
+            /**
+             * The teeth of a bevel gear for `engineering.mechanical.gears.bevelGearOutline`, with how far it is turned and
+             * how finely its curves become points.
+             */
+            class BevelGearOutlineDto extends BevelGearSharedDto {
+                constructor(rotation?: number, segments?: number, module?: number, teeth?: number, mateTeeth?: number, shaftAngle?: number, pressureAngle?: number, backlash?: number, addendum?: number, dedendum?: number, rootFillet?: number);
+                /**
+                 * How far the gear is turned about its centre, in degrees. At 0 a tooth points along +X.
+                 * @default 0
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                rotation?: number | undefined;
+                /**
+                 * How many straight pieces stand for each curve of the outline: each tip, flank piece and
+                 * root.
+                 * @default 8
+                 * @minimum 1
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                segments?: number | undefined;
+            }
+            /**
+             * Two external spur gears in mesh, for `engineering.mechanical.gears.gearPair`: the module, pressure
+             * angle and tooth heights they share, their teeth and their profile shifts.
+             */
+            class GearPairDto {
+                constructor(module?: number, teethA?: number, teethB?: number, pressureAngle?: number, profileShiftA?: number, profileShiftB?: number, addendum?: number, dedendum?: number);
+                /**
+                 * The module both gears share, in model units.
+                 * @default 0.2
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                module?: number | undefined;
+                /**
+                 * How many teeth the first gear has, at least 3.
+                 * @default 20
+                 * @minimum 3
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                teethA?: number | undefined;
+                /**
+                 * How many teeth the second gear has, at least 3.
+                 * @default 30
+                 * @minimum 3
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                teethB?: number | undefined;
+                /**
+                 * The pressure angle both gears share, in degrees.
+                 * @default 20
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum 45
+                 * @exclusiveMaximum true
+                 * @step 0.5
+                 */
+                pressureAngle?: number | undefined;
+                /**
+                 * The first gear's profile shift, as a share of the module. Shifts that pull a tip inside its
+                 * base circle, or work the pair past 45 degrees, are refused.
+                 * @default 0
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                profileShiftA?: number | undefined;
+                /**
+                 * The second gear's profile shift, as a share of the module. Shifts that pull a tip inside its
+                 * base circle, or work the pair past 45 degrees, are refused.
+                 * @default 0
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                profileShiftB?: number | undefined;
+                /**
+                 * How far the teeth of both reach above their pitch circles, as a share of the module.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                addendum?: number | undefined;
+                /**
+                 * How deep the gaps of both reach below their pitch circles, as a share of the module; it
+                 * sets the clearance between each gear's tips and the other's roots.
+                 * @default 1.25
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                dedendum?: number | undefined;
+            }
+            /**
+             * A spur gear meshing inside a ring gear, for `engineering.mechanical.gears.internalGearPair`: the module and
+             * pressure angle they share and their teeth.
+             */
+            class InternalGearPairDto {
+                constructor(module?: number, pinionTeeth?: number, ringTeeth?: number, pressureAngle?: number, addendum?: number);
+                /**
+                 * The module both gears share, in model units.
+                 * @default 0.2
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                module?: number | undefined;
+                /**
+                 * How many teeth the spur gear has, at least 3. Fewer than about 20 interfere with a
+                 * standard ring of any size.
+                 * @default 24
+                 * @minimum 3
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                pinionTeeth?: number | undefined;
+                /**
+                 * The ring's teeth: more than the spur gear's, and enough to keep their tips outside its base
+                 * circle, 34 at 20 degrees with an addendum of 1.
+                 * @default 60
+                 * @minimum 3
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                ringTeeth?: number | undefined;
+                /**
+                 * The pressure angle both gears share, in degrees.
+                 * @default 20
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum 45
+                 * @exclusiveMaximum true
+                 * @step 0.5
+                 */
+                pressureAngle?: number | undefined;
+                /**
+                 * How far the teeth of both reach beyond their pitch circles, as a share of the module.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                addendum?: number | undefined;
+            }
+            /**
+             * A planetary gear set, for `engineering.mechanical.gears.planetarySet`: the module and pressure angle its
+             * gears share, the sun's and a planet's teeth and how many planets run round the sun.
+             */
+            class PlanetarySetDto {
+                constructor(module?: number, sunTeeth?: number, planetTeeth?: number, planets?: number, pressureAngle?: number, addendum?: number);
+                /**
+                 * The module all its gears share, in model units.
+                 * @default 0.2
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                module?: number | undefined;
+                /**
+                 * How many teeth the sun has, at least 3.
+                 * @default 24
+                 * @minimum 3
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                sunTeeth?: number | undefined;
+                /**
+                 * How many teeth each planet has, at least 3. A planet meshes inside the ring, so fewer than
+                 * about 20 interfere with it.
+                 * @default 24
+                 * @minimum 3
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                planetTeeth?: number | undefined;
+                /**
+                 * How many planets run round the sun, evenly spaced.
+                 * @default 4
+                 * @minimum 1
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                planets?: number | undefined;
+                /**
+                 * The pressure angle all its gears share, in degrees.
+                 * @default 20
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum 45
+                 * @exclusiveMaximum true
+                 * @step 0.5
+                 */
+                pressureAngle?: number | undefined;
+                /**
+                 * How far the teeth reach beyond their pitch circles, as a share of the module.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                addendum?: number | undefined;
+            }
+            /**
+             * A diametral pitch and the unit to give the module in, for
+             * `engineering.mechanical.gears.moduleFromDiametralPitch`, which turns an inch gear's size into
+             * the module the gear methods take.
+             */
+            class ModuleFromDiametralPitchDto {
+                constructor(diametralPitch?: number, unit?: Base.unitOfLengthEnum);
+                /**
+                 * How many teeth the gear has per inch of its pitch circle's diameter; a larger pitch means
+                 * smaller teeth.
+                 * @default 10
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                diametralPitch?: number | undefined;
+                /**
+                 * The unit to give the module in, the model's.
+                 * @default inch
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+            }
+            /**
+             * An ISO metric thread size and the unit its sizes come back in, shared by the ISO thread and
+             * fastener sizes of `engineering.mechanical`.
+             */
+            abstract class IsoSizeSharedDto {
+                /**
+                 * The thread size, such as M8.
+                 * @default m3
+                 */
+                size?: isoThreadSizeEnum | undefined;
+                /**
+                 * The unit every length the method takes or gives is in; the size names a metric thread
+                 * whatever it is.
+                 * @default millimetre
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+            }
+            /**
+             * An ISO metric thread size and a unit, for the cap screw, nut and washer sizes of
+             * `engineering.mechanical.fasteners.iso`.
+             */
+            class IsoSizeDto extends IsoSizeSharedDto {
+                constructor(size?: isoThreadSizeEnum, unit?: Base.unitOfLengthEnum);
+            }
+            /**
+             * An ISO metric thread size and, for a fine thread, its pitch, for
+             * `engineering.mechanical.threads.iso.thread`.
+             */
+            class IsoThreadDto extends IsoSizeSharedDto {
+                constructor(size?: isoThreadSizeEnum, pitch?: number, unit?: Base.unitOfLengthEnum);
+                /**
+                 * The crest-to-crest distance in millimetres, as ISO names it: at most the size's coarse pitch,
+                 * 3 for an M24. Left out, the coarse pitch.
+                 * @default undefined
+                 * @optional true
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum 3
+                 * @step 0.05
+                 */
+                pitch?: number | undefined;
+            }
+            /**
+             * An ISO metric thread size, how much room is left around it and a unit, for
+             * `engineering.mechanical.fasteners.iso.clearanceHole`.
+             */
+            class IsoClearanceHoleDto extends IsoSizeSharedDto {
+                constructor(size?: isoThreadSizeEnum, fit?: clearanceFitEnum, unit?: Base.unitOfLengthEnum);
+                /**
+                 * How much room the hole leaves around the screw.
+                 * @default normal
+                 */
+                fit?: clearanceFitEnum | undefined;
+            }
+            /**
+             * An ISO hexagon bolt's thread size and length and a unit, for
+             * `engineering.mechanical.fasteners.iso.hexBoltSizes`.
+             */
+            class IsoHexBoltSizesDto extends IsoSizeSharedDto {
+                constructor(size?: isoThreadSizeEnum, length?: number, unit?: Base.unitOfLengthEnum);
+                /**
+                 * The length of the bolt from under its head to its tip, in `unit`, which sets how much of
+                 * it ISO 4014 threads.
+                 * @default 10
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                length?: number | undefined;
+            }
+            /**
+             * An ISO set screw's thread size, point and length and a unit, for
+             * `engineering.mechanical.fasteners.iso.setScrewSizes`.
+             */
+            class IsoSetScrewSizesDto extends IsoSizeSharedDto {
+                constructor(size?: isoThreadSizeEnum, point?: isoSetScrewPointEnum, length?: number, unit?: Base.unitOfLengthEnum);
+                /**
+                 * The shape of the screw's end that bears on the part.
+                 * @default flat
+                 */
+                point?: isoSetScrewPointEnum | undefined;
+                /**
+                 * The screw's whole length in `unit`, which decides whether it counts as short. Left out, a
+                 * long screw.
+                 * @default undefined
+                 * @optional true
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                length?: number | undefined;
+            }
+            /**
+             * A Unified inch thread size and the unit its sizes come back in, shared by the ASME thread and
+             * fastener sizes of `engineering.mechanical`.
+             */
+            abstract class AnsiSizeSharedDto {
+                /**
+                 * The thread size, such as 1/4 or #10.
+                 * @default in1_4
+                 */
+                size?: ansiThreadSizeEnum | undefined;
+                /**
+                 * The unit every length the method takes or gives is in; the size names an inch thread
+                 * whatever it is.
+                 * @default inch
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+            }
+            /**
+             * A Unified inch thread size and a unit, for the cap screw and nut sizes of
+             * `engineering.mechanical.fasteners.ansi`.
+             */
+            class AnsiSizeDto extends AnsiSizeSharedDto {
+                constructor(size?: ansiThreadSizeEnum, unit?: Base.unitOfLengthEnum);
+            }
+            /**
+             * A Unified inch thread size, its series or its own threads per inch, and a unit, for
+             * `engineering.mechanical.threads.ansi.thread`.
+             */
+            class AnsiThreadDto extends AnsiSizeSharedDto {
+                constructor(size?: ansiThreadSizeEnum, series?: ansiThreadSeriesEnum, threadsPerInch?: number, unit?: Base.unitOfLengthEnum);
+                /**
+                 * Whether the thread is coarse (UNC) or fine (UNF); #0, which has no coarse thread, is cut fine.
+                 * @default unc
+                 */
+                series?: ansiThreadSeriesEnum | undefined;
+                /**
+                 * A pitch of the thread's own, as threads to the inch, at least the size's coarsest; it
+                 * overrides `series`. Left out, the series' pitch.
+                 * @default undefined
+                 * @optional true
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                threadsPerInch?: number | undefined;
+            }
+            /**
+             * A Unified inch thread size, how much room is left around it and a unit, for
+             * `engineering.mechanical.fasteners.ansi.clearanceHole`.
+             */
+            class AnsiClearanceHoleDto extends AnsiSizeSharedDto {
+                constructor(size?: ansiThreadSizeEnum, fit?: clearanceFitEnum, unit?: Base.unitOfLengthEnum);
+                /**
+                 * How much room the hole leaves around the screw.
+                 * @default normal
+                 */
+                fit?: clearanceFitEnum | undefined;
+            }
+            /**
+             * An ASME hex cap screw's thread size and length and a unit, for
+             * `engineering.mechanical.fasteners.ansi.hexBoltSizes`.
+             */
+            class AnsiHexBoltSizesDto extends AnsiSizeSharedDto {
+                constructor(size?: ansiThreadSizeEnum, length?: number, unit?: Base.unitOfLengthEnum);
+                /**
+                 * The length of the screw from under its head to its tip, in `unit`, which sets how much of
+                 * it ASME B18.2.1 threads.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.125
+                 */
+                length?: number | undefined;
+            }
+            /**
+             * A Unified inch thread size, a washer series and a unit, for
+             * `engineering.mechanical.fasteners.ansi.washerSizes`.
+             */
+            class AnsiWasherSizesDto extends AnsiSizeSharedDto {
+                constructor(size?: ansiThreadSizeEnum, series?: ansiWasherSeriesEnum, unit?: Base.unitOfLengthEnum);
+                /**
+                 * Whether the washer is narrow or wide around its hole.
+                 * @default narrow
+                 */
+                series?: ansiWasherSeriesEnum | undefined;
+            }
+            /**
+             * An ASME set screw's thread size, point, thread series and length and a unit, for
+             * `engineering.mechanical.fasteners.ansi.setScrewSizes`.
+             */
+            class AnsiSetScrewSizesDto extends AnsiSizeSharedDto {
+                constructor(size?: ansiThreadSizeEnum, point?: ansiSetScrewPointEnum, series?: ansiThreadSeriesEnum, length?: number, unit?: Base.unitOfLengthEnum);
+                /**
+                 * The shape of the screw's end that bears on the part.
+                 * @default cup
+                 */
+                point?: ansiSetScrewPointEnum | undefined;
+                /**
+                 * Whether the screw's thread is coarse (UNC) or fine (UNF), which sets the root its point
+                 * starts from; #0, which has no coarse thread, is cut fine.
+                 * @default unc
+                 */
+                series?: ansiThreadSeriesEnum | undefined;
+                /**
+                 * The screw's whole length in `unit`, which decides whether it counts as short. Left out, a
+                 * long screw.
+                 * @default undefined
+                 * @optional true
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.125
+                 */
+                length?: number | undefined;
+            }
+            /**
+             * An ISO deep groove ball bearing's designation and a unit, for
+             * `engineering.mechanical.bearings.iso.ballBearingSizes`.
+             */
+            class IsoBallBearingSizesDto {
+                constructor(designation?: isoBallBearingEnum, unit?: Base.unitOfLengthEnum);
+                /**
+                 * The bearing, such as 6204 or 608.
+                 * @default b608
+                 */
+                designation?: isoBallBearingEnum | undefined;
+                /**
+                 * The unit the bearing's sizes come back in.
+                 * @default millimetre
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+            }
+            /**
+             * An inch deep groove ball bearing's designation, whether it is shielded and a unit, for
+             * `engineering.mechanical.bearings.ansi.ballBearingSizes`.
+             */
+            class AnsiBallBearingSizesDto {
+                constructor(designation?: ansiBallBearingEnum, shields?: boolean, unit?: Base.unitOfLengthEnum);
+                /**
+                 * The bearing, such as R8 or R188.
+                 * @default r8
+                 */
+                designation?: ansiBallBearingEnum | undefined;
+                /**
+                 * When true, the width of the shielded bearing, which on several R-series sizes is wider than
+                 * the open one.
+                 * @default false
+                 */
+                shields?: boolean | undefined;
+                /**
+                 * The unit the bearing's sizes come back in.
+                 * @default inch
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+            }
+            /**
+             * The shaft a DIN 6885 parallel key sits in and a unit, for
+             * `engineering.mechanical.keys.din.parallelKeySizes`.
+             */
+            class DinParallelKeySizesDto {
+                constructor(shaftDiameter?: number, unit?: Base.unitOfLengthEnum);
+                /**
+                 * The diameter of the shaft, in `unit`, which sets the key's width and height; DIN 6885 keys
+                 * shafts over 6 and up to 65 millimetres.
+                 * @default 20
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                shaftDiameter?: number | undefined;
+                /**
+                 * The unit the shaft's diameter and the key's sizes are in.
+                 * @default millimetre
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+            }
+            /**
+             * The shaft an ANSI B17.1 parallel key sits in and a unit, for
+             * `engineering.mechanical.keys.ansi.parallelKeySizes`.
+             */
+            class AnsiParallelKeySizesDto {
+                constructor(shaftDiameter?: number, unit?: Base.unitOfLengthEnum);
+                /**
+                 * The diameter of the shaft, in `unit`, which sets the square key's size; ANSI B17.1's square
+                 * keys cover shafts over 5/16 and up to 6-1/2 inches.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.125
+                 */
+                shaftDiameter?: number | undefined;
+                /**
+                 * The unit the shaft's diameter and the key's sizes are in.
+                 * @default inch
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+            }
+            /**
+             * Shaft or bore and a unit, for `engineering.mechanical.retainingRings.din.diameters`, which lists
+             * the diameters DIN 471 and DIN 472 give rings for.
+             */
+            class DinRetainingRingDiametersDto {
+                constructor(kind?: retainingRingKindEnum, unit?: Base.unitOfLengthEnum);
+                /**
+                 * Whether the rings sit on a shaft or in a bore.
+                 * @default shaft
+                 */
+                kind?: retainingRingKindEnum | undefined;
+                /**
+                 * The unit the diameters come back in.
+                 * @default millimetre
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+            }
+            /**
+             * A shaft's or a bore's diameter, which DIN ring it takes and a unit, for
+             * `engineering.mechanical.retainingRings.din.retainingRingSizes`.
+             */
+            class DinRetainingRingSizesDto {
+                constructor(kind?: retainingRingKindEnum, diameter?: number, unit?: Base.unitOfLengthEnum);
+                /**
+                 * Whether the ring sits on a shaft or in a bore.
+                 * @default shaft
+                 */
+                kind?: retainingRingKindEnum | undefined;
+                /**
+                 * The shaft's or the bore's diameter in `unit`, one DIN 471 or DIN 472 lists: from 3 to 100
+                 * millimetres for shafts, from 8 to 100 for bores.
+                 * @default 20
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                diameter?: number | undefined;
+                /**
+                 * The unit the diameter and the ring's sizes are in.
+                 * @default millimetre
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+            }
+            /**
+             * Shaft or bore and a unit, for `engineering.mechanical.retainingRings.ansi.diameters`, which
+             * lists the diameters the inch tapered rings come for.
+             */
+            class AnsiRetainingRingDiametersDto {
+                constructor(kind?: retainingRingKindEnum, unit?: Base.unitOfLengthEnum);
+                /**
+                 * Whether the rings sit on a shaft or in a bore.
+                 * @default shaft
+                 */
+                kind?: retainingRingKindEnum | undefined;
+                /**
+                 * The unit the diameters come back in.
+                 * @default inch
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+            }
+            /**
+             * A shaft's or a bore's diameter, which inch tapered ring it takes and a unit, for
+             * `engineering.mechanical.retainingRings.ansi.retainingRingSizes`.
+             */
+            class AnsiRetainingRingSizesDto {
+                constructor(kind?: retainingRingKindEnum, diameter?: number, unit?: Base.unitOfLengthEnum);
+                /**
+                 * Whether the ring sits on a shaft or in a bore.
+                 * @default shaft
+                 */
+                kind?: retainingRingKindEnum | undefined;
+                /**
+                 * The shaft's or the bore's diameter in `unit`, one the inch rings list: from 1/8 to 2 inches
+                 * for shafts, from 1/4 to 2 for bores.
+                 * @default 0.75
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.125
+                 */
+                diameter?: number | undefined;
+                /**
+                 * The unit the diameter and the ring's sizes are in.
+                 * @default inch
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+            }
+            /**
+             * A DIN 5480 involute spline's reference diameter and module, and the unit its sizes come back
+             * in, for `engineering.mechanical.splines.din.involuteSplineSizes`.
+             */
+            class DinInvoluteSplineSizesDto {
+                constructor(referenceDiameter?: number, module?: number, unit?: Base.unitOfLengthEnum);
+                /**
+                 * The diameter the spline is named by, in millimetres as DIN 5480 names it, such as 25 in
+                 * W 25x1.25x18.
+                 * @default 25
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                referenceDiameter?: number | undefined;
+                /**
+                 * The module of its teeth in millimetres, one of DIN 5480's: 0.5, 0.6, 0.75, 0.8, 1, 1.25,
+                 * 1.5, 1.75, 2, 2.5, 3, 4, 5, 6, 8 or 10.
+                 * @default 1.25
+                 * @minimum 0.5
+                 * @maximum 10
+                 * @step 0.05
+                 */
+                module?: number | undefined;
+                /**
+                 * The unit the spline's sizes come back in.
+                 * @default millimetre
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+            }
+            /**
+             * An ANSI B92.1 involute spline's teeth and pitch, and the unit its sizes come back in, for
+             * `engineering.mechanical.splines.ansi.involuteSplineSizes`.
+             */
+            class AnsiInvoluteSplineSizesDto {
+                constructor(teeth?: number, pitch?: ansiSplinePitchEnum, unit?: Base.unitOfLengthEnum);
+                /**
+                 * How many teeth the spline has, a whole number from 6 to 60.
+                 * @default 24
+                 * @minimum 6
+                 * @maximum 60
+                 * @step 1
+                 */
+                teeth?: number | undefined;
+                /**
+                 * The pitch over the stub pitch, such as 16/32.
+                 * @default p16_32
+                 */
+                pitch?: ansiSplinePitchEnum | undefined;
+                /**
+                 * The unit the spline's sizes come back in.
+                 * @default inch
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+            }
+            /**
+             * A cylinder's diameter, an ASME B94.6 diametral pitch, a pattern and a unit, for
+             * `engineering.mechanical.knurls.ansi.knurlSizes`.
+             */
+            class AnsiKnurlSizesDto {
+                constructor(diameter?: number, diametralPitch?: number, pattern?: knurlPatternEnum, unit?: Base.unitOfLengthEnum);
+                /**
+                 * The cylinder's diameter in `unit`.
+                 * @default 0.5
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.125
+                 */
+                diameter?: number | undefined;
+                /**
+                 * Teeth to an inch of diameter, one of ASME B94.6's: 64, 96, 128 or 160.
+                 * @default 96
+                 * @minimum 64
+                 * @maximum 160
+                 * @step 32
+                 */
+                diametralPitch?: number | undefined;
+                /**
+                 * The grooves' pattern; left and right are B94.6's diagonal knurls.
+                 * @default straight
+                 */
+                pattern?: knurlPatternEnum | undefined;
+                /**
+                 * The unit the diameter and the grooves' sizes are in.
+                 * @default inch
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+            }
+            /**
+             * A cylinder's diameter, a DIN 82 pitch, a pattern and a unit, for
+             * `engineering.mechanical.knurls.din.knurlSizes`.
+             */
+            class DinKnurlSizesDto {
+                constructor(diameter?: number, pitch?: number, pattern?: knurlPatternEnum, unit?: Base.unitOfLengthEnum);
+                /**
+                 * The cylinder's diameter in `unit`, more than twice `pitch` (which is in millimetres).
+                 * @default 20
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                diameter?: number | undefined;
+                /**
+                 * The distance between grooves round the circumference, in millimetres, one of DIN 82's: 0.5,
+                 * 0.6, 0.8, 1, 1.2 or 1.6.
+                 * @default 1
+                 * @minimum 0.5
+                 * @maximum 1.6
+                 * @step 0.1
+                 */
+                pitch?: number | undefined;
+                /**
+                 * The grooves' pattern.
+                 * @default straight
+                 */
+                pattern?: knurlPatternEnum | undefined;
+                /**
+                 * The unit the diameter and the grooves' sizes are in.
+                 * @default millimetre
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+            }
+            /**
+             * A compression spring with closed and ground ends, for
+             * `engineering.mechanical.springs.compressionSpringPath`: its wire, its coils and its length.
+             */
+            class CompressionSpringPathDto {
+                constructor(wireDiameter?: number, diameter?: number, activeCoils?: number, length?: number);
+                /**
+                 * The diameter of the wire, in model units.
+                 * @default 0.2
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                wireDiameter?: number | undefined;
+                /**
+                 * The outside diameter of the coils, in model units; more than three times `wireDiameter`.
+                 * @default 2
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                diameter?: number | undefined;
+                /**
+                 * How many coils spring, besides the closed coil at each end; it may be a fraction, and at
+                 * most 1000.
+                 * @default 6
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum 1000
+                 * @step 0.5
+                 */
+                activeCoils?: number | undefined;
+                /**
+                 * The spring's length from one ground end to the other, free or compressed; at least the
+                 * solid length, where every coil touches the next.
+                 * @default 4
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                length?: number | undefined;
             }
         }
         /**
@@ -23735,7 +27989,7 @@ declare namespace Bit {
              * write.
              */
             class DxfModelDto {
-                constructor(dxfPathsParts?: DxfPathsPartDto[], colorFormat?: "aci" | "truecolor", acadVersion?: "AC1009" | "AC1015");
+                constructor(dxfPathsParts?: DxfPathsPartDto[], colorFormat?: "aci" | "truecolor", acadVersion?: "AC1009" | "AC1015", unit?: Base.unitOfLengthEnum);
                 /**
                  * Array of path parts, each containing paths with segments
                  * @default undefined
@@ -23753,6 +28007,13 @@ declare namespace Bit {
                  * @default AC1009
                  */
                 acadVersion?: "AC1009" | "AC1015" | undefined;
+                /**
+                 * The unit the drawing is in, written into its header so CAD programs open it at true size;
+                 * `AC1015` only. Left out, no unit is stated.
+                 * @default undefined
+                 * @optional true
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
             }
         }
         /**
@@ -25451,6 +29712,66 @@ declare namespace Bit {
                  */
                 expression?: string | undefined;
             }
+            /**
+             * A length and the two units to convert it between, for `math.convertLength`: `value` is read in
+             * `from` and given back in `to`.
+             */
+            class ConvertLengthDto {
+                constructor(value?: number, from?: Base.unitOfLengthEnum, to?: Base.unitOfLengthEnum);
+                /**
+                 * The length to convert, in `from`.
+                 * @default 1
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                value?: number | undefined;
+                /**
+                 * The unit `value` is in.
+                 * @default inch
+                 */
+                from?: Base.unitOfLengthEnum | undefined;
+                /**
+                 * The unit to give the length in.
+                 * @default millimetre
+                 */
+                to?: Base.unitOfLengthEnum | undefined;
+            }
+            /**
+             * A unit of length, for `math.millimetresPerUnit`, which says how many millimetres one of it
+             * holds.
+             */
+            class UnitOfLengthDto {
+                constructor(unit?: Base.unitOfLengthEnum);
+                /**
+                 * The unit to measure in millimetres.
+                 * @default inch
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+            }
+            /**
+             * A number and the denominator to write it to, for `math.toFractionText`, which gives it as a
+             * whole number and a reduced fraction such as `1-1/4`.
+             */
+            class FractionTextDto {
+                constructor(number?: number, denominator?: number);
+                /**
+                 * The number to write, such as a length in inches.
+                 * @default 1.25
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 0.0625
+                 */
+                number?: number | undefined;
+                /**
+                 * The finest fraction to round to: a whole number such as 64 for sixty-fourths of an inch.
+                 * @default 64
+                 * @minimum 1
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                denominator?: number | undefined;
+            }
         }
         /**
          * Parameters for polygonal mesh geometry: vertex, index and normal data, the options for building and
@@ -25574,6 +29895,46 @@ declare namespace Bit {
                 holes?: Base.Point3[][] | undefined;
             }
             /**
+             * Two triangle meshes and how close they may come, for `mesh.meshesWithin`.
+             */
+            class MeshesWithinDto {
+                constructor(mesh1?: Base.Mesh3, mesh2?: Base.Mesh3, distance?: number);
+                /**
+                 * The first mesh, as a list of triangles.
+                 * @default undefined
+                 */
+                mesh1: Base.Mesh3;
+                /**
+                 * The second mesh, as a list of triangles.
+                 * @default undefined
+                 */
+                mesh2: Base.Mesh3;
+                /**
+                 * How close the meshes may come, in model units; 0 asks whether they touch or cross.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                distance?: number | undefined;
+            }
+            /**
+             * A closed triangle mesh and a point, for `mesh.isPointInside`.
+             */
+            class MeshPointDto {
+                constructor(mesh?: Base.Mesh3, point?: Base.Point3);
+                /**
+                 * The closed mesh, as a list of triangles.
+                 * @default undefined
+                 */
+                mesh: Base.Mesh3;
+                /**
+                 * The point to test.
+                 * @default undefined
+                 */
+                point: Base.Point3;
+            }
+            /**
              * A triangle mesh, for `mesh.signedVolume` and other methods that read one.
              */
             class MeshDto {
@@ -25583,6 +29944,136 @@ declare namespace Bit {
                  * @default undefined
                  */
                 mesh: Base.Mesh3;
+            }
+            /**
+             * Where `mesh.icosphere` puts its sphere, how large it is and how finely it is triangulated.
+             */
+            class IcosphereDto {
+                constructor(center?: Base.Point3, radius?: number, detail?: number);
+                /**
+                 * The sphere's center.
+                 * @default [0, 0, 0]
+                 */
+                center?: Base.Point3 | undefined;
+                /**
+                 * The sphere's radius, in model units.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                radius?: number | undefined;
+                /**
+                 * How many times each triangle of the starting icosahedron is split in four, from 0 (20
+                 * triangles) to 6 (81,920 triangles).
+                 * @default 2
+                 * @minimum 0
+                 * @maximum 6
+                 * @step 1
+                 */
+                detail?: number | undefined;
+            }
+            /**
+             * The size and the number of sides of the cone or cylinder `mesh.frustum` makes.
+             */
+            class FrustumDto {
+                constructor(center?: Base.Point3, direction?: Base.Vector3, bottomRadius?: number, topRadius?: number, height?: number, sides?: number);
+                /**
+                 * The center of the bottom.
+                 * @default [0, 0, 0]
+                 */
+                center?: Base.Point3 | undefined;
+                /**
+                 * The direction the shape rises in from `center`; its length does not matter.
+                 * @default [0, 1, 0]
+                 */
+                direction?: Base.Vector3 | undefined;
+                /**
+                 * The radius at the bottom, in model units; 0 makes a point.
+                 * @default 1
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                bottomRadius?: number | undefined;
+                /**
+                 * The radius at the top, in model units; 0 makes a point, the bottom radius a cylinder.
+                 * @default 0.5
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                topRadius?: number | undefined;
+                /**
+                 * How tall the shape is, in model units.
+                 * @default 2
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                height?: number | undefined;
+                /**
+                 * How many flat sides go around the shape, at least 3.
+                 * @default 24
+                 * @minimum 3
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                sides?: number | undefined;
+            }
+            /**
+             * A list of triangles and a tolerance for `mesh.toIndexed`.
+             */
+            class MeshToIndexedDto {
+                constructor(mesh?: Base.Mesh3, tolerance?: number);
+                /**
+                 * The mesh, as a list of triangles.
+                 * @default undefined
+                 */
+                mesh: Base.Mesh3;
+                /**
+                 * Corners closer than this in every coordinate, in model units, become one point; 0 joins
+                 * none.
+                 * @default 1e-7
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 1e-7
+                 */
+                tolerance?: number | undefined;
+            }
+            /**
+             * An indexed mesh for `mesh.fromIndexed`, `mesh.smoothNormals`, `mesh.windingPieces` and
+             * `mesh.orientConsistently`.
+             */
+            class IndexedMeshDto {
+                constructor(mesh?: Base.IndexedMesh);
+                /**
+                 * The mesh, with its points stored once and its triangles as point numbers.
+                 * @default undefined
+                 */
+                mesh: Base.IndexedMesh;
+            }
+            /**
+             * An indexed mesh and the angle of its sharp edges for `mesh.creasedNormals`.
+             */
+            class CreasedNormalsDto {
+                constructor(mesh?: Base.IndexedMesh, angle?: number);
+                /**
+                 * The mesh, with its points stored once and its triangles as point numbers.
+                 * @default undefined
+                 */
+                mesh: Base.IndexedMesh;
+                /**
+                 * Triangles that turn from each other by more than this, in degrees, keep a sharp edge
+                 * between them; 0 shades every triangle flat and 180 smooths across every edge.
+                 * @default 30
+                 * @minimum 0
+                 * @maximum 180
+                 * @step 1
+                 */
+                angle?: number | undefined;
             }
         }
         /**
@@ -25726,8 +30217,8 @@ declare namespace Bit {
                  */
                 updatable?: boolean | undefined;
                 /**
-                 * A mesh drawn earlier for this point; when given it is updated in place instead of a new
-                 * one being made.
+                 * A mesh drawn earlier with `updatable` on: moved in place while `colours`, `opacity` and
+                 * `size` stay the same, else freed and redrawn. Use the returned mesh.
                  * @default undefined
                  * @optional true
                  */
@@ -25775,8 +30266,8 @@ declare namespace Bit {
                  */
                 updatable?: boolean | undefined;
                 /**
-                 * A mesh drawn earlier for these points; when given it is updated in place instead of a new
-                 * one being made.
+                 * A mesh drawn earlier with `updatable` on: moved in place while the `points` count,
+                 * `colours`, `opacity` and `size` stay the same, else freed and redrawn. Use the returned mesh.
                  * @default undefined
                  * @optional true
                  */
@@ -26625,6 +31116,225 @@ declare namespace Bit {
                  */
                 tolerance?: number | undefined;
             }
+            /**
+             * A flat outline for `polyline.signedArea2d`, `polyline.perimeter2d` and the other 2D polygon
+             * methods: its points in order, the last joining back to the first.
+             */
+            class Polygon2Dto {
+                constructor(points?: Base.Point2[]);
+                /**
+                 * The outline's corners in order; the last joins back to the first.
+                 * @default undefined
+                 */
+                points: Base.Point2[];
+            }
+            /**
+             * A flat outline and a point for `polyline.isPointInside2d`.
+             */
+            class PointInPolygon2Dto {
+                constructor(points?: Base.Point2[], point?: Base.Point2);
+                /**
+                 * The outline's corners in order; the last joins back to the first.
+                 * @default undefined
+                 */
+                points: Base.Point2[];
+                /**
+                 * The point to test.
+                 * @default undefined
+                 */
+                point: Base.Point2;
+            }
+            /**
+             * A flat outline and the way `polyline.orient2d` should make it run.
+             */
+            class OrientPolygon2Dto {
+                constructor(points?: Base.Point2[], counterClockwise?: boolean);
+                /**
+                 * The outline's corners in order; the last joins back to the first.
+                 * @default undefined
+                 */
+                points: Base.Point2[];
+                /**
+                 * When true the outline is made to run counter-clockwise, when false clockwise.
+                 * @default true
+                 */
+                counterClockwise?: boolean | undefined;
+            }
+            /**
+             * A flat outline and the arcs `polyline.roundCorners2d` rounds its corners with.
+             */
+            class RoundPolygon2Dto {
+                constructor(points?: Base.Point2[], radius?: number, radiusList?: number[], segments?: number);
+                /**
+                 * The outline's corners in order; the last joins back to the first.
+                 * @default undefined
+                 */
+                points: Base.Point2[];
+                /**
+                 * The radius every corner is rounded with; 0 leaves corners sharp.
+                 * @default 1
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                radius?: number | undefined;
+                /**
+                 * A radius per corner, in the order of `points`, used instead of `radius` when given.
+                 * @default undefined
+                 * @optional true
+                 */
+                radiusList?: number[] | undefined;
+                /**
+                 * How many straight pieces draw a quarter turn of arc; a smaller turn takes fewer.
+                 * @default 8
+                 * @minimum 1
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                segments?: number | undefined;
+            }
+            /**
+             * A path and, optionally, the directions it starts and ends in, for `polyline.tangents`.
+             */
+            class PolylineTangentsDto {
+                constructor(polyline?: PolylinePropertiesDto, startTangent?: Base.Vector3, endTangent?: Base.Vector3);
+                /**
+                 * The path, an open polyline of at least two points; one with `isClosed` set is refused.
+                 * @default undefined
+                 */
+                polyline: PolylinePropertiesDto;
+                /**
+                 * The direction at the first point; left out, the first segment's.
+                 * @default undefined
+                 * @optional true
+                 */
+                startTangent?: Base.Vector3 | undefined;
+                /**
+                 * The direction at the last point; left out, the last segment's.
+                 * @default undefined
+                 * @optional true
+                 */
+                endTangent?: Base.Vector3 | undefined;
+            }
+            /**
+             * A path and the direction a profile's X axis starts in, for `polyline.sweepFrames` and
+             * `polyline.sweepPlacements`.
+             */
+            class PolylineSweepDto {
+                constructor(polyline?: PolylinePropertiesDto, firstDirection?: Base.Vector3);
+                /**
+                 * The path, an open polyline of at least two points; one with `isClosed` set is refused.
+                 * @default undefined
+                 */
+                polyline: PolylinePropertiesDto;
+                /**
+                 * Roughly where the profile's X axis points at the start; it is turned square to the path.
+                 * @default [1, 0, 0]
+                 */
+                firstDirection?: Base.Vector3 | undefined;
+            }
+            /**
+             * A path and the arcs `polyline.roundCorners` rounds its corners with.
+             */
+            class RoundPolylineDto {
+                constructor(polyline?: PolylinePropertiesDto, radius?: number, segments?: number);
+                /**
+                 * The path, an open polyline of at least two points; one with `isClosed` set is refused.
+                 * @default undefined
+                 */
+                polyline: PolylinePropertiesDto;
+                /**
+                 * The radius each corner is rounded with; it shrinks where the segments beside it are short.
+                 * @default 1
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                radius?: number | undefined;
+                /**
+                 * How many straight pieces draw a quarter turn of arc; a smaller turn takes fewer.
+                 * @default 8
+                 * @minimum 1
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                segments?: number | undefined;
+            }
+        }
+        /**
+         * Parameters for working with recipes without a CAD kernel: the recipe to check or read, the roots
+         * to draw as meshes, and the node to follow. Experimental: the recipe format may still change before
+         * it is declared stable.
+         * @beta
+         */
+        declare namespace Recipes {
+            /**
+             * A recipe for `recipes.check` and `recipes.read`, as it came from a file, another thread or a
+             * caller.
+             * @beta
+             */
+            class RecipeDto {
+                constructor(recipe?: Base.Recipe);
+                /**
+                 * The recipe: steps such as polygons, extrusions and cuts, and the roots to build from them;
+                 * its buffers may be typed arrays or, as JSON holds them, lists of numbers.
+                 * @default undefined
+                 */
+                recipe: Base.Recipe;
+            }
+            /**
+             * A recipe for `recipes.surfaceMeshes`, which gives the roots made of triangle meshes alone as
+             * meshes, with which roots to read and whether Z turns into Y.
+             * @beta
+             */
+            class RecipeSurfaceMeshesDto {
+                constructor(recipe?: Base.Recipe, roots?: number[], adjustZtoY?: boolean);
+                /**
+                 * The recipe: steps such as polygons, extrusions and triangle meshes, and the roots to build
+                 * from them.
+                 * @default undefined
+                 */
+                recipe: Base.Recipe;
+                /**
+                 * The positions of the roots to read; every root when left out.
+                 * @default undefined
+                 * @optional true
+                 */
+                roots?: number[] | undefined;
+                /**
+                 * When true, each mesh turns a quarter turn about X, as a kernel's recipe build does with
+                 * this option: `(x, y, z)` becomes `(x, z, -y)`.
+                 * @default false
+                 */
+                adjustZtoY?: boolean | undefined;
+            }
+            /**
+             * A node of a recipe for `recipes.sourceOf`, which follows it through the transforms that only
+             * turn and move to the step it places, with the matrix that places the node.
+             * @beta
+             */
+            class RecipeSourceDto {
+                constructor(recipe?: Base.Recipe, node?: number, matrix?: Base.TransformMatrix);
+                /**
+                 * The recipe the node belongs to, as `recipes.read` gives it; one without `nodes` is refused.
+                 * @default undefined
+                 */
+                recipe: Base.Recipe;
+                /**
+                 * The position of the node to follow in the recipe's nodes, such as a root's `node`.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                node?: number | undefined;
+                /**
+                 * What places the node, as a column-major 4 x 4 matrix of 16 finite numbers, such as its
+                 * root's `matrix`; anything else is refused.
+                 * @default undefined
+                 */
+                matrix: Base.TransformMatrix;
+            }
         }
         /**
          * Parameters for string handling: the text to act on plus the separator, index, pattern, replacement,
@@ -27229,6 +31939,40 @@ declare namespace Bit {
                  * @default undefined
                  */
                 translations: Base.Vector3[];
+            }
+            /**
+             * A transformation for `transforms.combine`, `transforms.rigidInverse` and
+             * `transforms.determinant`: one matrix, or a list of them applied in order.
+             */
+            class TransformationDto {
+                constructor(transformation?: Base.TransformMatrixes);
+                /**
+                 * A transformation matrix, or a list of them applied in order; a list of such lists is
+                 * applied one list after another, as `point.transformPoints` takes it.
+                 * @default undefined
+                 */
+                transformation: Base.TransformMatrixes;
+            }
+            /**
+             * A transformation and how far from exact `transforms.isRigid` lets it be.
+             */
+            class TransformationToleranceDto {
+                constructor(transformation?: Base.TransformMatrixes, tolerance?: number);
+                /**
+                 * A transformation matrix, or a list of them applied in order; a list of such lists is
+                 * applied one list after another, as `point.transformPoints` takes it.
+                 * @default undefined
+                 */
+                transformation: Base.TransformMatrixes;
+                /**
+                 * How far each axis may be from length 1, and from square to the others, for the
+                 * transformation to still count as rigid.
+                 * @default 1e-7
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.0000001
+                 */
+                tolerance?: number | undefined;
             }
         }
         /**
@@ -30063,9 +34807,9 @@ declare namespace Bit {
                  */
                 loadedParts?: AssemblyLoadedPartDef[] | undefined;
                 /**
-                 * The length unit the shapes' numbers are in, which the STEP export writes into the file. Left
-                 * out, a new document states none and the STEP export takes millimetres; an existing document
-                 * keeps its own.
+                 * The length unit the shapes' numbers are in. The STEP export writes its file in millimetres and
+                 * scales the numbers from this unit, so a part keeps its size. Left out, a new document states
+                 * none and the numbers are taken as millimetres; an existing document keeps its own.
                  */
                 lengthUnit?: "mm" | "cm" | "m" | "in" | undefined;
                 /**
@@ -30526,10 +35270,12 @@ declare namespace Bit {
              * What became of one feature in a build: `ok`, `failed` with why, `suppressed`, `skipped` because a
              * body, profile or face it uses failed or was suppressed first, `rebound` when a reference lost its
              * faces and, in a build with `rebind: "report"`, took the faces most like its hint, or `pending` when
-             * its outcome must come from the caller, as a script's does (see `pending` on the result). `ms` is the
-             * time it took and `cached` says it was reused from an earlier build of the same inputs. A failed
-             * feature whose lost references have hints lists, in `repairs`, the faces most like each; a rebound
-             * one lists the faces each took.
+             * its outcome must come from the caller, as a script's does (see `pending` on the result); an
+             * assembly reports a component whose part waits for a script `pending` the same way, and a
+             * sub-assembly joined by a connector it publishes from such a part. `ms` is the time it took and
+             * `cached` says it was reused from an earlier build of the same inputs. A failed feature whose lost
+             * references have hints lists, in `repairs`, the faces most like each; a rebound one lists the faces
+             * each took.
              */
             interface DesignFeatureReport {
                 id: string;
@@ -30697,7 +35443,8 @@ declare namespace Bit {
             /**
              * An outcome the caller made, or kept from an earlier build, for the feature whose `hash` it carries: the
              * `shape`, and either the `names` of its faces in `shapes.face.getFaces` order, as a build names them,
-             * or the `roles` a script gave its faces by index. A build takes it instead of making the feature.
+             * or the `roles` a script gave its faces by index. A build takes it instead of making the feature, on
+             * a copy of `shape`, which the caller keeps and deletes.
              */
             interface DesignSuppliedOutcome<T> {
                 hash: string;
@@ -30707,9 +35454,10 @@ declare namespace Bit {
             }
             /**
              * A feature a build could not make itself, waiting for the caller: the script feature's `id`, its JSON
-             * pointer, the asset that holds its code, the `inputs` its script is given (shapes, face and edge
-             * indexes, numbers and the values written as they are) and the `hash` its outcome must be supplied
-             * under.
+             * pointer (under `/documents/<position>` for a document an assembly places), the asset that holds its
+             * code, the `inputs` its script is given (shapes, face and edge indexes, numbers and the values written
+             * as they are) and the `hash` its outcome must be supplied under. The shapes in `inputs` are copies of
+             * the bodies, the caller's to delete with the rest of the build's answer.
              */
             interface DesignPendingScript<T> {
                 id: string;
@@ -30885,10 +35633,62 @@ declare namespace Bit {
                 radius: DesignNumber;
             }
             /**
-             * A pen command of a sketch feature: a `sketch.pen` command whose numbers may be expressions, or a
-             * `circle`.
+             * An involute spur gear's outline around `centre`, in the sketch's coordinates, as
+             * `parts.mechanical.gears.spurGearProfile` draws it: `module` and `teeth` size it, and the other numbers shape
+             * the teeth as that method's inputs do, with the same defaults. With `internal` true it draws the
+             * teeth of a ring gear instead, pointing in toward `centre` as `parts.mechanical.gears.ringGearProfile` draws
+             * them, for the edge of a hole in a larger loop; a ring takes no `profileShift`. It is a loop by
+             * itself, so it is the only command of its pen or loop. The faces made of it are named by its id and
+             * their part, such as `<sketch>.<id>.tip`, `<sketch>.<id>.flank` and `<sketch>.<id>.root`.
              */
-            type DesignPenCommand = DesignExpressions<SketchCommand> | DesignCircleCommand;
+            interface DesignGearCommand {
+                type: "gear";
+                id?: string;
+                internal?: boolean;
+                centre: [
+                    DesignNumber,
+                    DesignNumber
+                ];
+                module: DesignNumber;
+                teeth: DesignNumber;
+                pressureAngle?: DesignNumber;
+                profileShift?: DesignNumber;
+                backlash?: DesignNumber;
+                addendum?: DesignNumber;
+                dedendum?: DesignNumber;
+                rootFillet?: DesignNumber;
+                rotation?: DesignNumber;
+            }
+            /**
+             * An involute rack's outline, in the sketch's coordinates, as `parts.mechanical.gears.rackProfile` draws it:
+             * `start` is where the first tooth's middle sits on the pitch line, `angle` turns the rack from
+             * running along +x (in degrees), `module` and `teeth` size it, and the other numbers shape the teeth
+             * as that method's inputs do, with the same defaults. A gear meshes with its centre its pitch radius
+             * from the pitch line. It is a loop by itself, so it is the only command of its pen or loop. The faces
+             * made of it are named by its id and their part: `tip`, `flank`, `root`, `back` and `side`.
+             */
+            interface DesignRackCommand {
+                type: "rack";
+                id?: string;
+                start: [
+                    DesignNumber,
+                    DesignNumber
+                ];
+                angle?: DesignNumber;
+                module: DesignNumber;
+                teeth: DesignNumber;
+                pressureAngle?: DesignNumber;
+                backlash?: DesignNumber;
+                addendum?: DesignNumber;
+                dedendum?: DesignNumber;
+                rootFillet?: DesignNumber;
+                height?: DesignNumber;
+            }
+            /**
+             * A pen command of a sketch feature: a `sketch.pen` command whose numbers may be expressions, a
+             * `circle`, a `gear` or a `rack`.
+             */
+            type DesignPenCommand = DesignExpressions<SketchCommand> | DesignCircleCommand | DesignGearCommand | DesignRackCommand;
             /**
              * One closed outline of a sketch that draws several: where its pen starts and its commands.
              */
@@ -31226,12 +36026,30 @@ declare namespace Bit {
                 y: DesignNumber;
             }
             /**
+             * A hole sized by the screw it takes, by `standard`: `iso` (the default), whose `size` is a metric
+             * thread from `"M1.6"` to `"M24"`, or `ansi`, whose `size` is a Unified inch thread from `"#0"` to
+             * `"1"`, coarse or `series` `"UNF"` fine (text, or `{ "expr" }` so a parameter can choose it). `fit`
+             * is `close`, `normal` (the default) or `loose` for a clearance hole after ISO 273 or ASME B18.2.8,
+             * or `tapped` for a threaded hole at the thread's nominal diameter, whose walls are also named
+             * `thread`; and `head` `socket` for the counterbore a socket head cap screw takes: DIN 974-1's, its
+             * head height plus half a millimetre deep, or the inch one, its head height plus 0.02 inch deep. The
+             * hole is sized in the document's unit.
+             */
+            interface DesignHoleFastener {
+                standard?: "iso" | "ansi";
+                size: DesignText;
+                series?: "UNC" | "UNF";
+                fit?: "close" | "normal" | "loose" | "tapped";
+                head?: "socket";
+            }
+            /**
              * Drills holes into `body` through the flat face `on` names, at the points `at`, which are x and y
              * on that face as a sketch on it reads them (`origin` and `direction` as for a sketch on a face).
-             * `depth` 0, the default, drills through; `tipAngle` gives the bottom a drill point. A `counterbore`
-             * or a `countersink` widens each mouth. Every hole's faces are named `wall`, and a hole whose
-             * position has an id, as `{ "id": "left", "x": -10, "y": 0 }`, also `wall` with that id, which a
-             * reference names it by; a position is never named by where it comes in `at`.
+             * The hole is `diameter` across, or sized by the screw `fastener` names. `depth` 0, the default,
+             * drills through; `tipAngle` gives the bottom a drill point. A `counterbore` or a `countersink`
+             * widens each mouth. Every hole's faces are named `wall`, and a hole whose position has an id, as
+             * `{ "id": "left", "x": -10, "y": 0 }`, also `wall` with that id, which a reference names it by; a
+             * position is never named by where it comes in `at`.
              */
             interface DesignHoleFeature extends DesignFeatureBase {
                 type: "hole";
@@ -31243,7 +36061,8 @@ declare namespace Bit {
                     DesignNumber,
                     DesignNumber
                 ])[];
-                diameter: DesignNumber;
+                diameter?: DesignNumber;
+                fastener?: DesignHoleFastener;
                 depth?: DesignNumber;
                 tipAngle?: DesignNumber;
                 counterbore?: {
@@ -31281,25 +36100,125 @@ declare namespace Bit {
                 through?: boolean;
             }
             /**
+             * What every machining feature shares: it cuts into `body` at the cylindrical face `on` names, a
+             * shaft's outside or a bore's wall, sized by that face's diameter in the document's unit, and tells
+             * a shaft from a bore by which way the face looks. Along the face's axis it starts `at` from the face's start end: the axis
+             * points along the world axis it is nearest to, positive, and the start end is the one it points
+             * away from; `flip` starts from the other end and machines the other way. The faces the cut makes are
+             * named by the feature's own role, such as `keyway`.
+             */
+            interface DesignMachiningFeatureBase extends DesignFeatureBase {
+                body: string;
+                on: DesignFaceReference;
+                at?: DesignNumber;
+                flip?: boolean;
+            }
+            /**
+             * Cuts a keyway sized for the face's diameter by `standard`, DIN 6885 (`din`, the default) or the
+             * inch ANSI B17.1 (`ansi`), `length` long: into a shaft, or through a hub's bore, where it ends where
+             * `at` and `length` say. `angle` turns it about the axis, in degrees
+             * right-handed about the axis's positive direction whichever end `flip` starts from, from the side
+             * the world's x axis points to (or y, for an axis along x). Its faces are named `keyway`.
+             */
+            interface DesignKeywayFeature extends DesignMachiningFeatureBase {
+                type: "keyway";
+                standard?: "din" | "ansi";
+                length: DesignNumber;
+                angle?: DesignNumber;
+            }
+            /**
+             * Grinds a flat `depth` into a shaft, `length` long, so a set screw has a face to bite on. `angle`
+             * turns it about the axis as for a keyway. Its faces are named `flat`.
+             */
+            interface DesignFlatFeature extends DesignMachiningFeatureBase {
+                type: "flat";
+                length: DesignNumber;
+                depth: DesignNumber;
+                angle?: DesignNumber;
+            }
+            /**
+             * Cuts the groove a retaining ring sits in, sized for the face's diameter, at `at`, by `standard`:
+             * the DIN 471 groove on a shaft or the DIN 472 groove in a bore (`din`, the default), or the groove
+             * of an inch tapered ring (`ansi`). Its faces are named `groove`.
+             */
+            interface DesignRingGrooveFeature extends DesignMachiningFeatureBase {
+                type: "ringGroove";
+                standard?: "din" | "ansi";
+            }
+            /**
+             * Knurls a shaft over `length`: `straight` ridges along it (the default), ridges leaning `left` or
+             * `right`, or a `diamond` crosshatch. By `standard`, the ridges are DIN 82's, `pitch` apart in
+             * millimetres as the standard names it (`din`, the default), or ASME B94.6's, `diametralPitch` to
+             * the inch of diameter (`ansi`). Its faces are named `knurl`.
+             */
+            interface DesignKnurlFeature extends DesignMachiningFeatureBase {
+                type: "knurl";
+                standard?: "din" | "ansi";
+                length: DesignNumber;
+                pitch?: DesignNumber;
+                diametralPitch?: DesignNumber;
+                pattern?: "straight" | "left" | "right" | "diamond";
+            }
+            /**
+             * Cuts involute spline teeth into a bore over exactly `length` from `at`, a hub a splined shaft
+             * slides into, by `standard`. DIN 5480 (`din`, the default) takes the teeth's `module` and the
+             * shaft's reference `diameter`, both in millimetres as the standard names them (25 and 1.25 in
+             * W 25 x 1.25) whatever the document's unit; ANSI B92.1 (`ansi`) takes the `pitch`, such as `"16/32"`, and the
+             * number of `teeth`. With `diameter` or `teeth` left out the spline is the one whose hub teeth end on
+             * the bore; a bore wider than the hub's tips is refused. Its faces are named `spline`.
+             */
+            interface DesignSplineFeature extends DesignMachiningFeatureBase {
+                type: "spline";
+                standard?: "din" | "ansi";
+                length: DesignNumber;
+                module?: DesignNumber;
+                diameter?: DesignNumber;
+                pitch?: DesignText;
+                teeth?: DesignNumber;
+            }
+            /**
+             * Models a thread over `length`: outside on a shaft of the size's diameter, or inside a bore drilled
+             * for the size's tap. By `standard`, it is an ISO metric thread (`iso`, the default) of `size` such
+             * as `M8`, at `pitch` or the size's coarse pitch; or a Unified inch thread (`ansi`) of `size` such as
+             * `1/4`, in `series` `UNC` (the default) or `UNF`, or at `threadsPerInch`. `size` is found from the
+             * face's diameter when left out. A bore at a size's nominal diameter, as a tapped `hole` is drawn, is
+             * refused: drill it to the tap drill to model its thread. Its faces are named `thread`.
+             */
+            interface DesignThreadFeature extends DesignMachiningFeatureBase {
+                type: "thread";
+                standard?: "iso" | "ansi";
+                length: DesignNumber;
+                size?: DesignText;
+                pitch?: DesignNumber;
+                series?: "UNC" | "UNF";
+                threadsPerInch?: DesignNumber;
+            }
+            /**
              * Starts a body from one of the document's `assets`: BREP as text (`brep`) or binary
              * (`brep-binary`), STEP or IGES, read from the media type or the file extension when `format` is
-             * left out. The shape is taken as the file has it. Its faces are named `face`, and `face` with
-             * their index from 0.
+             * left out. The shape is taken as the file has it, or with `child` only the shape at that position,
+             * from 0, of the compound the file holds, such as one part of the shapes file `design.fromStep`
+             * writes; a build reads such a file once for all the features that take a child of it. STEP and
+             * IGES are scaled from the file's own unit into the document's; BREP keeps its numbers. Its faces
+             * are named `face`, and `face` with their index from 0.
              */
             interface DesignImportFeature extends DesignFeatureBase {
                 type: "import";
                 asset: string;
                 format?: "brep" | "brep-binary" | "step" | "iges";
+                child?: number;
             }
             /**
              * Runs any operation of this package by its dotted path with the kernel first, such as
              * `"occt.operations.offset"`, with `params` as its inputs. In `params`, `{ "body": "<id>" }` passes a
-             * body's shape and `{ "expr": "<expression>" }` a number. With `body` the result goes on as that
-             * body, otherwise it starts a body named by the feature's id. An operation with a history twin
-             * (`...WithHistory`) given bodies keeps the names of the faces it carries through, and names the
-             * faces it makes of edges `round` (a fillet), `bevel` (a chamfer) or `side`, and its first and last
-             * faces `start` and `end`; every other face is named `face`. An operation that makes a list of
-             * shapes, such as `occt.shapes.face.subdivideToHexagonHoles`, makes their compound.
+             * body's shape and `{ "expr": "<expression>" }` what its expression gives, a number or text such as a
+             * choice parameter's `"M8"`. With `body` the result goes on as that body, otherwise it starts a body
+             * named by the feature's id. An operation with a roles twin (`...WithRoles`) names its faces by
+             * those roles. One with a history twin (`...WithHistory`) given bodies keeps the names of the faces
+             * it carries through, names faces made of edges `round`, `bevel` or `side`, and its first and last
+             * `start` and `end`; every other face is `face`. A list of shapes makes their compound. An operation
+             * whose inputs take a `unit` of length, such as a standard part, takes the document's when `params`
+             * leave it out, and refuses another.
              */
             interface DesignOperationFeature extends DesignFeatureBase {
                 type: "operation";
@@ -31327,7 +36246,7 @@ declare namespace Bit {
             /**
              * One feature of a design document.
              */
-            type DesignFeature = DesignSketchFeature | DesignExtrudeFeature | DesignRevolveFeature | DesignBooleanFeature | DesignFilletFeature | DesignChamferFeature | DesignLinearPatternFeature | DesignPolarPatternFeature | DesignMirrorFeature | DesignTransformFeature | DesignPushPullFeature | DesignRemoveFacesFeature | DesignSweepFeature | DesignLoftFeature | DesignShellFeature | DesignHoleFeature | DesignBossFeature | DesignPocketFeature | DesignImportFeature | DesignOperationFeature | DesignScriptFeature;
+            type DesignFeature = DesignSketchFeature | DesignExtrudeFeature | DesignRevolveFeature | DesignBooleanFeature | DesignFilletFeature | DesignChamferFeature | DesignLinearPatternFeature | DesignPolarPatternFeature | DesignMirrorFeature | DesignTransformFeature | DesignPushPullFeature | DesignRemoveFacesFeature | DesignSweepFeature | DesignLoftFeature | DesignShellFeature | DesignHoleFeature | DesignBossFeature | DesignPocketFeature | DesignKeywayFeature | DesignFlatFeature | DesignRingGrooveFeature | DesignKnurlFeature | DesignSplineFeature | DesignThreadFeature | DesignImportFeature | DesignOperationFeature | DesignScriptFeature;
             /**
              * How a part or a material looks: `color` as `#rrggbb`, and `metallic`, `roughness` and `opacity`
              * from 0 to 1. `emissive` is the colour the surface gives off, as `#rrggbb`, and `emissiveStrength`
@@ -31666,6 +36585,39 @@ declare namespace Bit {
              */
             type DesignDocument = DesignPartDocument | DesignAssemblyDocument;
             /**
+             * A file the documents `design.fromStep` writes import, to be stored at `uri`, relative to where the
+             * documents are kept: its `id` in the documents' `assets`, its SHA-256, its media type and its bytes.
+             */
+            interface DesignFromStepAsset {
+                id: string;
+                uri: string;
+                sha256: string;
+                mediaType: string;
+                data: Uint8Array;
+            }
+            /**
+             * What `design.fromStep` made of a STEP file: how many part and assembly documents, how many
+             * components the assemblies place, and `notes`, one sentence for each thing it changed or left out,
+             * such as a mirrored placement built into a part of its own or a part that holds no shape.
+             */
+            interface DesignFromStepReport {
+                parts: number;
+                assemblies: number;
+                components: number;
+                notes: string[];
+            }
+            /**
+             * Design documents made of a STEP file: `documents`, with the id of the one that places everything,
+             * `root` (a part document when the file holds one part alone), the `assets` they import, and a
+             * `report`.
+             */
+            interface DesignFromStep {
+                root: string;
+                documents: DesignDocument[];
+                assets: DesignFromStepAsset[];
+                report: DesignFromStepReport;
+            }
+            /**
              * One value `design.probeFillet` tried: the radius or distance, whether it built a valid solid, why
              * not when it did not, and how long the try took in milliseconds.
              */
@@ -31714,6 +36666,75 @@ declare namespace Bit {
                 refused?: string;
                 nudged: string[];
                 lost: string[];
+            }
+            /**
+             * A part of a build `design.section` cuts: its `id`, its `shape`, the `shapeHash` the build gave it,
+             * which the section's own hashes are made from, and its appearance.
+             */
+            interface DesignSectionSourcePart<T> {
+                id: string;
+                shape: T;
+                shapeHash: string;
+                appearance?: DesignBuiltAppearance | undefined;
+            }
+            /**
+             * A placement of a build `design.section` cuts: its `path`, the `part` it places and its column-major
+             * 4 x 4 `world` matrix. One that places no part, such as a sub-assembly, is passed over.
+             */
+            interface DesignSectionSourceComponent {
+                path: string;
+                part?: string | undefined;
+                world: Base.TransformMatrix;
+            }
+            /**
+             * The build `design.section` cuts: its `parts` and, for an assembly, the `components` that place
+             * them. What `design.build` returns is one.
+             */
+            interface DesignSectionSource<T> {
+                parts: DesignSectionSourcePart<T>[];
+                components?: DesignSectionSourceComponent[] | undefined;
+            }
+            /**
+             * What a part of a section is: the `cap`, the faces where the plane passes through a part, the
+             * `piece` of a part the plane cuts that lies behind it, or a `whole` part that lies behind the plane.
+             */
+            type DesignSectionKind = "cap" | "piece" | "whole";
+            /**
+             * A part of a section, in the coordinates of the part it was cut `from`: its `id`, its `kind`, its
+             * `shape` and its `shapeHash`, the same for the same part and the same plane through it in every
+             * section, so a drawer keeps one mesh for it. It keeps the cut part's colour and finish, without
+             * the colours of single faces and edges. A cap gives its `area`, a piece or a whole part its `volume`
+             * when it is solid.
+             */
+            interface DesignSectionPart<T> {
+                id: string;
+                kind: DesignSectionKind;
+                from: string;
+                shape: T;
+                shapeHash: string;
+                appearance?: DesignBuiltAppearance;
+                area?: number;
+                volume?: number;
+            }
+            /**
+             * Where a part of a section is placed: the `path` of the component of the build it cuts, the section
+             * `part` and the same `world` matrix. A component the plane cuts places its cap and its piece.
+             */
+            interface DesignSectionComponent {
+                path: string;
+                part: string;
+                world: Base.TransformMatrix;
+            }
+            /**
+             * A design build cut by the plane of a `frame`: its `parts`, placed by `components` when the build had
+             * them, as a build places its parts, so it draws as a build does. What lies on the side the frame's
+             * normal points to is taken away, which is the side `operations.hiddenLines` looks from with the same
+             * frame.
+             */
+            interface DesignSection<T> {
+                frame: Base.Frame;
+                parts: DesignSectionPart<T>[];
+                components?: DesignSectionComponent[];
             }
             /**
              * A shape's principal axes of inertia as a frame at its centre of mass: the direction is the axis
@@ -31929,6 +36950,26 @@ declare namespace Bit {
                 compound?: U | undefined;
                 shapes?: ShapeWithId<U>[] | undefined;
                 data?: M | undefined;
+            }
+            /**
+             * A part a generator made, with the parts its faces play and the frames it is placed by: each role
+             * lists the faces that play it, as `shapes.face.getFaces` numbers them, such as a gear's `tip` or
+             * `bore`, and every face plays one role.
+             */
+            interface ShapeWithRoles<T> {
+                /**
+                 * The part.
+                 */
+                shape: T;
+                /**
+                 * For each role, the indexes of the faces that play it.
+                 */
+                roles: Record<string, number[]>;
+                /**
+                 * Named frames on the part, such as a gear's `axis`: its origin at the centre of the first face,
+                 * its normal along the axis and its direction toward the first tooth.
+                 */
+                frames: Record<string, Base.Frame>;
             }
             /**
              * One sub-shape with something wrong: its kind, its index as the getter of that kind numbers it
@@ -41272,7 +46313,8 @@ declare namespace Bit {
          * Writes a solid, a 2D shape, a path or a list of them as a 3MF file, a modern 3D printing
          * format, and downloads it in the browser as `fileName` plus `.3mf`.
          *
-         * `options` is passed to the 3MF writer as it is and can stay out.
+         * Each solid becomes an object of its own, with its name and color; 2D shapes and paths are
+         * left out.
          * @param inputs - The geometry, the file name and the optional writer options
          * @returns The 3MF file as a blob; the asynchronous API starts the download instead and returns nothing
          * @group io
@@ -44409,6 +49451,32 @@ declare namespace Bit {
         add(inputs: Inputs.IFC.AddDoorDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
     }
     /**
+     * Elements of any kind whose body is given as data: exact boundary representations, such as an
+     * OpenCascade shape described with `occt.recipes.describe`, or triangle meshes.
+     * @beta
+     */
+    declare class IFCElements {
+        private readonly ifcWorkerManager;
+        /**
+         * Adds an element of any class to a storey, its body written from a recipe: brep steps as
+         * advanced breps less their cavities, triangle steps as triangulated face sets.
+         *
+         * The body is scaled to the model's units; its roots may move and turn it, not scale or mirror
+         * it. Describe shapes with `ifcSurfaces` set.
+         * @param inputs - The model, the storey, the body, and the element's class, name, placement and material
+         * @returns A new model with the element
+         * @group create
+         * @shortname add element
+         * @drawable false
+         * @example
+         * ```typescript
+         * const body = await bitbybit.occt.recipes.describe({ shape: bracket, ifcSurfaces: true });
+         * model = await bitbybit.ifc.elements.add({ model, storey: "ground", body, type: "IfcFurniture", name: "Bracket", position: [2000, 1500, 0] });
+         * ```
+         */
+        add(inputs: Inputs.IFC.AddElementDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
+    }
+    /**
      * Describes a model's geometry as a recipe: data that a geometry kernel builds into solids or
      * meshes, one result per element, with the openings of walls and slabs cut through them and each
      * door or window type described once however many times it is placed.
@@ -44458,14 +49526,14 @@ declare namespace Bit {
     }
     /**
      * The entry point to IFC, the open BIM exchange format: `model` creates, reads, writes and edits
-     * models; `spatial`, `spaces`, `materials` and `site` add storeys, rooms, materials and the terrain;
+     * models; `spatial`, `spaces`, `materials` and `site` add storeys, rooms, materials and terrain;
      * `walls`, `openings`, `doors`, `windows`, `slabs`, `roofs`, `columns`, `beams` and `members` add
-     * elements, `assemblies` groups them; `properties` attaches property sets, `quantities` measures, and `geometry` describes
-     * elements as a recipe a kernel builds.
+     * standard elements and `elements` any other class; `assemblies` groups them, `properties` attaches
+     * property sets, `quantities` measures, and `geometry` describes elements as recipes.
      *
      * A model is a value: every method that changes one returns a new model and leaves the one it was
-     * given as it was. Elements are parametric IFC4 that other BIM tools edit as walls, slabs and doors.
-     * Experimental: names and inputs may still change before the first stable version.
+     * given as it was. Standard elements are parametric IFC4 that other BIM tools edit as walls, slabs
+     * and doors. Experimental: names and inputs may change before the first stable version.
      * @beta
      */
     declare class IFCBitByBit {
@@ -44479,6 +49547,7 @@ declare namespace Bit {
         readonly windows: IFCWindows;
         readonly slabs: IFCSlabs;
         readonly roofs: IFCRoofs;
+        readonly elements: IFCElements;
         readonly site: IFCSite;
         readonly columns: IFCColumns;
         readonly beams: IFCBeams;
@@ -45236,7 +50305,8 @@ declare namespace Bit {
         /**
          * Reads a wall's parameters back from the model: its axis, height, base, thickness, layers and
          * alignment, the walls it is joined to, its openings and its clippings. It reads walls other tools
-         * wrote too, when they keep an axis and a layer set usage as IFC's standard walls do.
+         * wrote too, when they keep an axis and either a layer set usage or a body extruded from a strip
+         * along that axis, as Revit writes one.
          * @param inputs - The model and the wall
          * @returns The wall's parameters, in the plan of its storey
          * @group query
@@ -45249,11 +50319,12 @@ declare namespace Bit {
          */
         parameters(inputs: Inputs.IFC.WallDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.WallParametersDto>;
         /**
-         * Clips a wall with a plane, removing the part on the side the plane's normal points to, as a
-         * wall is cut under a sloping roof.
+         * Clips a wall with a plane, removing the part on the side its normal points to, as under a
+         * sloping roof.
          *
-         * The plane is given in the wall's storey, and a wall can be clipped by several planes. Clipping
-         * keeps the wall's full height in its data, so joins stay right.
+         * The plane is given in the wall's storey, and a wall can be clipped by several. Clipping keeps
+         * the wall's full height in its data, so joins stay right. Bonsai keeps the clipping too, through
+         * the wall's `BBIM_Boolean` set.
          * @param inputs - The model, the wall, a point on the plane and its normal
          * @returns A new model with the wall clipped
          * @group edit
@@ -45342,7 +50413,7 @@ declare namespace Bit {
         add(inputs: Inputs.IFC.AddWindowDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.IFC.IfcModelPointer>;
     }
     /**
-     * The entry point to the OpenCascade kernel, gathering the shape, geometry, boolean, fillet,
+     * The entry point to the Bitbybit OCCT Kernel, gathering the shape, geometry, boolean, fillet,
      * operation, transform, assembly, dimension and IO groups. Every call is asynchronous because the
      * kernel runs as WebAssembly, usually in a worker, so the main thread stays responsive while a
      * heavy boolean runs.
@@ -45352,11 +50423,11 @@ declare namespace Bit {
         occt: OCCT;
         constructor();
         /**
-         * Connects this facade to the web worker that runs the OpenCascade kernel.
+         * Connects this facade to the web worker that runs the Bitbybit OCCT Kernel.
          *
          * Create the worker yourself from the package's worker entry, hand it over here, and wait for the
          * kernel to report that it is loaded before making calls; without a worker every call would hang.
-         * @param occt - The worker running the OpenCascade kernel
+         * @param occt - The worker running the Bitbybit OCCT Kernel
          */
         init(occt: Worker): void;
     }
@@ -45405,8 +50476,8 @@ declare namespace Bit {
          * other, such as colliding parts.
          *
          * A clash names the two by their positions in the list, from 0, with their distance, 0 where they
-         * touch, overlap or nest, and the volume two solids share.
-         * @param inputs - The shapes and the clearance
+         * touch, overlap or nest, and the volume two solids share. Meshes rule out pairs first.
+         * @param inputs - The shapes, the clearance and whether meshes rule pairs out first
          * @returns The clashing pairs, in list order
          * @group clashes
          * @shortname clashes between shapes
@@ -46126,8 +51197,9 @@ declare namespace Bit {
          * names and colors kept as glTF nodes and materials.
          *
          * `meshDeflection` and `meshAngle` set how finely curved surfaces are triangulated;
-         * `mergeFaces` joins the faces of a part into one mesh. Failure throws an error.
-         * @param inputs - The document, the meshing settings, the export flags, the file name and the download option
+         * `mergeFaces` joins the faces of a part into one mesh. With the document's `unit`, the file is
+         * in metres, glTF's own unit.
+         * @param inputs - The document, the meshing settings, the export flags, the unit, the file name and the download option
          * @returns The GLB file as bytes
          * @group export
          * @shortname export document glTF
@@ -46916,11 +51988,11 @@ declare namespace Bit {
          * Builds the parts of a design document, with a configuration's values and then `parameters`
          * replacing the document's own.
          *
-         * A document `validate` faults is refused. A failed feature is reported and what uses it
-         * skipped; unchanged features are reused. `structure` exports the parts to STEP and glTF through
-         * `assembly.manager.buildAssemblyDocument`; an assembly adds components and a bill of materials.
+         * A document `validate` faults is refused; a failed feature is reported and what uses it skipped.
+         * The caller deletes every shape returned, and an identical call returns the same ones while they
+         * live, so one delete frees both answers.
          * @param inputs - The document, the configuration and the parameter values to build it with
-         * @returns The parts, a report per feature, the problems found after the features ran, and the parameter values used
+         * @returns The parts, a report per feature, the problems found after the features ran, the parameter values used, and the `structure` that `assembly.manager.buildAssemblyDocument` exports to STEP and glTF; an assembly adds its components and bill of materials
          * @group document
          * @shortname build design
          * @drawable true
@@ -46940,7 +52012,10 @@ declare namespace Bit {
         /**
          * Builds a design document whose script features run here, on the main thread, as the kernel runs no
          * code: it builds, runs the code of every script the build lists as `pending`, and builds again
-         * with what each made, until no script waits.
+         * with what each made, until no script waits. The shapes of earlier rounds and those the scripts
+         * returned are deleted on the way, each unless another call was answered with it too, so only what
+         * the last build returns is the caller's to delete; as with `build`, an identical call returns the
+         * same shapes while they live.
          *
          * A script's code is the asset its feature names, given in `assets` as an import's file is, and
          * is the body of an async function given `inputs`, the feature's params with bodies as shapes and
@@ -47028,8 +52103,10 @@ declare namespace Bit {
          *
          * The document is built as `build` builds it and every part placement is checked against every
          * other in place. Two components a joint holds together are expected to touch, so a touch between
-         * them is left out and an overlap is listed with `joined` true. A part document's parts are checked
-         * where they were built.
+         * them is left out and an overlap is listed with `joined` true. So is a fastener's thread resting in
+         * a tapped hole, faces named in the role `thread` on both, with the hole's rim and the screw's end
+         * chamfer around it; anything else between the two is still listed. A part document's parts are
+         * checked where they were built.
          * @param inputs - The document, the documents an assembly places, the values to build with and the clearance
          * @returns The clashing pairs, with their distance, the volume they share and their nearest points
          * @group document
@@ -47098,6 +52175,62 @@ declare namespace Bit {
          * ```
          */
         referenceFor(inputs: Inputs.OCCT.DesignReferenceForDto): Promise<Models.OCCT.DesignReferenceFound>;
+        /**
+         * Turns a STEP file into design documents: a part document for each part it holds and an
+         * assembly document for each assembly, placed as the file places them, so its parts can be edited
+         * and placed like any others.
+         *
+         * Every part document imports its shape from one shapes file: a binary BREP of every part's
+         * shape, written beside the documents, each part taking its own by `child`. A part keeps its name
+         * and its colours, those of single faces included; its part is `part` and its body, the import, is
+         * `shape`, so a face is named `{ "of": "shape", "role": "face", "from": "<index>" }`. An assembly
+         * places its parts and sub-assemblies `at` the frames the file gives them, so a part placed forty
+         * times stays one document placed forty times. A placement that mirrors or scales its part is
+         * built into a part of its own and a hidden one is suppressed; `report.notes` says so. A file that
+         * places more parts than a design builds is refused. Lengths are in `unit`, scaled from the file's
+         * own, and Z is up. Store the asset's `data` at its `uri` before the documents are saved.
+         * @param inputs - The STEP file, its name, the seed of the documents' ids, the folder of the shapes file and the unit
+         * @returns The documents, the id of the one that places everything, the shapes file and a report
+         * @group document
+         * @shortname design from step
+         * @drawable false
+         * @ignore true
+         * @example
+         * ```typescript
+         * const imported = await bitbybit.occt.design.fromStep({ step: stepText, name: "bracket.step" });
+         * const shapes = imported.assets[0]!;
+         * const { parts } = await bitbybit.occt.design.build({
+         *     document: imported.documents.find(document => document.id === imported.root)!,
+         *     documents: imported.documents,
+         *     assets: { [shapes.id]: shapes.data },
+         * });
+         * console.log(imported.report.parts, parts.length);
+         * ```
+         */
+        fromStep(inputs: Inputs.OCCT.DesignFromStepDto): Promise<Models.OCCT.DesignFromStep>;
+        /**
+         * Cuts a design build with the plane of a frame: what lies on the side the normal points to is
+         * taken away, the side `operations.hiddenLines` looks from with the same frame.
+         *
+         * Each part the plane crosses gets a cap, the faces it cuts. With `cut`, the pieces behind the
+         * plane and the parts wholly behind it come too.
+         * @param inputs - The build, the frame whose plane cuts it, whether to give the cut parts and the joining tolerance
+         * @returns The caps, and with `cut` the pieces and whole parts behind the plane, placed like the build's parts so they draw as a build does
+         * @group document
+         * @shortname design section
+         * @drawable true
+         * @ignore true
+         * @example
+         * ```typescript
+         * const built = await bitbybit.occt.design.build({ document: assembly, documents: [bracket, pin] });
+         * const section = await bitbybit.occt.design.section({
+         *     build: built,
+         *     frame: { origin: [0, 0, 5], normal: [0, 0, 1], direction: [1, 0, 0] },
+         * });
+         * console.log(section.parts.map(part => part.area));
+         * ```
+         */
+        section(inputs: Inputs.OCCT.DesignSectionDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.DesignSection<Inputs.OCCT.TopoDSShapePointer>>;
     }
     /**
      * Measurement annotations drawn as OpenCascade wires: a linear dimension between two points, an
@@ -47201,9 +52334,9 @@ declare namespace Bit {
          * Tilts the selected faces of a shape by a draft angle so the part can be pulled out of a mold
          * along `direction`.
          *
-         * The faces pivot about the neutral plane, given by a point and a normal, which stays put;
-         * `angle` is in degrees. `flag` keeps the standard draft side, false tapers the other way.
-         * Undraftable faces throw.
+         * The faces pivot about the neutral plane, given by a point and a normal; `angle` is in
+         * degrees. `flag` keeps the standard draft side, false tapers the other way.
+         * Undraftable faces throw `occt.draft.failed`.
          * @param inputs - The shape, the faces to tilt, the pull direction, the angle, the neutral plane and the side flag
          * @returns The shape with drafted faces
          * @group draft
@@ -47224,12 +52357,26 @@ declare namespace Bit {
          */
         draftAngle(inputs: Inputs.OCCT.DraftAngleDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
         /**
-         * Grows a tapered skirt from a wire, or the edges of a shape, along a direction: each edge is
-         * swept along `direction`, leaning outward or inward by `angle` degrees, until the skirt is
-         * `lengthMax` long.
+         * Drafts faces as `draftAngle` does, and reports what each face, edge and vertex of the shape
+         * became: a drafted face becomes its tilted successor in `faces`.
+         * @param inputs - The shape, the faces to tilt, the pull direction, the angle, the neutral plane and the side flag
+         * @returns The drafted shape and its history
+         * @group draft
+         * @shortname draft angle with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, history } = await bitbybit.occt.draft.draftAngleWithHistory({ shape: box, faces: sideFaces, direction: [0, 1, 0], angle: 5, neutralPlaneOrigin: [0, 0, 0], neutralPlaneDirection: [0, 1, 0], flag: true });
+         * const tilted = history.faces[1];
+         * ```
+         */
+        draftAngleWithHistory(inputs: Inputs.OCCT.DraftAngleDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Models.OCCT.ShapeWithHistory<Inputs.OCCT.TopoDSShapePointer>>;
+        /**
+         * Grows a tapered skirt from a wire, or the edges of a shape: each edge is swept along
+         * `direction`, leaning outward by `angle` degrees, until the skirt is `lengthMax` long.
          *
-         * `internal` leans the skirt inward instead of outward. A draft the kernel cannot build throws
-         * an error.
+         * `internal` leans it inward. A skirt at 90 degrees or an odd multiple lies flat and is refused;
+         * a draft the kernel cannot build throws `occt.draft.failed`.
          * @param inputs - The wire or shape, the direction, the angle, the maximum length and whether to lean inward
          * @returns The drafted skirt
          * @group draft
@@ -47242,11 +52389,26 @@ declare namespace Bit {
          */
         makeDraft(inputs: Inputs.OCCT.MakeDraftDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
         /**
-         * Grows a tapered skirt from a wire, or the edges of a shape, along a direction like
-         * `makeDraft`, but stops it where it meets `stopShape` instead of at a fixed length.
+         * Grows a skirt as `makeDraft` does, and reports what each edge of the wire or shape swept:
+         * `facesFromEdges[i]` holds the skirt faces edge `i` grew.
+         * @param inputs - The wire or shape, the direction, the angle, the maximum length and whether to lean inward
+         * @returns The drafted skirt and its history
+         * @group draft
+         * @shortname make draft with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, history } = await bitbybit.occt.draft.makeDraftWithHistory({ shape: outlineWire, direction: [0, 1, 0], angle: 5, lengthMax: 10, internal: false });
+         * ```
+         */
+        makeDraftWithHistory(inputs: Inputs.OCCT.MakeDraftDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.ShapeWithHistory<Inputs.OCCT.TopoDSShapePointer>>;
+        /**
+         * Grows a tapered skirt from a wire or the edges of a shape like `makeDraft`, stopping it where
+         * it meets `stopShape`.
          *
-         * `keepOut` keeps the part of the stop shape outside the draft; `internal` leans the skirt
-         * inward. A draft the kernel cannot build throws an error.
+         * `keepOut` keeps the part of the stop shape outside the draft and `internal` leans it inward. A
+         * skirt at 90 degrees or an odd multiple lies flat and is refused; a failed draft throws
+         * `occt.draft.failed`.
          * @param inputs - The wire or shape, the direction, the angle, the shape to stop at, the keep-out flag and whether to lean inward
          * @returns The drafted skirt
          * @group draft
@@ -47258,6 +52420,20 @@ declare namespace Bit {
          * ```
          */
         makeDraftToShape(inputs: Inputs.OCCT.MakeDraftToShapeDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Grows a skirt up to a stop shape as `makeDraftToShape` does, and reports what each edge of the
+         * wire or shape swept, as `makeDraftWithHistory` does.
+         * @param inputs - The wire or shape, the direction, the angle, the shape to stop at, the keep-out flag and whether to lean inward
+         * @returns The drafted skirt and its history
+         * @group draft
+         * @shortname make draft to shape with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, history } = await bitbybit.occt.draft.makeDraftToShapeWithHistory({ shape: outlineWire, direction: [0, 1, 0], angle: 5, stopShape: ceilingFace, keepOut: false, internal: false });
+         * ```
+         */
+        makeDraftToShapeWithHistory(inputs: Inputs.OCCT.MakeDraftToShapeDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.ShapeWithHistory<Inputs.OCCT.TopoDSShapePointer>>;
     }
     /**
      * Local modelling features on solids: holes drilled at frames, bosses and pockets from a profile
@@ -47272,8 +52448,8 @@ declare namespace Bit {
          * Drills plain holes into a shape, one at each frame: its origin is where the hole enters and its
          * normal points out of the material.
          *
-         * `depth` 0 drills through the whole shape; `tipAngle` 0 leaves a flat bottom and 118 the point of
-         * a twist drill, in degrees. Holes that meet are cut as one.
+         * `depth` 0 drills through the shape; `tipAngle`, in degrees, is 0 for a flat bottom and 118 for
+         * a drill point. Holes that meet are cut as one; give at least one frame.
          * @param inputs - The shape, the frames and the size of the holes
          * @returns The drilled shape
          * @group holes
@@ -47583,6 +52759,22 @@ declare namespace Bit {
          */
         taperedBoss(inputs: Inputs.OCCT.TaperedPrismFeatureDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
         /**
+         * Grows a tapered boss as `taperedBoss` does, and reports two histories: the base's, then the
+         * profile's, whose `facesFromEdges` holds the leaning side each profile edge swept and
+         * `lastFaces` the top.
+         * @param inputs - The base, the profile, its sketch face, the draft angle in degrees and how far to go
+         * @returns The base with the tapered boss, and the histories of the base and of the profile
+         * @group forms
+         * @shortname tapered boss with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, histories } = await bitbybit.occt.features.taperedBossWithHistory({ shape: block, profile, sketchFaceIndex: top, angle: 10, length: 3 });
+         * const bossTop = histories[1].lastFaces;
+         * ```
+         */
+        taperedBossWithHistory(inputs: Inputs.OCCT.TaperedPrismFeatureDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Models.OCCT.ShapeWithHistories<Inputs.OCCT.TopoDSShapePointer>>;
+        /**
          * Cuts a pocket into a base as `pocket` does, straight in from the sketch face, with its sides
          * leaning by `angle` degrees.
          *
@@ -47601,6 +52793,22 @@ declare namespace Bit {
          * ```
          */
         taperedPocket(inputs: Inputs.OCCT.TaperedPrismFeatureDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Cuts a tapered pocket as `taperedPocket` does, and reports two histories: the base's, then the
+         * profile's, whose `facesFromEdges` holds the leaning wall each profile edge swept and
+         * `lastFaces` the floor.
+         * @param inputs - The base, the profile, its sketch face, the draft angle in degrees and how far to go
+         * @returns The base with the tapered pocket, and the histories of the base and of the profile
+         * @group forms
+         * @shortname tapered pocket with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, histories } = await bitbybit.occt.features.taperedPocketWithHistory({ shape: block, profile, sketchFaceIndex: top, angle: 5, length: 3 });
+         * const floor = histories[1].lastFaces;
+         * ```
+         */
+        taperedPocketWithHistory(inputs: Inputs.OCCT.TaperedPrismFeatureDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Models.OCCT.ShapeWithHistories<Inputs.OCCT.TopoDSShapePointer>>;
         /**
          * Adds a ring to a base by turning a profile face about an axis, such as a collar round a shaft:
          * the profile lies on a face of the base, in a plane through the axis.
@@ -47622,6 +52830,22 @@ declare namespace Bit {
          */
         revolvedBoss(inputs: Inputs.OCCT.RevolvedFeatureDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
         /**
+         * Adds a ring as `revolvedBoss` does, and reports two histories: the base's, then the profile's,
+         * whose `facesFromEdges` holds the face each profile edge turned into, such as the ring's outer
+         * wall and its two sides.
+         * @param inputs - The base, the profile, its sketch face, the axis and the angle in degrees
+         * @returns The base with the ring, and the histories of the base and of the profile
+         * @group forms
+         * @shortname revolved boss with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, histories } = await bitbybit.occt.features.revolvedBossWithHistory({ shape: shaft, profile, sketchFaceIndex: side, axisOrigin: [0, 0, 0], axisDirection: [0, 1, 0], angle: 360 });
+         * const collarFaces = histories[1].facesFromEdges.flat();
+         * ```
+         */
+        revolvedBossWithHistory(inputs: Inputs.OCCT.RevolvedFeatureDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Models.OCCT.ShapeWithHistories<Inputs.OCCT.TopoDSShapePointer>>;
+        /**
          * Cuts a groove round a base by turning a profile face about an axis, such as the seat of a
          * circlip on a shaft: the profile lies on a face of the base, in a plane through the axis.
          *
@@ -47640,6 +52864,22 @@ declare namespace Bit {
          * ```
          */
         revolvedPocket(inputs: Inputs.OCCT.RevolvedFeatureDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Cuts a groove round a base as `revolvedPocket` does, and reports two histories: the base's,
+         * whose side splits into the pieces on either side of the groove, then the profile's, whose
+         * `facesFromEdges` holds the groove's floor and walls.
+         * @param inputs - The base, the profile, its sketch face, the axis and the angle in degrees
+         * @returns The base with the groove, and the histories of the base and of the profile
+         * @group forms
+         * @shortname revolved pocket with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, histories } = await bitbybit.occt.features.revolvedPocketWithHistory({ shape: shaft, profile, sketchFaceIndex: side, axisOrigin: [0, 0, 0], axisDirection: [0, 1, 0], angle: 360 });
+         * const grooveFaces = histories[1].facesFromEdges.flat();
+         * ```
+         */
+        revolvedPocketWithHistory(inputs: Inputs.OCCT.RevolvedFeatureDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Models.OCCT.ShapeWithHistories<Inputs.OCCT.TopoDSShapePointer>>;
         /**
          * Adds a rib to a base: the region between a wire and the base's faces, on the wire's left as it
          * runs seen from the side the frame's normal points to, filled and thickened across the plane.
@@ -47664,6 +52904,22 @@ declare namespace Bit {
          */
         rib(inputs: Inputs.OCCT.RibFeatureDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSWirePointer | Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
         /**
+         * Adds a rib as `rib` does, and reports two histories: the base's, then the wire's, whose
+         * `facesFromEdges` holds the face each wire edge made and `firstFaces` and `lastFaces` the rib's
+         * two flat sides.
+         * @param inputs - The base, the wire, the plane it lies in and the thickness on each side
+         * @returns The base with the rib, and the histories of the base and of the wire
+         * @group forms
+         * @shortname rib with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, histories } = await bitbybit.occt.features.ribWithHistory({ shape: bracket, wire, frame: { origin: [0, 0, 0], normal: [0, 0, 1], direction: [1, 0, 0] }, thickness: 0.5, otherSideThickness: 0.5 });
+         * const slantedTop = histories[1].facesFromEdges[0];
+         * ```
+         */
+        ribWithHistory(inputs: Inputs.OCCT.RibFeatureDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSWirePointer | Inputs.OCCT.TopoDSEdgePointer>): Promise<Models.OCCT.ShapeWithHistories<Inputs.OCCT.TopoDSShapePointer>>;
+        /**
          * Cuts a groove into a base: the part of the base's section on the left of a wire as it runs,
          * seen from the side the frame's normal points to, removed across the plane.
          *
@@ -47687,6 +52943,22 @@ declare namespace Bit {
          * ```
          */
         groove(inputs: Inputs.OCCT.RibFeatureDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSWirePointer | Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Cuts a groove as `groove` does, and reports two histories: the base's, then the wire's, whose
+         * `facesFromEdges` holds the wall each wire edge cut and `firstFaces` and `lastFaces` the
+         * groove's two flat sides.
+         * @param inputs - The base, the wire, the plane it lies in and the thickness on each side
+         * @returns The base with the groove, and the histories of the base and of the wire
+         * @group forms
+         * @shortname groove with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, histories } = await bitbybit.occt.features.grooveWithHistory({ shape: block, wire, frame: { origin: [0, 0, 0], normal: [0, 0, -1], direction: [1, 0, 0] }, thickness: 0.5, otherSideThickness: 0.5 });
+         * const walls = histories[1].facesFromEdges.flat();
+         * ```
+         */
+        grooveWithHistory(inputs: Inputs.OCCT.RibFeatureDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSWirePointer | Inputs.OCCT.TopoDSEdgePointer>): Promise<Models.OCCT.ShapeWithHistories<Inputs.OCCT.TopoDSShapePointer>>;
     }
     /**
      * Rounding and beveling the edges of OpenCascade shapes: a fillet replaces a sharp edge with a
@@ -47751,6 +53023,20 @@ declare namespace Bit {
          */
         filletEdgesList(inputs: Inputs.OCCT.FilletEdgesListDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
         /**
+         * Rounds the given edges as `filletEdgesList` does, and reports what became of every face, edge and vertex of the shape:
+         * `facesFromEdges` holds the round made along each edge, and `faces` what each face was trimmed to.
+         * @param inputs - The shape, its edges to round and one radius per edge
+         * @returns The shape with rounded edges and its history
+         * @group 3d fillets
+         * @shortname fillet edges list with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, history } = await bitbybit.occt.fillets.filletEdgesListWithHistory({ shape: box, edges: [edges[0], edges[1]], radiusList: [1, 2] });
+         * ```
+         */
+        filletEdgesListWithHistory(inputs: Inputs.OCCT.FilletEdgesListDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSEdgePointer>): Promise<Models.OCCT.ShapeWithHistory<Inputs.OCCT.TopoDSShapePointer>>;
+        /**
          * Rounds the given edges of a shape, all with the same radius.
          *
          * The edges must belong to the shape; an empty list throws an error.
@@ -47766,6 +53052,20 @@ declare namespace Bit {
          * ```
          */
         filletEdgesListOneRadius(inputs: Inputs.OCCT.FilletEdgesListOneRadiusDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Rounds the given edges as `filletEdgesListOneRadius` does, and reports what became of every face, edge and vertex of the shape:
+         * `facesFromEdges` holds the round made along each edge, and `faces` what each face was trimmed to.
+         * @param inputs - The shape, its edges to round and the radius
+         * @returns The shape with rounded edges and its history
+         * @group 3d fillets
+         * @shortname fillet edges list one r with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, history } = await bitbybit.occt.fillets.filletEdgesListOneRadiusWithHistory({ shape: box, edges: [edges[0], edges[1]], radius: 1 });
+         * ```
+         */
+        filletEdgesListOneRadiusWithHistory(inputs: Inputs.OCCT.FilletEdgesListOneRadiusDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSEdgePointer>): Promise<Models.OCCT.ShapeWithHistory<Inputs.OCCT.TopoDSShapePointer>>;
         /**
          * Rounds one edge of a shape with a radius that changes along it.
          *
@@ -47785,6 +53085,20 @@ declare namespace Bit {
          */
         filletEdgeVariableRadius(inputs: Inputs.OCCT.FilletEdgeVariableRadiusDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
         /**
+         * Rounds an edge with a changing radius as `filletEdgeVariableRadius` does, and reports what became of every face, edge and vertex of the shape:
+         * `facesFromEdges` holds the round made along each edge, and `faces` what each face was trimmed to.
+         * @param inputs - The shape, its edge, the radii and the positions along the edge they apply at
+         * @returns The shape with rounded edges and its history
+         * @group 3d fillets
+         * @shortname fillet edge variable r with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, history } = await bitbybit.occt.fillets.filletEdgeVariableRadiusWithHistory({ shape: box, edge: edges[0], radiusList: [1, 2], paramsU: [0, 1] });
+         * ```
+         */
+        filletEdgeVariableRadiusWithHistory(inputs: Inputs.OCCT.FilletEdgeVariableRadiusDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSEdgePointer>): Promise<Models.OCCT.ShapeWithHistory<Inputs.OCCT.TopoDSShapePointer>>;
+        /**
          * Rounds several edges of a shape, each with the same radius profile that changes along it.
          *
          * `paramsU` are positions along each edge as fractions from 0 to 1 and `radiusList` the radius
@@ -47801,6 +53115,20 @@ declare namespace Bit {
          * ```
          */
         filletEdgesSameVariableRadius(inputs: Inputs.OCCT.FilletEdgesSameVariableRadiusDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Rounds edges with one changing radius as `filletEdgesSameVariableRadius` does, and reports what became of every face, edge and vertex of the shape:
+         * `facesFromEdges` holds the round made along each edge, and `faces` what each face was trimmed to.
+         * @param inputs - The shape, its edges, the radii and the positions along each edge they apply at
+         * @returns The shape with rounded edges and its history
+         * @group 3d fillets
+         * @shortname fillet edges same variable r with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, history } = await bitbybit.occt.fillets.filletEdgesSameVariableRadiusWithHistory({ shape: box, edges: [edges[0], edges[1]], radiusList: [1, 2], paramsU: [0, 1] });
+         * ```
+         */
+        filletEdgesSameVariableRadiusWithHistory(inputs: Inputs.OCCT.FilletEdgesSameVariableRadiusDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSEdgePointer>): Promise<Models.OCCT.ShapeWithHistory<Inputs.OCCT.TopoDSShapePointer>>;
         /**
          * Rounds several edges of a shape, each with its own radius profile that changes along it.
          *
@@ -47824,6 +53152,20 @@ declare namespace Bit {
          * ```
          */
         filletEdgesVariableRadius(inputs: Inputs.OCCT.FilletEdgesVariableRadiusDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Rounds edges, each with its own changing radius, as `filletEdgesVariableRadius` does, and reports what became of every face, edge and vertex of the shape:
+         * `facesFromEdges` holds the round made along each edge, and `faces` what each face was trimmed to.
+         * @param inputs - The shape, its edges, one radius list per edge and one position list per edge
+         * @returns The shape with rounded edges and its history
+         * @group 3d fillets
+         * @shortname fillet edges variable r with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, history } = await bitbybit.occt.fillets.filletEdgesVariableRadiusWithHistory({ shape: box, edges: [edges[0]], radiusLists: [[1, 2]], paramsULists: [[0, 1]] });
+         * ```
+         */
+        filletEdgesVariableRadiusWithHistory(inputs: Inputs.OCCT.FilletEdgesVariableRadiusDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSEdgePointer>): Promise<Models.OCCT.ShapeWithHistory<Inputs.OCCT.TopoDSShapePointer>>;
         /**
          * Rounds the corners of a wire, flat or not, each with an arc in the plane of the two edges
          * that meet there, as a bent rod would be.
@@ -47859,9 +53201,9 @@ declare namespace Bit {
          * Bevels the edges of a shape by a distance, in model units, cutting each sharp edge back to a
          * flat strip.
          *
-         * Without `indexes` every edge is beveled. With `indexes`, counted from 0 as
-         * `shapes.edge.getEdges` lists them, only those are, each with `distance` or, in edge order,
-         * its entry of `distanceList`. Indexes naming no edge change nothing.
+         * Without `indexes` every edge is beveled; with them, counted from 0 as `shapes.edge.getEdges`
+         * lists them, only those, each by `distance` or its entry of `distanceList`. When no index
+         * names an edge the call throws.
          * @param inputs - The shape, the distance or the distance list, and the optional 0-based edge indexes
          * @returns The shape with beveled edges
          * @group 3d chamfers
@@ -47906,6 +53248,20 @@ declare namespace Bit {
          */
         chamferEdgesList(inputs: Inputs.OCCT.ChamferEdgesListDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
         /**
+         * Bevels the given edges as `chamferEdgesList` does, and reports what became of every face, edge and vertex of the shape:
+         * `facesFromEdges` holds the bevel made along each edge, and `faces` what each face was trimmed to.
+         * @param inputs - The shape, its edges to bevel and one distance per edge
+         * @returns The shape with beveled edges and its history
+         * @group 3d chamfers
+         * @shortname chamfer edges list with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, history } = await bitbybit.occt.fillets.chamferEdgesListWithHistory({ shape: box, edges: [edges[0], edges[1]], distanceList: [1, 2] });
+         * ```
+         */
+        chamferEdgesListWithHistory(inputs: Inputs.OCCT.ChamferEdgesListDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSEdgePointer>): Promise<Models.OCCT.ShapeWithHistory<Inputs.OCCT.TopoDSShapePointer>>;
+        /**
          * Bevels one edge of a shape with an uneven chamfer: `distance1` is measured on `face`, one of
          * the two faces meeting at the edge, and `distance2` on the other.
          *
@@ -47924,6 +53280,20 @@ declare namespace Bit {
          */
         chamferEdgeTwoDistances(inputs: Inputs.OCCT.ChamferEdgeTwoDistancesDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSEdgePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
         /**
+         * Bevels an edge by two distances as `chamferEdgeTwoDistances` does, and reports what became of every face, edge and vertex of the shape:
+         * `facesFromEdges` holds the bevel made along each edge, and `faces` what each face was trimmed to.
+         * @param inputs - The shape, the edge, the face the first distance applies to, and the two distances
+         * @returns The shape with beveled edges and its history
+         * @group 3d chamfers
+         * @shortname chamfer edge 2 dist with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, history } = await bitbybit.occt.fillets.chamferEdgeTwoDistancesWithHistory({ shape: box, edge: edges[0], face: faces[0], distance1: 1, distance2: 2 });
+         * ```
+         */
+        chamferEdgeTwoDistancesWithHistory(inputs: Inputs.OCCT.ChamferEdgeTwoDistancesDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSEdgePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Models.OCCT.ShapeWithHistory<Inputs.OCCT.TopoDSShapePointer>>;
+        /**
          * Bevels several edges of a shape with the same uneven chamfer: `distance1` is measured on each
          * edge's paired face and `distance2` on the other face.
          *
@@ -47939,6 +53309,20 @@ declare namespace Bit {
          * ```
          */
         chamferEdgesTwoDistances(inputs: Inputs.OCCT.ChamferEdgesTwoDistancesDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSEdgePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Bevels edges by two distances as `chamferEdgesTwoDistances` does, and reports what became of every face, edge and vertex of the shape:
+         * `facesFromEdges` holds the bevel made along each edge, and `faces` what each face was trimmed to.
+         * @param inputs - The shape, the edges, one paired face per edge, and the two distances
+         * @returns The shape with beveled edges and its history
+         * @group 3d chamfers
+         * @shortname chamfer edges 2 dist with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, history } = await bitbybit.occt.fillets.chamferEdgesTwoDistancesWithHistory({ shape: box, edges: [edges[0]], faces: [faces[0]], distance1: 1, distance2: 2 });
+         * ```
+         */
+        chamferEdgesTwoDistancesWithHistory(inputs: Inputs.OCCT.ChamferEdgesTwoDistancesDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSEdgePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Models.OCCT.ShapeWithHistory<Inputs.OCCT.TopoDSShapePointer>>;
         /**
          * Bevels several edges of a shape, each with its own uneven chamfer: for each edge `distances1`
          * is measured on its paired face and `distances2` on the other face.
@@ -47963,6 +53347,20 @@ declare namespace Bit {
          */
         chamferEdgesTwoDistancesLists(inputs: Inputs.OCCT.ChamferEdgesTwoDistancesListsDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSEdgePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
         /**
+         * Bevels edges, each by its own two distances, as `chamferEdgesTwoDistancesLists` does, and reports what became of every face, edge and vertex of the shape:
+         * `facesFromEdges` holds the bevel made along each edge, and `faces` what each face was trimmed to.
+         * @param inputs - The shape, the edges, one paired face per edge, and the two distance lists
+         * @returns The shape with beveled edges and its history
+         * @group 3d chamfers
+         * @shortname chamfer edges 2 dist lists with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, history } = await bitbybit.occt.fillets.chamferEdgesTwoDistancesListsWithHistory({ shape: box, edges: [edges[0]], faces: [faces[0]], distances1: [1], distances2: [2] });
+         * ```
+         */
+        chamferEdgesTwoDistancesListsWithHistory(inputs: Inputs.OCCT.ChamferEdgesTwoDistancesListsDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSEdgePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Models.OCCT.ShapeWithHistory<Inputs.OCCT.TopoDSShapePointer>>;
+        /**
          * Bevels one edge of a shape by a distance measured on `face` and an angle in degrees from that
          * face.
          *
@@ -47980,6 +53378,20 @@ declare namespace Bit {
          */
         chamferEdgeDistAngle(inputs: Inputs.OCCT.ChamferEdgeDistAngleDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSEdgePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
         /**
+         * Bevels an edge by a distance and an angle as `chamferEdgeDistAngle` does, and reports what became of every face, edge and vertex of the shape:
+         * `facesFromEdges` holds the bevel made along each edge, and `faces` what each face was trimmed to.
+         * @param inputs - The shape, the edge, the face the distance is measured on, the distance and the angle
+         * @returns The shape with beveled edges and its history
+         * @group 3d chamfers
+         * @shortname chamfer edge angle with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, history } = await bitbybit.occt.fillets.chamferEdgeDistAngleWithHistory({ shape: box, edge: edges[0], face: faces[0], distance: 1, angle: 30 });
+         * ```
+         */
+        chamferEdgeDistAngleWithHistory(inputs: Inputs.OCCT.ChamferEdgeDistAngleDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSEdgePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Models.OCCT.ShapeWithHistory<Inputs.OCCT.TopoDSShapePointer>>;
+        /**
          * Bevels several edges of a shape by the same distance and angle, the distance measured on each
          * edge's paired face and the angle in degrees from it.
          *
@@ -47995,6 +53407,20 @@ declare namespace Bit {
          * ```
          */
         chamferEdgesDistAngle(inputs: Inputs.OCCT.ChamferEdgesDistAngleDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSEdgePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Bevels edges by a distance and an angle as `chamferEdgesDistAngle` does, and reports what became of every face, edge and vertex of the shape:
+         * `facesFromEdges` holds the bevel made along each edge, and `faces` what each face was trimmed to.
+         * @param inputs - The shape, the edges, one paired face per edge, the distance and the angle
+         * @returns The shape with beveled edges and its history
+         * @group 3d chamfers
+         * @shortname chamfer edges angle with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, history } = await bitbybit.occt.fillets.chamferEdgesDistAngleWithHistory({ shape: box, edges: [edges[0]], faces: [faces[0]], distance: 1, angle: 30 });
+         * ```
+         */
+        chamferEdgesDistAngleWithHistory(inputs: Inputs.OCCT.ChamferEdgesDistAngleDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSEdgePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Models.OCCT.ShapeWithHistory<Inputs.OCCT.TopoDSShapePointer>>;
         /**
          * Bevels several edges of a shape, each by its own distance and angle, the distance measured on
          * the edge's paired face and the angle in degrees from it.
@@ -48018,6 +53444,20 @@ declare namespace Bit {
          * ```
          */
         chamferEdgesDistsAngles(inputs: Inputs.OCCT.ChamferEdgesDistsAnglesDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSEdgePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Bevels edges, each by its own distance and angle, as `chamferEdgesDistsAngles` does, and reports what became of every face, edge and vertex of the shape:
+         * `facesFromEdges` holds the bevel made along each edge, and `faces` what each face was trimmed to.
+         * @param inputs - The shape, the edges, one paired face per edge, the distances and the angles
+         * @returns The shape with beveled edges and its history
+         * @group 3d chamfers
+         * @shortname chamfer edges angles with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, history } = await bitbybit.occt.fillets.chamferEdgesDistsAnglesWithHistory({ shape: box, edges: [edges[0]], faces: [faces[0]], distances: [1], angles: [30] });
+         * ```
+         */
+        chamferEdgesDistsAnglesWithHistory(inputs: Inputs.OCCT.ChamferEdgesDistsAnglesDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSEdgePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Models.OCCT.ShapeWithHistory<Inputs.OCCT.TopoDSShapePointer>>;
         /**
          * Rounds the corners of a flat wire or face with arcs of a given radius.
          *
@@ -48261,13 +53701,13 @@ declare namespace Bit {
     declare class OCCTIO {
         readonly occWorkerManager: OCCTWorkerManager;
         /**
-         * Writes a shape as STEP, the standard exchange format for exact CAD geometry, and starts a
-         * browser download of the file.
+         * Writes a shape as STEP, the exchange format for exact CAD geometry, and starts a browser
+         * download of the file.
          *
-         * With `adjustYtoZ` true, Y and Z swap, which mirrors the shape; to keep it as built, turn it 90
-         * degrees about X with `transforms.rotate` first. `fileName` names the download, `tryDownload`
-         * false skips it, and `saveShapeSTEPAndReturn` gives the text instead.
-         * @param inputs - The shape, the file name, the axis adjustment and the download options
+         * With `adjustYtoZ` true, Y and Z swap, mirroring the shape; turn it 90 degrees about X with
+         * `transforms.rotate` first to keep it as built. The file is in millimetres, another `unit`
+         * scaled to them; `saveShapeSTEPAndReturn` returns the text.
+         * @param inputs - The shape, the file name, the axis adjustment, the unit and the download options
          * @returns Nothing; the download starts when the file is ready
          * @group io
          * @shortname save step
@@ -48279,13 +53719,12 @@ declare namespace Bit {
          */
         saveShapeSTEP(inputs: Inputs.OCCT.SaveStepDto<Inputs.OCCT.TopoDSShapePointer>): Promise<void>;
         /**
-         * Writes a shape as STEP, the standard exchange format for exact CAD geometry, and returns the
-         * file's text.
+         * Writes a shape as STEP, the exchange format for exact CAD geometry, and returns its text.
          *
-         * With `adjustYtoZ` true, Y and Z swap so Y-up becomes STEP's Z-up, which mirrors the shape;
-         * turn it 90 degrees about X with `transforms.rotate` first to keep it as built. `fileName` and
-         * `tryDownload` matter only where a browser download can be started.
-         * @param inputs - The shape, the file name, the axis adjustment and the download options
+         * With `adjustYtoZ` true, Y and Z swap so Y-up becomes STEP's Z-up, mirroring the shape; turn it
+         * 90 degrees about X with `transforms.rotate` first to keep it as built. The file is in
+         * millimetres, a shape in another `unit` scaled to them.
+         * @param inputs - The shape, the file name, the axis adjustment, the unit and the download options
          * @returns The STEP file as text
          * @group io
          * @shortname save step and return
@@ -48482,9 +53921,9 @@ declare namespace Bit {
          * Draws the edges a view of a shape sees as an SVG drawing, with the hidden edges dashed when
          * asked, and starts a browser download of the file.
          *
-         * The drawing shows the view from the frame's normal side, x running right along its direction.
-         * `tryDownload` false skips the download; `saveShapeSvgAndReturn` gives the text instead.
-         * @param inputs - The shape, the view, whether to draw hidden edges, the precision and the download options
+         * The drawing shows the view from the frame's normal side, x along its direction; with the shape's
+         * `unit`, it states its true width and height. `saveShapeSvgAndReturn` gives the text instead.
+         * @param inputs - The shape, the view, whether to draw hidden edges, the precision, the unit and the download options
          * @returns Nothing; the download starts when the file is ready
          * @group io
          * @shortname save svg
@@ -48497,12 +53936,13 @@ declare namespace Bit {
          */
         saveShapeSvg(inputs: Inputs.OCCT.SaveSvgDto<Inputs.OCCT.TopoDSShapePointer>): Promise<void>;
         /**
-         * Draws the edges a view of a shape sees as an SVG drawing, with the hidden edges dashed when
-         * asked, and returns the file's text.
+         * Draws the edges a view of a shape sees as SVG, hidden ones dashed when asked, and returns the
+         * file's text.
          *
-         * It shows the view from the frame's normal side in model units, x running right along the
-         * frame's direction and y up, so the file holds each point as x and minus y.
-         * @param inputs - The shape, the view, whether to draw hidden edges, the precision and the download options
+         * The view looks from the frame's normal side, x along the frame's direction and y up, so each
+         * point is written as x and minus y. With the shape's `unit`, it states its true width and
+         * height.
+         * @param inputs - The shape, the view, whether to draw hidden edges, the precision, the unit and the download options
          * @returns The SVG file as text
          * @group io
          * @shortname save svg and return
@@ -48516,6 +53956,24 @@ declare namespace Bit {
         saveShapeSvgAndReturn(inputs: Inputs.OCCT.SaveSvgDto<Inputs.OCCT.TopoDSShapePointer>): Promise<string>;
         private downloadObj;
         private downloadFile;
+        /**
+         * Reads the unit a STEP or IGES file writes its lengths in, without building its geometry.
+         *
+         * Millimetres, centimetres, metres and inches are told; a file in another unit, one whose parts
+         * disagree, or one that states none gives undefined. `io.loadSTEPorIGES` reads any of them into
+         * the `unit` it is asked for.
+         * @param inputs - The file content and its name with extension
+         * @returns The file's unit, or undefined when it is none of these or cannot be told
+         * @group io
+         * @shortname file length unit
+         * @drawable false
+         * @example
+         * ```typescript
+         * const unit = await bitbybit.occt.io.fileLengthUnit({ filetext: stepText, fileName: "bracket.step" });
+         * const shape = await bitbybit.occt.io.loadSTEPorIGES({ filetext: stepText, fileName: "bracket.step", unit: unit ?? Bit.Inputs.Base.unitOfLengthEnum.millimetre });
+         * ```
+         */
+        fileLengthUnit(inputs: Inputs.OCCT.FileLengthUnitDto): Promise<Inputs.Base.unitOfLengthEnum | undefined>;
         /**
          * Reads an STL file, ASCII or binary, into a shape: one planar face per triangle, or one face
          * that carries the whole mesh.
@@ -48614,9 +54072,9 @@ declare namespace Bit {
          * Writes DXF parts into one DXF file and returns its text.
          *
          * `colorFormat` chooses AutoCAD's indexed colors or true color, `acadVersion` the DXF version:
-         * AC1009 is R12, the most widely readable, AC1015 is 2000. `fileName` and `tryDownload` matter
-         * only where a browser download can be started.
-         * @param inputs - The layered parts, the color format, the DXF version and the download options
+         * AC1009 is R12, the most widely readable, AC1015 is 2000, which can also state the drawing's
+         * `unit`. `fileName` and `tryDownload` matter only where a browser download can be started.
+         * @param inputs - The layered parts, the color format, the DXF version, the unit and the download options
          * @returns The DXF file as text
          * @group dxf
          * @shortname dxf create
@@ -48741,15 +54199,15 @@ declare namespace Bit {
         parseStepToJson(inputs: Inputs.OCCT.ParseStepAssemblyToJsonDto): Promise<Models.OCCT.AssemblyJsonResult>;
     }
     /**
-     * The entry point to the OpenCascade kernel: every OCCT feature is reached through one of its
+     * The entry point to the Bitbybit OCCT Kernel: every OCCT feature is reached through one of its
      * properties. `shapes` builds and reads vertices, edges, wires, faces, shells, solids and
      * compounds; `operations`, `booleans`, `fillets`, `transforms`, `corners`, `draft` and `features`
      * change shapes; `select` picks faces and edges by kind and place; `analysis` measures shapes;
      * `geom` handles curves and surfaces; `io` reads and writes STEP, IGES, STL and other files;
-     * `sketch` draws flat outlines with a pen; `design` and `recipes` build models and solids kept as
-     * data; `assembly`, `dimensions`, `brepGraph`, `path` and `svg` cover documents, annotations, topology
-     * graphs, machining paths and SVG. The methods on the service itself turn shapes into triangle
-     * meshes for drawing.
+     * `sketch` draws flat outlines with a pen; `parts` makes standard parts; `design` and `recipes`
+     * build models and solids kept as data; `assembly`, `dimensions`, `brepGraph`, `path` and `svg`
+     * cover documents, annotations, topology graphs, machining paths and SVG. Its own methods mesh
+     * shapes for drawing.
      */
     declare class OCCT {
         readonly occWorkerManager: OCCTWorkerManager;
@@ -48771,6 +54229,7 @@ declare namespace Bit {
         readonly io: OCCTIO;
         readonly path: OCCTPath;
         readonly sketch: OCCTSketch;
+        readonly parts: OCCTParts;
         readonly svg: OCCTSVG;
         readonly design: OCCTDesign;
         readonly recipes: OCCTRecipes;
@@ -49327,6 +54786,25 @@ declare namespace Bit {
          */
         splitShapeWithShapes(inputs: Inputs.OCCT.SplitDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer[]>;
         /**
+         * Splits a shape as `splitShapeWithShapes` does and gives the pieces as one compound, with one
+         * history per shape given, the shape to split first: `faces` names the pieces each face was
+         * cut into.
+         *
+         * With `nonDestructive` false, shapes that cut nothing off `shape` leave no pieces to follow,
+         * and the call is refused.
+         * @param inputs - The shape to split, the shapes to split it with and the options
+         * @returns The pieces in a compound, and one history per shape given
+         * @group divisions
+         * @shortname split with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, histories } = await bitbybit.occt.operations.splitShapeWithShapesWithHistory({ shape: box, shapes: [cuttingPlane], localFuzzyTolerance: 1e-4, nonDestructive: false });
+         * const topPieces = histories[0].faces[topIndex];
+         * ```
+         */
+        splitShapeWithShapesWithHistory(inputs: Inputs.OCCT.SplitDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.ShapeWithHistories<Inputs.OCCT.TopoDSShapePointer>>;
+        /**
          * Spins a shape around an axis through the origin to sweep out a surface or solid: a face gives
          * a solid, a wire a shell.
          *
@@ -49363,8 +54841,8 @@ declare namespace Bit {
          * Extrudes a flat shape up along Y by `height` while twisting it by `angle` degrees about the Y
          * axis, like a twisted column.
          *
-         * The shape should lie flat, as the profiles this package creates do. With `makeSolid` true,
-         * the default, a face profile gives a closed solid; a wire gives a twisted shell.
+         * The profile is a flat wire or edge, or a face without holes, whose outline is swept from its
+         * own plane. With `makeSolid` true, the default, the twist is a solid, otherwise a shell.
          * @param inputs - The profile shape, the height, the twist angle in degrees and whether to make a solid
          * @returns The twisted extrusion
          * @group extrusions
@@ -49378,10 +54856,26 @@ declare namespace Bit {
          */
         rotatedExtrude(inputs: Inputs.OCCT.RotationExtrudeDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
         /**
+         * Twists a profile upward as `rotatedExtrude` does, and reports what each part of the profile
+         * became: `facesFromEdges` the twisted side each edge swept, `firstFaces` and `lastFaces` the
+         * bottom and top of a solid. A face profile becomes the bottom (`faces`), where it lay.
+         * @param inputs - The profile shape, the height, the twist angle in degrees and whether to make a solid
+         * @returns The twisted extrusion and the profile's history
+         * @group extrusions
+         * @shortname rotated extrude with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, history } = await bitbybit.occt.operations.rotatedExtrudeWithHistory({ shape: square, height: 20, angle: 90, makeSolid: true });
+         * const top = history.lastFaces;
+         * ```
+         */
+        rotatedExtrudeWithHistory(inputs: Inputs.OCCT.RotationExtrudeDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.ShapeWithHistory<Inputs.OCCT.TopoDSShapePointer>>;
+        /**
          * Sweeps one or more profile shapes along a path wire and closes the result into a solid.
          *
          * The profiles should be placed on the path; with several profiles the sweep blends from one to
-         * the next along the way.
+         * the next along the way. An edge profile is swept as a one-edge wire.
          * @param inputs - The path wire and the profile shapes placed on it
          * @returns The swept solid
          * @group pipeing
@@ -49410,11 +54904,11 @@ declare namespace Bit {
          */
         pipeWithHistory(inputs: Inputs.OCCT.ShapeShapesDto<Inputs.OCCT.TopoDSWirePointer, Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.ShapeWithHistories<Inputs.OCCT.TopoDSShapePointer>>;
         /**
-         * Sweeps a regular polygon along a wire, giving a bar with `nrCorners` flat sides.
+         * Sweeps a regular polygon along a wire, giving a bar with `nrCorners` flat sides, from 3 to 1000.
          *
          * The polygon of `radius` starts perpendicular to the wire. `makeSolid` gives a solid instead of
-         * a shell, `trihedronEnum` sets how the profile turns, and `forceApproxC1` smooths the result.
-         * An invalid bar is refused; on a nearly straight path, use the discrete trihedron.
+         * a shell, `trihedronEnum` sets how the profile turns and `forceApproxC1` smooths it. An invalid
+         * bar is refused; on a nearly straight path, use the discrete trihedron.
          * @param inputs - The path wire, the polygon radius and corner count, and the sweep options
          * @returns The swept solid or shell
          * @group pipeing
@@ -49433,6 +54927,22 @@ declare namespace Bit {
          * ```
          */
         pipePolylineWireNGon(inputs: Inputs.OCCT.PipePolygonWireNGonDto<Inputs.OCCT.TopoDSWirePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Sweeps a regular polygon along a wire as `pipePolylineWireNGon` does, and reports the path's
+         * history: `facesFromEdges` the flat sides running along each path edge, `edgesFromVertices`
+         * the polygon at each path vertex, `firstFaces` and `lastFaces` the end caps of a solid.
+         * @param inputs - The path wire, the polygon radius and corner count, and the sweep options
+         * @returns The swept bar and the path's history
+         * @group pipeing
+         * @shortname pipe polyline ngon with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, history } = await bitbybit.occt.operations.pipePolylineWireNGonWithHistory({ shape: pathWire, radius: 0.5, nrCorners: 6, makeSolid: true, trihedronEnum: Bit.Inputs.OCCT.geomFillTrihedronEnum.isConstantNormal, forceApproxC1: false });
+         * const firstLeg = history.facesFromEdges[0];
+         * ```
+         */
+        pipePolylineWireNGonWithHistory(inputs: Inputs.OCCT.PipePolygonWireNGonDto<Inputs.OCCT.TopoDSWirePointer>): Promise<Models.OCCT.ShapeWithHistory<Inputs.OCCT.TopoDSShapePointer>>;
         /**
          * Sweeps a circle along each of several wires, as `pipeWireCylindrical` does for one, all with
          * the same radius and options.
@@ -49456,9 +54966,9 @@ declare namespace Bit {
         /**
          * Sweeps a circle along a wire, giving a round tube of the given radius that follows the path.
          *
-         * The circle starts perpendicular to the wire. `makeSolid` gives a solid instead of a shell,
-         * `trihedronEnum` sets how the profile turns, and `forceApproxC1` smooths the result. An invalid
-         * tube is refused; on a nearly straight path, use the discrete trihedron.
+         * `makeSolid` gives a solid instead of a shell. Along smoothly joined lines and arcs the tube is
+         * exact; `bendRadius` bends a polyline's corners into such arcs first. Elsewhere `trihedronEnum`
+         * and `forceApproxC1` steer the sweep. Bends tighter than the radius are refused.
          * @param inputs - The path wire, the radius and the sweep options
          * @returns The tube as a solid or shell
          * @group pipeing
@@ -49467,15 +54977,33 @@ declare namespace Bit {
          * @example
          * ```typescript
          * const tube = await bitbybit.occt.operations.pipeWireCylindrical({
-         *     shape: pathWire,
+         *     shape: polylineWire,
          *     radius: 0.5,
          *     makeSolid: true,
          *     trihedronEnum: Bit.Inputs.OCCT.geomFillTrihedronEnum.isConstantNormal,
          *     forceApproxC1: false,
+         *     bendRadius: 2,
          * });
          * ```
          */
         pipeWireCylindrical(inputs: Inputs.OCCT.PipeWireCylindricalDto<Inputs.OCCT.TopoDSWirePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Sweeps a circle along a wire as `pipeWireCylindrical` does, and reports the path's history:
+         * `facesFromEdges` the tube faces running along each path edge, `edgesFromVertices` the circle
+         * at each path vertex, `firstFaces` and `lastFaces` the end caps of a solid. A corner bent round
+         * `bendRadius` gives its bend under `facesFromVertices` of that corner.
+         * @param inputs - The path wire, the radius and the sweep options
+         * @returns The tube and the path's history
+         * @group pipeing
+         * @shortname pipe wire cylindrical with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, history } = await bitbybit.occt.operations.pipeWireCylindricalWithHistory({ shape: pathWire, radius: 0.5, makeSolid: true, trihedronEnum: Bit.Inputs.OCCT.geomFillTrihedronEnum.isConstantNormal, forceApproxC1: false });
+         * const bend = history.facesFromEdges[1];
+         * ```
+         */
+        pipeWireCylindricalWithHistory(inputs: Inputs.OCCT.PipeWireCylindricalDto<Inputs.OCCT.TopoDSWirePointer>): Promise<Models.OCCT.ShapeWithHistory<Inputs.OCCT.TopoDSShapePointer>>;
         /**
          * Sweeps a profile along a flat spine, keeping its place beside it, as a moulding follows a wall.
          *
@@ -49514,11 +55042,11 @@ declare namespace Bit {
          */
         pipeWithScaling(inputs: Inputs.OCCT.PipeWithScalingDto<Inputs.OCCT.TopoDSWirePointer | Inputs.OCCT.TopoDSEdgePointer, Inputs.OCCT.TopoDSWirePointer | Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
         /**
-         * Moves the boundary of a shape outward, or inward for a negative distance, by a fixed
-         * distance: a wire grows into a parallel outline, a face or solid into a bigger one.
+         * Moves the boundary of a shape outward, or inward for a negative distance: a wire into a
+         * parallel outline, a face or solid into a bigger one.
          *
-         * A wire or edge is offset in its own plane, or on `face` when given; corners are rounded. A
-         * distance of 0 returns the shape as it is.
+         * A wire or edge is offset in its own plane, or on `face` when given, with rounded corners. A
+         * distance of 0 gives the same shape in a new handle the caller deletes.
          * @param inputs - The shape, an optional face to offset a wire on, the distance and the tolerance
          * @returns The offset shape
          * @group offsets
@@ -49531,10 +55059,26 @@ declare namespace Bit {
          */
         offset(inputs: Inputs.OCCT.OffsetDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
         /**
+         * Offsets a face, shell or solid as `offset` does, and reports what each face became: the face
+         * offset from it. A wire or edge has no faces to follow and is refused.
+         * @param inputs - The face, shell or solid, the distance and the tolerance
+         * @returns The offset shape and its history
+         * @group offsets
+         * @shortname offset with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, history } = await bitbybit.occt.operations.offsetWithHistory({ shape: box, distance: 1, tolerance: 0.1 });
+         * const grownTop = history.faces[topIndex];
+         * ```
+         */
+        offsetWithHistory(inputs: Inputs.OCCT.OffsetDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Models.OCCT.ShapeWithHistory<Inputs.OCCT.TopoDSShapePointer>>;
+        /**
          * Offsets a shape like `offset`, with a choice of how corners are joined: `arc` rounds them,
          * `intersection` extends the sides to a sharp corner, `tangent` keeps them tangent.
          *
-         * `removeIntEdges` drops the internal edges the offset can leave behind on a solid.
+         * `removeIntEdges` drops the internal edges the offset can leave behind on a solid. A distance
+         * of 0 gives the same shape in a new handle the caller deletes, as `offset` does.
          * @param inputs - The shape, an optional face to offset a wire on, the distance, the tolerance, the corner join type and whether to remove internal edges
          * @returns The offset shape
          * @group offsets
@@ -49552,6 +55096,22 @@ declare namespace Bit {
          * ```
          */
         offsetAdv(inputs: Inputs.OCCT.OffsetAdvancedDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Offsets a face, shell or solid as `offsetAdv` does, and reports what each face became: the
+         * face offset from it, with the corner faces the join adds generated from edges. A wire or edge
+         * is refused.
+         * @param inputs - The face, shell or solid, the distance, the tolerance, the corner join type and whether to remove internal edges
+         * @returns The offset shape and its history
+         * @group offsets
+         * @shortname offset adv. with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, history } = await bitbybit.occt.operations.offsetAdvWithHistory({ shape: box, distance: 1, tolerance: 0.1, joinType: Bit.Inputs.OCCT.joinTypeEnum.arc, removeIntEdges: false });
+         * const rounds = history.facesFromEdges.flat();
+         * ```
+         */
+        offsetAdvWithHistory(inputs: Inputs.OCCT.OffsetAdvancedDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Models.OCCT.ShapeWithHistory<Inputs.OCCT.TopoDSShapePointer>>;
         /**
          * Gives a face or shell a thickness, turning it into a solid slab or wall of the given
          * `offset`.
@@ -49739,6 +55299,53 @@ declare namespace Bit {
          */
         splitByFrame(inputs: Inputs.OCCT.SplitByFrameDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.SplitByFrameResult<Inputs.OCCT.TopoDSCompoundPointer>>;
         /**
+         * Sections a list of shapes with the plane of each frame: for each shape and frame, the faces
+         * where the plane passes through its solids, holes included, or with `makeFaces` false the
+         * section wires.
+         *
+         * A plane that misses a shape gives an empty compound, so the results line up with the shapes
+         * and the frames.
+         * @param inputs - The shapes, the frames, whether to make faces and the joining tolerance
+         * @returns For each shape in order, one compound per frame in order
+         * @group divisions
+         * @shortname section by frames
+         * @drawable true
+         * @example
+         * ```typescript
+         * const sections = await bitbybit.occt.operations.sectionByFrames({
+         *     shapes: [box, cylinder],
+         *     frames: [{ origin: [0, 0, 0], normal: [1, 0, 0], direction: [0, 1, 0] }],
+         *     makeFaces: true,
+         *     tolerance: 1e-7,
+         * });
+         * ```
+         */
+        sectionByFrames(inputs: Inputs.OCCT.SectionByFramesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSCompoundPointer[][]>;
+        /**
+         * Cuts a list of shapes with the planes of frames, taking away the side each normal points to,
+         * the side `hiddenLines` looks from with the same frame.
+         *
+         * `keep` says what stays: what lies behind every plane, or behind any. A cut solid stays closed,
+         * its cut faces part of it; a shape taken away whole gives an empty compound.
+         * @param inputs - The shapes, the frames whose planes cut them and what to keep
+         * @returns One compound per shape, in the order of the shapes
+         * @group divisions
+         * @shortname cut by frames
+         * @drawable true
+         * @example
+         * ```typescript
+         * const cutAway = await bitbybit.occt.operations.cutByFrames({
+         *     shapes: [box, cylinder],
+         *     frames: [
+         *         { origin: [0, 0, 0], normal: [1, 0, 0], direction: [0, 1, 0] },
+         *         { origin: [0, 0, 0], normal: [0, 0, 1], direction: [1, 0, 0] },
+         *     ],
+         *     keep: Bit.Inputs.OCCT.sectionKeepEnum.behindAny,
+         * });
+         * ```
+         */
+        cutByFrames(inputs: Inputs.OCCT.CutByFramesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSCompoundPointer[]>;
+        /**
          * Cuts a face into pieces along edges or wires lying on it, like scoring a sheet.
          *
          * A cutter cuts only where it lies on the face, and a closed loop inside it cuts out the region it
@@ -49798,6 +55405,1446 @@ declare namespace Bit {
          * ```
          */
         hiddenLines(inputs: Inputs.OCCT.HiddenLinesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.HiddenLinesResult<Inputs.OCCT.TopoDSCompoundPointer>>;
+    }
+    /**
+     * Inch R-series deep groove ball bearings made from their designation, in the unit asked for: the
+     * miniature R1-4 to R1810 and R2 to R20, with their rings, balls and cage as separate solids in one
+     * compound, and shields if asked for, at the shielded bearing's width. The balls and the raceways are
+     * drawn to typical proportions; a catalogue gives a particular maker's.
+     */
+    declare class OCCTBearingsAnsi {
+        private readonly occWorkerManager;
+        /**
+         * Makes a deep groove ball bearing as a compound of its inner and outer rings with their
+         * raceways, its balls, its cage and, when `shields` is true, a shield on each side.
+         *
+         * One side lies on the frame's origin and the axis runs along the normal.
+         * @param inputs - The designation, whether it has shields, the unit and the frame
+         * @returns A compound of the bearing's solids
+         * @group bearings
+         * @shortname ansi ball bearing
+         * @drawable true
+         * @example
+         * ```typescript
+         * const bearing = await bitbybit.occt.parts.mechanical.bearings.ansi.ballBearing({ designation: Bit.Inputs.Engineering.ansiBallBearingEnum.r8, shields: true });
+         * ```
+         */
+        ballBearing(inputs: Inputs.OCCT.AnsiBallBearingDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes a ball bearing as `ballBearing` does and names the role each face plays.
+         *
+         * The roles `bore`, `outside`, the rings' sides `innerStart`, `innerEnd`, `outerStart` and
+         * `outerEnd`, `innerRing`, `outerRing`, `race`, `ball`, `cage` and `shield` list face indexes as
+         * `shapes.face.getFaces` numbers them across the compound. The `axis` frame is the input frame.
+         * @param inputs - The designation, whether it has shields, the unit and the frame
+         * @returns The bearing, the faces each role names and its axis
+         * @group bearings
+         * @shortname ansi ball bearing with roles
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, roles } = await bitbybit.occt.parts.mechanical.bearings.ansi.ballBearingWithRoles({ designation: Bit.Inputs.Engineering.ansiBallBearingEnum.r188 });
+         * ```
+         */
+        ballBearingWithRoles(inputs: Inputs.OCCT.AnsiBallBearingDto): Promise<Models.OCCT.ShapeWithRoles<Inputs.OCCT.TopoDSShapePointer>>;
+    }
+    /**
+     * Rolling bearings as solids, by the standard that sizes them: `iso` holds the metric deep groove
+     * ball bearings and `ansi` the inch R-series ones, each in the unit asked for, with their rings,
+     * balls and cage as separate solids in one compound, and shields if asked for.
+     */
+    declare class OCCTBearings {
+        readonly iso: OCCTBearingsIso;
+        readonly ansi: OCCTBearingsAnsi;
+    }
+    /**
+     * Metric deep groove ball bearings made from their designation, in the unit asked for: the 60 and 62
+     * series and the small 62x and 60x sizes, with their rings, balls and cage as separate solids in one
+     * compound, and shields if asked for. The balls and the raceways are drawn to typical proportions; a
+     * catalogue gives a particular maker's.
+     */
+    declare class OCCTBearingsIso {
+        private readonly occWorkerManager;
+        /**
+         * Makes a deep groove ball bearing as a compound of its inner and outer rings with their
+         * raceways, its balls, its cage and, when `shields` is true, a shield on each side.
+         *
+         * One side lies on the frame's origin and the axis runs along the normal.
+         * @param inputs - The designation, whether it has shields, the unit and the frame
+         * @returns A compound of the bearing's solids
+         * @group bearings
+         * @shortname iso ball bearing
+         * @drawable true
+         * @example
+         * ```typescript
+         * const bearing = await bitbybit.occt.parts.mechanical.bearings.iso.ballBearing({ designation: Bit.Inputs.Engineering.isoBallBearingEnum.b6204, shields: true });
+         * ```
+         */
+        ballBearing(inputs: Inputs.OCCT.IsoBallBearingDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes a ball bearing as `ballBearing` does and names the role each face plays.
+         *
+         * The roles `bore`, `outside`, the rings' sides `innerStart`, `innerEnd`, `outerStart` and
+         * `outerEnd`, `innerRing`, `outerRing`, `race`, `ball`, `cage` and `shield` list face indexes as
+         * `shapes.face.getFaces` numbers them across the compound. The `axis` frame is the input frame.
+         * @param inputs - The designation, whether it has shields, the unit and the frame
+         * @returns The bearing, the faces each role names and its axis
+         * @group bearings
+         * @shortname iso ball bearing with roles
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, roles } = await bitbybit.occt.parts.mechanical.bearings.iso.ballBearingWithRoles({ designation: Bit.Inputs.Engineering.isoBallBearingEnum.b608 });
+         * ```
+         */
+        ballBearingWithRoles(inputs: Inputs.OCCT.IsoBallBearingDto): Promise<Models.OCCT.ShapeWithRoles<Inputs.OCCT.TopoDSShapePointer>>;
+    }
+    /**
+     * ASME inch fasteners made from their sizes, in the unit asked for: cap screws and set
+     * screws (B18.3), hex cap screws (B18.2.1), hex nuts (B18.2.2, and machine screw nuts to #12 after
+     * B18.6.3) and type A plain washers (B18.22.1). Threads are cosmetic, a face of their own named
+     * `thread`, unless a cap screw or hex cap screw models them; each part has a twin that names its faces.
+     */
+    declare class OCCTFastenersAnsi {
+        private readonly occWorkerManager;
+        /**
+         * Makes an ASME B18.3 cap screw: a round head with a hexagon recess for a key, and a shank
+         * threaded from the tip for the length the standard gives, or to the head on a shorter screw.
+         *
+         * The head sits on the frame's origin and rises along its normal; the shank runs the other way.
+         * `modelledThread` models the thread.
+         * @param inputs - The size, the series, the length under the head, whether the thread is modelled, the unit and the frame
+         * @returns A new solid
+         * @group fasteners
+         * @shortname ansi socket head cap screw
+         * @drawable true
+         * @example
+         * ```typescript
+         * const screw = await bitbybit.occt.parts.mechanical.fasteners.ansi.socketHeadCapScrew({ size: Bit.Inputs.Engineering.ansiThreadSizeEnum.in1_4, length: 1 });
+         * ```
+         */
+        socketHeadCapScrew(inputs: Inputs.OCCT.AnsiSocketHeadCapScrewDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes a cap screw as `socketHeadCapScrew` does and names the role each face plays.
+         *
+         * The roles `head`, `recess`, `seat` (under the head), `shank`, `thread` and `end` (the tip) list
+         * face indexes as `shapes.face.getFaces` numbers them; a screw threaded to its head has no
+         * `shank`. The `seat` frame is the input frame.
+         * @param inputs - The size, the series, the length under the head, whether the thread is modelled, the unit and the frame
+         * @returns The screw, the faces each role names and its seat
+         * @group fasteners
+         * @shortname ansi socket head cap screw with roles
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, roles } = await bitbybit.occt.parts.mechanical.fasteners.ansi.socketHeadCapScrewWithRoles({ size: Bit.Inputs.Engineering.ansiThreadSizeEnum.n10, length: 0.75 });
+         * ```
+         */
+        socketHeadCapScrewWithRoles(inputs: Inputs.OCCT.AnsiSocketHeadCapScrewDto): Promise<Models.OCCT.ShapeWithRoles<Inputs.OCCT.TopoDSShapePointer>>;
+        /**
+         * Makes an ASME B18.2.1 hex cap screw with chamfered top corners, threaded for the length the
+         * standard gives, or to the head when `fullyThreaded` is true.
+         *
+         * The head sits on the frame's origin and rises along its normal, a flat facing the frame's
+         * direction; the shank runs the other way. `modelledThread` cuts the thread.
+         * @param inputs - The size, the series, the length under the head, how far it is threaded, whether the thread is modelled, the unit and the frame
+         * @returns A new solid
+         * @group fasteners
+         * @shortname ansi hex bolt
+         * @drawable true
+         * @example
+         * ```typescript
+         * const bolt = await bitbybit.occt.parts.mechanical.fasteners.ansi.hexBolt({ size: Bit.Inputs.Engineering.ansiThreadSizeEnum.in3_8, length: 1.5, modelledThread: true });
+         * ```
+         */
+        hexBolt(inputs: Inputs.OCCT.AnsiHexBoltDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes a hex cap screw as `hexBolt` does and names the role each face plays.
+         *
+         * The roles `head`, `seat` (under the head), `shank`, `thread` and `end` (the tip) list face
+         * indexes as `shapes.face.getFaces` numbers them; a screw threaded to its head has no `shank`. The
+         * `seat` frame is the input frame.
+         * @param inputs - The size, the series, the length under the head, how far it is threaded, the unit and the frame
+         * @returns The screw, the faces each role names and its seat
+         * @group fasteners
+         * @shortname ansi hex bolt with roles
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, roles } = await bitbybit.occt.parts.mechanical.fasteners.ansi.hexBoltWithRoles({ size: Bit.Inputs.Engineering.ansiThreadSizeEnum.in3_8, length: 1.5 });
+         * ```
+         */
+        hexBoltWithRoles(inputs: Inputs.OCCT.AnsiHexBoltDto): Promise<Models.OCCT.ShapeWithRoles<Inputs.OCCT.TopoDSShapePointer>>;
+        /**
+         * Makes an ASME hex nut, a machine screw nut to #12 and a hex nut from 1/4, its corners chamfered
+         * on both sides and its hole at the thread's nominal diameter.
+         *
+         * Its bearing face lies on the frame's origin and it rises along the normal, a flat facing the
+         * frame's direction.
+         * @param inputs - The size, the unit and the frame
+         * @returns A new solid
+         * @group fasteners
+         * @shortname ansi hex nut
+         * @drawable true
+         * @example
+         * ```typescript
+         * const nut = await bitbybit.occt.parts.mechanical.fasteners.ansi.hexNut({ size: Bit.Inputs.Engineering.ansiThreadSizeEnum.in1_4 });
+         * ```
+         */
+        hexNut(inputs: Inputs.OCCT.AnsiHexNutDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes a hex nut as `hexNut` does and names the role each face plays.
+         *
+         * The roles `seat` (the bearing face), `top`, `side` and `thread` (the hole) list face indexes as
+         * `shapes.face.getFaces` numbers them. The `seat` frame is the input frame.
+         * @param inputs - The size, the unit and the frame
+         * @returns The nut, the faces each role names and its seat
+         * @group fasteners
+         * @shortname ansi hex nut with roles
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, roles } = await bitbybit.occt.parts.mechanical.fasteners.ansi.hexNutWithRoles({ size: Bit.Inputs.Engineering.ansiThreadSizeEnum.in1_4 });
+         * ```
+         */
+        hexNutWithRoles(inputs: Inputs.OCCT.AnsiHexNutDto): Promise<Models.OCCT.ShapeWithRoles<Inputs.OCCT.TopoDSShapePointer>>;
+        /**
+         * Makes an ASME B18.22.1 type A plain washer, narrow or wide.
+         *
+         * Its bearing face lies on the frame's origin and it rises along the normal. The table starts at
+         * #6.
+         * @param inputs - The size of the screw it goes under, the series, the unit and the frame
+         * @returns A new solid
+         * @group fasteners
+         * @shortname ansi washer
+         * @drawable true
+         * @example
+         * ```typescript
+         * const washer = await bitbybit.occt.parts.mechanical.fasteners.ansi.washer({ size: Bit.Inputs.Engineering.ansiThreadSizeEnum.in1_4, series: Bit.Inputs.Engineering.ansiWasherSeriesEnum.wide });
+         * ```
+         */
+        washer(inputs: Inputs.OCCT.AnsiWasherDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes a plain washer as `washer` does and names the role each face plays.
+         *
+         * The roles `seat` (the bearing face), `top`, `bore` and `rim` list face indexes as
+         * `shapes.face.getFaces` numbers them. The `seat` frame is the input frame.
+         * @param inputs - The size of the screw it goes under, the series, the unit and the frame
+         * @returns The washer, the faces each role names and its seat
+         * @group fasteners
+         * @shortname ansi washer with roles
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, roles } = await bitbybit.occt.parts.mechanical.fasteners.ansi.washerWithRoles({ size: Bit.Inputs.Engineering.ansiThreadSizeEnum.in1_4 });
+         * ```
+         */
+        washerWithRoles(inputs: Inputs.OCCT.AnsiWasherDto): Promise<Models.OCCT.ShapeWithRoles<Inputs.OCCT.TopoDSShapePointer>>;
+        /**
+         * Makes an ASME B18.3 set screw with a hexagon recess, threaded its whole length, its point a
+         * cup, flat, cone, oval or half dog, the recess as deep as the standard asks of its length.
+         *
+         * Its recessed end lies on the frame's origin and it runs against the normal.
+         * @param inputs - The size, the series, the length, the point, the unit and the frame
+         * @returns A new solid
+         * @group fasteners
+         * @shortname ansi set screw
+         * @drawable true
+         * @example
+         * ```typescript
+         * const grub = await bitbybit.occt.parts.mechanical.fasteners.ansi.setScrew({ size: Bit.Inputs.Engineering.ansiThreadSizeEnum.n10, length: 0.25, point: Bit.Inputs.Engineering.ansiSetScrewPointEnum.oval });
+         * ```
+         */
+        setScrew(inputs: Inputs.OCCT.AnsiSetScrewDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes a set screw as `setScrew` does and names the role each face plays.
+         *
+         * The roles `top` (the recessed end), `recess`, `thread` and `end` (the point) list face indexes as
+         * `shapes.face.getFaces` numbers them. The `top` frame is the input frame.
+         * @param inputs - The size, the series, the length, the point, the unit and the frame
+         * @returns The set screw, the faces each role names and its top
+         * @group fasteners
+         * @shortname ansi set screw with roles
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, roles } = await bitbybit.occt.parts.mechanical.fasteners.ansi.setScrewWithRoles({ size: Bit.Inputs.Engineering.ansiThreadSizeEnum.n10, length: 0.25 });
+         * ```
+         */
+        setScrewWithRoles(inputs: Inputs.OCCT.AnsiSetScrewDto): Promise<Models.OCCT.ShapeWithRoles<Inputs.OCCT.TopoDSShapePointer>>;
+    }
+    /**
+     * Fasteners as solids, by the standard that sizes them: `iso` holds the ISO metric screws, bolts,
+     * nuts, washers and set screws and `ansi` the inch ones of ASME B18, each in the unit asked for.
+     * Dowel pins, sized by their own diameter and length in model units, sit here beside them; every
+     * part has a twin that names its faces.
+     */
+    declare class OCCTFasteners {
+        private readonly occWorkerManager;
+        readonly iso: OCCTFastenersIso;
+        readonly ansi: OCCTFastenersAnsi;
+        /**
+         * Makes a cylindrical dowel pin with a 45 degree chamfer of a tenth of its diameter at each end,
+         * after ISO 2338.
+         *
+         * It starts at the frame's origin and runs along the normal.
+         * @param inputs - The diameter, the length and the frame
+         * @returns A new solid
+         * @group fasteners
+         * @shortname dowel pin
+         * @drawable true
+         * @example
+         * ```typescript
+         * const pin = await bitbybit.occt.parts.mechanical.fasteners.dowelPin({ diameter: 4, length: 16 });
+         * ```
+         */
+        dowelPin(inputs: Inputs.OCCT.DowelPinDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes a dowel pin as `dowelPin` does and names the role each face plays.
+         *
+         * The roles `side` and `end` (both ends with their chamfers) list face indexes as
+         * `shapes.face.getFaces` numbers them. The `end` frame is the input frame.
+         * @param inputs - The diameter, the length and the frame
+         * @returns The pin, the faces each role names and its end
+         * @group fasteners
+         * @shortname dowel pin with roles
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, roles } = await bitbybit.occt.parts.mechanical.fasteners.dowelPinWithRoles({ diameter: 4, length: 16 });
+         * ```
+         */
+        dowelPinWithRoles(inputs: Inputs.OCCT.DowelPinDto): Promise<Models.OCCT.ShapeWithRoles<Inputs.OCCT.TopoDSShapePointer>>;
+    }
+    /**
+     * ISO metric fasteners made from their ISO sizes, in the unit asked for: cap screws with a hexagon
+     * recess in a round head (ISO 4762), hexagon bolts (ISO 4017 and 4014), nuts (ISO 4032), plain washers
+     * (ISO 7089 and 7090) and set screws (ISO 4026 to 4029). Threads are cosmetic, a face of their own
+     * named `thread`, unless a cap screw or bolt models them; each part has a twin that names its faces.
+     */
+    declare class OCCTFastenersIso {
+        private readonly occWorkerManager;
+        /**
+         * Makes an ISO 4762 cap screw: a round head with a hexagon recess for a key, and a shank threaded
+         * from the tip for the length the standard gives, or to the head on a shorter screw.
+         *
+         * The head sits on the frame's origin and rises along its normal; the shank runs the other way.
+         * `modelledThread` models the thread.
+         * @param inputs - The size, the length under the head, whether the thread is modelled, the unit and the frame
+         * @returns A new solid
+         * @group fasteners
+         * @shortname iso socket head cap screw
+         * @drawable true
+         * @example
+         * ```typescript
+         * const screw = await bitbybit.occt.parts.mechanical.fasteners.iso.socketHeadCapScrew({ size: Bit.Inputs.Engineering.isoThreadSizeEnum.m5, length: 20 });
+         * ```
+         */
+        socketHeadCapScrew(inputs: Inputs.OCCT.IsoSocketHeadCapScrewDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes a cap screw as `socketHeadCapScrew` does and names the role each face plays.
+         *
+         * The roles `head`, `recess`, `seat` (under the head), `shank`, `thread` and `end` (the tip) list
+         * face indexes as `shapes.face.getFaces` numbers them; a screw threaded to its head has no
+         * `shank`. The `seat` frame is the input frame.
+         * @param inputs - The size, the length under the head, whether the thread is modelled, the unit and the frame
+         * @returns The screw, the faces each role names and its seat
+         * @group fasteners
+         * @shortname iso socket head cap screw with roles
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, roles, frames } = await bitbybit.occt.parts.mechanical.fasteners.iso.socketHeadCapScrewWithRoles({ size: Bit.Inputs.Engineering.isoThreadSizeEnum.m5, length: 20 });
+         * ```
+         */
+        socketHeadCapScrewWithRoles(inputs: Inputs.OCCT.IsoSocketHeadCapScrewDto): Promise<Models.OCCT.ShapeWithRoles<Inputs.OCCT.TopoDSShapePointer>>;
+        /**
+         * Makes a hexagon head bolt with chamfered top corners: threaded to the head after ISO 4017, or
+         * after ISO 4014 only for the length the standard gives when `fullyThreaded` is false.
+         *
+         * The head sits on the frame's origin and rises along its normal, a flat facing the frame's
+         * direction; the shank runs the other way. `modelledThread` cuts the thread.
+         * @param inputs - The size, the length under the head, how far it is threaded, whether the thread is modelled, the unit and the frame
+         * @returns A new solid
+         * @group fasteners
+         * @shortname iso hex bolt
+         * @drawable true
+         * @example
+         * ```typescript
+         * const bolt = await bitbybit.occt.parts.mechanical.fasteners.iso.hexBolt({ size: Bit.Inputs.Engineering.isoThreadSizeEnum.m8, length: 40, fullyThreaded: false, modelledThread: true });
+         * ```
+         */
+        hexBolt(inputs: Inputs.OCCT.IsoHexBoltDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes a hexagon head bolt as `hexBolt` does and names the role each face plays.
+         *
+         * The roles `head`, `seat` (under the head), `shank`, `thread` and `end` (the tip) list face
+         * indexes as `shapes.face.getFaces` numbers them; a bolt threaded to its head has no `shank`. The
+         * `seat` frame is the input frame.
+         * @param inputs - The size, the length under the head, how far it is threaded, the unit and the frame
+         * @returns The bolt, the faces each role names and its seat
+         * @group fasteners
+         * @shortname iso hex bolt with roles
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, roles } = await bitbybit.occt.parts.mechanical.fasteners.iso.hexBoltWithRoles({ size: Bit.Inputs.Engineering.isoThreadSizeEnum.m8, length: 40 });
+         * ```
+         */
+        hexBoltWithRoles(inputs: Inputs.OCCT.IsoHexBoltDto): Promise<Models.OCCT.ShapeWithRoles<Inputs.OCCT.TopoDSShapePointer>>;
+        /**
+         * Makes an ISO 4032 hexagon nut, its corners chamfered on both sides and its hole at the thread's
+         * nominal diameter, so a screw of its size passes through without overlapping it.
+         *
+         * Its bearing face lies on the frame's origin and it rises along the normal, a flat facing the
+         * frame's direction.
+         * @param inputs - The size, the unit and the frame
+         * @returns A new solid
+         * @group fasteners
+         * @shortname iso hex nut
+         * @drawable true
+         * @example
+         * ```typescript
+         * const nut = await bitbybit.occt.parts.mechanical.fasteners.iso.hexNut({ size: Bit.Inputs.Engineering.isoThreadSizeEnum.m8 });
+         * ```
+         */
+        hexNut(inputs: Inputs.OCCT.IsoHexNutDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes a hexagon nut as `hexNut` does and names the role each face plays.
+         *
+         * The roles `seat` (the bearing face), `top`, `side` and `thread` (the hole) list face indexes as
+         * `shapes.face.getFaces` numbers them. The `seat` frame is the input frame.
+         * @param inputs - The size, the unit and the frame
+         * @returns The nut, the faces each role names and its seat
+         * @group fasteners
+         * @shortname iso hex nut with roles
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, roles } = await bitbybit.occt.parts.mechanical.fasteners.iso.hexNutWithRoles({ size: Bit.Inputs.Engineering.isoThreadSizeEnum.m8 });
+         * ```
+         */
+        hexNutWithRoles(inputs: Inputs.OCCT.IsoHexNutDto): Promise<Models.OCCT.ShapeWithRoles<Inputs.OCCT.TopoDSShapePointer>>;
+        /**
+         * Makes a plain washer: flat after ISO 7089, or after ISO 7090 with its outside chamfered on the
+         * face away from the seat.
+         *
+         * Its bearing face lies on the frame's origin and it rises along the normal.
+         * @param inputs - The size of the screw it goes under, whether it is chamfered, the unit and the frame
+         * @returns A new solid
+         * @group fasteners
+         * @shortname iso washer
+         * @drawable true
+         * @example
+         * ```typescript
+         * const washer = await bitbybit.occt.parts.mechanical.fasteners.iso.washer({ size: Bit.Inputs.Engineering.isoThreadSizeEnum.m8 });
+         * ```
+         */
+        washer(inputs: Inputs.OCCT.IsoWasherDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes a plain washer as `washer` does and names the role each face plays.
+         *
+         * The roles `seat` (the bearing face), `top`, `bore` and `rim` (the chamfer too) list face
+         * indexes as `shapes.face.getFaces` numbers them. The `seat` frame is the input frame.
+         * @param inputs - The size of the screw it goes under, whether it is chamfered, the unit and the frame
+         * @returns The washer, the faces each role names and its seat
+         * @group fasteners
+         * @shortname iso washer with roles
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, roles } = await bitbybit.occt.parts.mechanical.fasteners.iso.washerWithRoles({ size: Bit.Inputs.Engineering.isoThreadSizeEnum.m8 });
+         * ```
+         */
+        washerWithRoles(inputs: Inputs.OCCT.IsoWasherDto): Promise<Models.OCCT.ShapeWithRoles<Inputs.OCCT.TopoDSShapePointer>>;
+        /**
+         * Makes a set screw with a hexagon recess, threaded its whole length, its point flat, cone, dog
+         * or cup as ISO 4026 to 4029 give them, the recess as deep as they ask of its length.
+         *
+         * Its recessed end lies on the frame's origin and it runs against the normal.
+         * @param inputs - The size, the length, the point, the unit and the frame
+         * @returns A new solid
+         * @group fasteners
+         * @shortname iso set screw
+         * @drawable true
+         * @example
+         * ```typescript
+         * const grub = await bitbybit.occt.parts.mechanical.fasteners.iso.setScrew({ size: Bit.Inputs.Engineering.isoThreadSizeEnum.m4, length: 6, point: Bit.Inputs.Engineering.isoSetScrewPointEnum.cone });
+         * ```
+         */
+        setScrew(inputs: Inputs.OCCT.IsoSetScrewDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes a set screw as `setScrew` does and names the role each face plays.
+         *
+         * The roles `top` (the recessed end), `recess`, `thread` and `end` (the point) list face indexes as
+         * `shapes.face.getFaces` numbers them. The `top` frame is the input frame.
+         * @param inputs - The size, the length, the point, the unit and the frame
+         * @returns The set screw, the faces each role names and its top
+         * @group fasteners
+         * @shortname iso set screw with roles
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, roles } = await bitbybit.occt.parts.mechanical.fasteners.iso.setScrewWithRoles({ size: Bit.Inputs.Engineering.isoThreadSizeEnum.m4, length: 6 });
+         * ```
+         */
+        setScrewWithRoles(inputs: Inputs.OCCT.IsoSetScrewDto): Promise<Models.OCCT.ShapeWithRoles<Inputs.OCCT.TopoDSShapePointer>>;
+    }
+    /**
+     * Involute gears, made from their sizes rather than drawn: spur and helical gears with their teeth
+     * outside, ring gears with their teeth inside, racks and straight bevel gears, as solids whose faces
+     * can be named tips, flanks and roots. Gears sharing `module` and `pressureAngle` mesh: spur gears half the module
+     * times their teeth together apart, a spur gear in a ring half the module times the difference. Flanks
+     * are not undercut, so a pinion under 17 teeth at 20 degrees wants a `profileShift`, and a ring near its
+     * pinion's count can touch at the tips: check a pair with `analysis.clashes` through a pitch.
+     */
+    declare class OCCTGears {
+        private readonly occWorkerManager;
+        /**
+         * Draws the outline of an involute spur gear around a frame's origin, in the frame's plane.
+         *
+         * The flanks follow the involute of the base circle and the gaps are rounded at the root. At
+         * `rotation` 0 a tooth points along the frame's direction. Teeth that come to a point, or leave no
+         * gap at the root, are refused.
+         * @param inputs - The teeth, the frame and whether to make a face
+         * @returns The outline as a face, or as a closed wire when `makeFace` is false
+         * @group gears
+         * @shortname spur gear profile
+         * @drawable true
+         * @example
+         * ```typescript
+         * const profile = await bitbybit.occt.parts.mechanical.gears.spurGearProfile({ module: 0.2, teeth: 24, makeFace: true });
+         * const gear = await bitbybit.occt.operations.extrude({ shape: profile, direction: [0, 0.8, 0] });
+         * ```
+         */
+        spurGearProfile(inputs: Inputs.OCCT.SpurGearProfileDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes an involute spur gear as a solid: its outline swept `width` along the frame's normal, with
+         * a `bore`, a hub standing out from its end face and a keyway.
+         *
+         * The first face lies in the frame's plane. A `bore` of 0 leaves the gear whole; one that
+         * reaches the root circle is refused.
+         * @param inputs - The teeth, the width, the bore, the hub, the keyway and the frame
+         * @returns A new solid
+         * @group gears
+         * @shortname spur gear
+         * @drawable true
+         * @example
+         * ```typescript
+         * const driver = await bitbybit.occt.parts.mechanical.gears.spurGear({ module: 0.2, teeth: 20, width: 1, bore: 0.8 });
+         * const driven = await bitbybit.occt.parts.mechanical.gears.spurGear({ module: 0.2, teeth: 40, width: 1, bore: 1.2, rotation: 4.5, frame: { origin: [6, 0, 0], normal: [0, 1, 0], direction: [1, 0, 0] } });
+         * ```
+         */
+        spurGear(inputs: Inputs.OCCT.SpurGearDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes a spur gear as `spurGear` does and names the role each face plays.
+         *
+         * The roles `tip`, `flank`, `root`, `bore`, `hub`, `keyway`, `start` (in the frame's plane) and
+         * `end` list face indexes as `shapes.face.getFaces` numbers them. The `axis` frame sits at the
+         * start face's centre, toward the first tooth.
+         * @param inputs - The teeth, the width, the bore, the hub, the keyway and the frame
+         * @returns The gear, the faces each role names and its axis
+         * @group gears
+         * @shortname spur gear with roles
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, roles, frames } = await bitbybit.occt.parts.mechanical.gears.spurGearWithRoles({ module: 0.2, teeth: 20, width: 1, bore: 0.8 });
+         * console.log(roles["tip"]?.length, roles["bore"], frames["axis"]);
+         * ```
+         */
+        spurGearWithRoles(inputs: Inputs.OCCT.SpurGearDto): Promise<Models.OCCT.ShapeWithRoles<Inputs.OCCT.TopoDSShapePointer>>;
+        /**
+         * Makes an involute helical gear as a solid: its section square to the axis turned steadily along
+         * `width`, with a `bore`, a hub and a keyway as `spurGear` has them.
+         *
+         * Two external helical gears of one module and angle in opposite hands mesh, the sum of their
+         * pitch radii apart; `herringbone` makes two opposite halves.
+         * @param inputs - The teeth and their lean, the width, the bore, the hub, the keyway and the frame
+         * @returns A new solid
+         * @group helical
+         * @shortname helical gear
+         * @drawable true
+         * @example
+         * ```typescript
+         * const driver = await bitbybit.occt.parts.mechanical.gears.helicalGear({ module: 0.2, teeth: 20, helixAngle: 20, width: 1, bore: 0.8 });
+         * const sizes = bitbybit.engineering.mechanical.gears.helicalGearSizes({ module: 0.2, teeth: 20, helixAngle: 20 });
+         * ```
+         */
+        helicalGear(inputs: Inputs.OCCT.HelicalGearDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes a helical gear as `helicalGear` does and names the role each face plays.
+         *
+         * The roles `tip`, `flank`, `root`, `bore`, `hub`, `keyway`, `start` (in the frame's plane) and
+         * `end` list face indexes as `shapes.face.getFaces` numbers them. The `axis` frame sits at the
+         * start face's centre, toward the first tooth.
+         * @param inputs - The teeth and their lean, the width, the bore, the hub, the keyway and the frame
+         * @returns The gear, the faces each role names and its axis
+         * @group helical
+         * @shortname helical gear with roles
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, roles } = await bitbybit.occt.parts.mechanical.gears.helicalGearWithRoles({ module: 0.2, teeth: 20, helixAngle: 20, herringbone: true });
+         * ```
+         */
+        helicalGearWithRoles(inputs: Inputs.OCCT.HelicalGearDto): Promise<Models.OCCT.ShapeWithRoles<Inputs.OCCT.TopoDSShapePointer>>;
+        /**
+         * Makes a straight bevel gear as a solid by Tredgold's approximation: teeth that run straight to
+         * the apex, between a back cone and a front cone `faceWidth` nearer the apex, on a body with flat
+         * ends.
+         *
+         * It meshes a bevel gear of the mate's teeth that shares its frame's origin, the two normals at
+         * `shaftAngle`, turned half a tooth.
+         * @param inputs - The teeth, the mate's teeth, the shaft angle, the face width, the bore and the frame
+         * @returns A new solid
+         * @group bevel
+         * @shortname bevel gear
+         * @drawable true
+         * @example
+         * ```typescript
+         * const pinion = await bitbybit.occt.parts.mechanical.gears.bevelGear({ module: 0.2, teeth: 20, mateTeeth: 30, faceWidth: 0.8, frame: { origin: [0, 0, 0], normal: [0, 0, 1], direction: [1, 0, 0] } });
+         * const wheel = await bitbybit.occt.parts.mechanical.gears.bevelGear({ module: 0.2, teeth: 30, mateTeeth: 20, faceWidth: 0.8, rotation: 6, frame: { origin: [0, 0, 0], normal: [1, 0, 0], direction: [0, 0, 1] } });
+         * ```
+         */
+        bevelGear(inputs: Inputs.OCCT.BevelGearDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes a bevel gear as `bevelGear` does and names the role each face plays.
+         *
+         * The roles `tip`, `flank`, `root`, `back` (the back cone and the flat back face), `front` and
+         * `bore` list face indexes as `shapes.face.getFaces` numbers them. The `apex` frame is the input
+         * frame turned to the first tooth; `back` sits at the back face's centre.
+         * @param inputs - The teeth, the mate's teeth, the shaft angle, the face width, the bore and the frame
+         * @returns The gear, the faces each role names and its apex and back
+         * @group bevel
+         * @shortname bevel gear with roles
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, roles, frames } = await bitbybit.occt.parts.mechanical.gears.bevelGearWithRoles({ module: 0.2, teeth: 20, mateTeeth: 30 });
+         * console.log(roles["back"], frames["back"]);
+         * ```
+         */
+        bevelGearWithRoles(inputs: Inputs.OCCT.BevelGearDto): Promise<Models.OCCT.ShapeWithRoles<Inputs.OCCT.TopoDSShapePointer>>;
+        /**
+         * Draws an involute ring gear in the frame's plane, its teeth pointing in toward the frame's
+         * origin.
+         *
+         * As a face it is the ring between its outer circle and its teeth; as a wire, only the outline of
+         * the teeth. At `rotation` 0 a tooth points along the frame's direction. Teeth whose tips reach
+         * inside the base circle are refused.
+         * @param inputs - The teeth, the rim, the frame and whether to make a face
+         * @returns The ring as a face, or the outline of its teeth as a closed wire when `makeFace` is false
+         * @group gears
+         * @shortname ring gear profile
+         * @drawable true
+         * @example
+         * ```typescript
+         * const ring = await bitbybit.occt.parts.mechanical.gears.ringGearProfile({ module: 0.2, teeth: 60, rim: 0.6, makeFace: true });
+         * const solid = await bitbybit.occt.operations.extrude({ shape: ring, direction: [0, 0.8, 0] });
+         * ```
+         */
+        ringGearProfile(inputs: Inputs.OCCT.RingGearProfileDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes an involute ring gear as a solid: the ring between its outer circle and its teeth, swept
+         * `width` along the frame's normal.
+         *
+         * The first face lies in the frame's plane. A spur gear of the same module meshes inside it with
+         * its centre half the module times the difference of their teeth from the ring's centre.
+         * @param inputs - The teeth, the rim, the width and the frame
+         * @returns A new solid
+         * @group gears
+         * @shortname ring gear
+         * @drawable true
+         * @example
+         * ```typescript
+         * const ring = await bitbybit.occt.parts.mechanical.gears.ringGear({ module: 0.2, teeth: 60, width: 1 });
+         * const pinion = await bitbybit.occt.parts.mechanical.gears.spurGear({ module: 0.2, teeth: 20, width: 1, bore: 0.6, rotation: 9, frame: { origin: [4, 0, 0], normal: [0, 1, 0], direction: [1, 0, 0] } });
+         * ```
+         */
+        ringGear(inputs: Inputs.OCCT.RingGearDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes a ring gear as `ringGear` does and names the role each face plays.
+         *
+         * The roles `tip`, `flank`, `root`, `rim` (the outer face), `start` (in the frame's plane) and
+         * `end` list face indexes as `shapes.face.getFaces` numbers them. The `axis` frame sits at the
+         * start face's centre, toward the first tooth.
+         * @param inputs - The teeth, the rim, the width and the frame
+         * @returns The ring, the faces each role names and its axis
+         * @group gears
+         * @shortname ring gear with roles
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, roles, frames } = await bitbybit.occt.parts.mechanical.gears.ringGearWithRoles({ module: 0.2, teeth: 60, width: 1 });
+         * console.log(roles["tip"]?.length, roles["rim"], frames["axis"]);
+         * ```
+         */
+        ringGearWithRoles(inputs: Inputs.OCCT.RingGearDto): Promise<Models.OCCT.ShapeWithRoles<Inputs.OCCT.TopoDSShapePointer>>;
+        /**
+         * Draws an involute rack in the frame's plane: its pitch line along the frame's direction, its
+         * straight-flanked teeth pointing across it, the first tooth's middle on the origin.
+         *
+         * The rack ends halfway across a gap at each end. A spur gear of the same module meshes with its
+         * centre its pitch radius from the pitch line.
+         * @param inputs - The teeth, the height, the frame and whether to make a face
+         * @returns The outline as a face, or as a closed wire when `makeFace` is false
+         * @group racks
+         * @shortname rack profile
+         * @drawable true
+         * @example
+         * ```typescript
+         * const profile = await bitbybit.occt.parts.mechanical.gears.rackProfile({ module: 0.2, teeth: 12, height: 0.6 });
+         * ```
+         */
+        rackProfile(inputs: Inputs.OCCT.RackProfileDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes an involute rack as a solid: its outline swept `width` along the frame's normal.
+         *
+         * A spur gear of the same module meshes with it with its centre its pitch radius from the pitch
+         * line; turning the gear by an angle moves the rack its pitch radius times the angle in radians.
+         * @param inputs - The teeth, the height, the width and the frame
+         * @returns A new solid
+         * @group racks
+         * @shortname rack
+         * @drawable true
+         * @example
+         * ```typescript
+         * const rack = await bitbybit.occt.parts.mechanical.gears.rack({ module: 0.2, teeth: 12, height: 0.6, width: 1 });
+         * ```
+         */
+        rack(inputs: Inputs.OCCT.RackDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes a rack as `rack` does and names the role each face plays.
+         *
+         * The roles `tip`, `flank`, `root`, `back`, `side` (its two ends), `start` (in the frame's plane)
+         * and `end` list face indexes as `shapes.face.getFaces` numbers them. The `pitch` frame sits on
+         * the first tooth's middle on the pitch line, along the rack.
+         * @param inputs - The teeth, the height, the width and the frame
+         * @returns The rack, the faces each role names and its pitch frame
+         * @group racks
+         * @shortname rack with roles
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, roles, frames } = await bitbybit.occt.parts.mechanical.gears.rackWithRoles({ module: 0.2, teeth: 12 });
+         * ```
+         */
+        rackWithRoles(inputs: Inputs.OCCT.RackDto): Promise<Models.OCCT.ShapeWithRoles<Inputs.OCCT.TopoDSShapePointer>>;
+    }
+    /**
+     * ANSI B17.1 square parallel keys made for their shaft, in the unit asked for: bars with round ends,
+     * as wide and high as the standard gives for the shaft's diameter. Sunk the shaft's keyseat depth below
+     * its surface, a key also serves as the tool that cuts its keyseat.
+     */
+    declare class OCCTKeysAnsi {
+        private readonly occWorkerManager;
+        /**
+         * Makes an ANSI B17.1 square parallel key: a bar with round ends, as wide and high as the standard
+         * gives for a shaft of `shaftDiameter`, lying along the frame's direction on its origin.
+         *
+         * Sunk the shaft's keyseat depth below the shaft's surface, the key also serves as the tool that
+         * cuts that keyseat.
+         * @param inputs - The shaft's diameter, the key's length, the unit and the frame
+         * @returns A new solid
+         * @group keys
+         * @shortname ansi parallel key
+         * @drawable true
+         * @example
+         * ```typescript
+         * const key = await bitbybit.occt.parts.mechanical.keys.ansi.parallelKey({ shaftDiameter: 1, length: 1.25 });
+         * ```
+         */
+        parallelKey(inputs: Inputs.OCCT.AnsiParallelKeyDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes a parallel key as `parallelKey` does and names the role each face plays.
+         *
+         * The roles `bottom`, `top`, `side` and `end` (the round ends) list face indexes as
+         * `shapes.face.getFaces` numbers them. The `bottom` frame is the input frame.
+         * @param inputs - The shaft's diameter, the key's length, the unit and the frame
+         * @returns The key, the faces each role names and its bottom
+         * @group keys
+         * @shortname ansi parallel key with roles
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, roles } = await bitbybit.occt.parts.mechanical.keys.ansi.parallelKeyWithRoles({ shaftDiameter: 1, length: 1.25 });
+         * ```
+         */
+        parallelKeyWithRoles(inputs: Inputs.OCCT.AnsiParallelKeyDto): Promise<Models.OCCT.ShapeWithRoles<Inputs.OCCT.TopoDSShapePointer>>;
+    }
+    /**
+     * DIN 6885 form A parallel keys made for their shaft, in the unit asked for: bars with round ends,
+     * as wide and high as the standard gives for the shaft's diameter. Sunk the shaft's keyway depth below
+     * its surface, a key also serves as the tool that cuts its keyway.
+     */
+    declare class OCCTKeysDin {
+        private readonly occWorkerManager;
+        /**
+         * Makes a DIN 6885 form A parallel key: a bar with round ends, as wide and high as the standard
+         * gives for a shaft of `shaftDiameter`, lying along the frame's direction on its origin.
+         *
+         * Sunk the shaft's keyway depth below the shaft's surface, the key also serves as the tool that
+         * cuts that keyway.
+         * @param inputs - The shaft's diameter, the key's length, the unit and the frame
+         * @returns A new solid
+         * @group keys
+         * @shortname din parallel key
+         * @drawable true
+         * @example
+         * ```typescript
+         * const key = await bitbybit.occt.parts.mechanical.keys.din.parallelKey({ shaftDiameter: 25, length: 28 });
+         * ```
+         */
+        parallelKey(inputs: Inputs.OCCT.DinParallelKeyDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes a parallel key as `parallelKey` does and names the role each face plays.
+         *
+         * The roles `bottom`, `top`, `side` and `end` (the round ends) list face indexes as
+         * `shapes.face.getFaces` numbers them. The `bottom` frame is the input frame.
+         * @param inputs - The shaft's diameter, the key's length, the unit and the frame
+         * @returns The key, the faces each role names and its bottom
+         * @group keys
+         * @shortname din parallel key with roles
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, roles } = await bitbybit.occt.parts.mechanical.keys.din.parallelKeyWithRoles({ shaftDiameter: 25, length: 28 });
+         * ```
+         */
+        parallelKeyWithRoles(inputs: Inputs.OCCT.DinParallelKeyDto): Promise<Models.OCCT.ShapeWithRoles<Inputs.OCCT.TopoDSShapePointer>>;
+    }
+    /**
+     * Keys as solids, by the standard that sizes them: `din` holds the metric DIN 6885 form A parallel
+     * keys and `ansi` the inch ANSI B17.1 square ones, each in the unit asked for. A key sunk its
+     * keyway's depth also serves as the tool that cuts its keyway.
+     */
+    declare class OCCTKeys {
+        readonly din: OCCTKeysDin;
+        readonly ansi: OCCTKeysAnsi;
+    }
+    /**
+     * Machining on round shafts and bores sized from the inch tables, in the unit asked for: Unified
+     * threads modelled on shanks and in holes, ANSI B17.1 keyseats milled into a shaft or cut through a
+     * hub, the grooves inch tapered retaining rings sit in, ASME B94.6 knurls, and ANSI B92.1 involute
+     * splines on a shaft and through a hub. Each comes as a tool for a design's boolean and as a method
+     * that cuts it from a body.
+     */
+    declare class OCCTMachiningAnsi {
+        private readonly occWorkerManager;
+        /**
+         * Makes the solid a Unified inch thread removes: the 60 degree groove swept along a right-hand
+         * helix.
+         *
+         * It runs `length` from the frame's origin into the part, against the normal, stopping at the
+         * origin's plane. Shanks sit to class 2A and holes to 2B: on frames whole pitches apart, the two
+         * mesh with play.
+         * @param inputs - The size, the series or pitch, the length, inside or out, the unit and the frame
+         * @returns The tool as a solid
+         * @group threads
+         * @shortname ansi thread tool
+         * @drawable true
+         * @example
+         * ```typescript
+         * const cutter = await bitbybit.occt.parts.mechanical.machining.ansi.threadTool({ size: Bit.Inputs.Engineering.ansiThreadSizeEnum.n10, length: 0.5 });
+         * ```
+         */
+        threadTool(inputs: Inputs.OCCT.AnsiThreadToolDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Models a Unified inch thread on a shank or in a hole, as `threadTool` places it, instead of the
+         * cosmetic thread `parts.mechanical.fasteners.ansi` draws.
+         *
+         * Turn the shank to the nominal diameter, or drill the hole to the minor; a modelled thread is
+         * heavy, so keep it to the parts that need it. Its defaults thread a 1/4-20 shank half an inch.
+         * @param inputs - The body, the size, the series or pitch, the length, inside or out, the unit and the frame
+         * @returns The threaded body
+         * @group threads
+         * @shortname ansi thread
+         * @drawable true
+         * @example
+         * ```typescript
+         * const rod = await bitbybit.occt.shapes.solid.createCylinder({ radius: 0.125, height: 1, center: [0, -1, 0], direction: [0, 1, 0] });
+         * const threaded = await bitbybit.occt.parts.mechanical.machining.ansi.thread({ shape: rod, size: Bit.Inputs.Engineering.ansiThreadSizeEnum.in1_4, length: 0.75 });
+         * ```
+         */
+        thread(inputs: Inputs.OCCT.AnsiThreadCutDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes the solid an ANSI B17.1 keyseat removes: the round-ended pocket milled into a shaft, or
+         * the straight keyseat cut through a hub's bore, sized for the diameter.
+         *
+         * It starts at the frame's origin on the axis, runs `length` along the normal and faces the
+         * frame's direction.
+         * @param inputs - The diameter, the length, shaft or hub, the unit and the frame
+         * @returns The tool as a solid
+         * @group keyways
+         * @shortname ansi keyway tool
+         * @drawable true
+         * @example
+         * ```typescript
+         * const cutter = await bitbybit.occt.parts.mechanical.machining.ansi.keywayTool({ diameter: 1, length: 1.25 });
+         * ```
+         */
+        keywayTool(inputs: Inputs.OCCT.AnsiKeywayToolDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Cuts an ANSI B17.1 keyseat into a shaft or through a hub, as `keywayTool` places it.
+         *
+         * The body given is kept; a new solid comes back.
+         * @param inputs - The body, the diameter, the length, shaft or hub, the unit and the frame
+         * @returns The body with the keyseat cut
+         * @group keyways
+         * @shortname ansi keyway
+         * @drawable true
+         * @example
+         * ```typescript
+         * const shaft = await bitbybit.occt.shapes.solid.createCylinder({ radius: 0.5, height: 2, center: [0, 0, 0], direction: [0, 1, 0] });
+         * const keyed = await bitbybit.occt.parts.mechanical.machining.ansi.keyway({ shape: shaft, diameter: 1, length: 1.25, frame: { origin: [0, 0.25, 0], normal: [0, 1, 0], direction: [1, 0, 0] } });
+         * ```
+         */
+        keyway(inputs: Inputs.OCCT.AnsiKeywayDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes the solid the groove of an inch tapered retaining ring removes from a shaft or a bore: as
+         * wide as the groove, down to its diameter.
+         *
+         * It starts at the frame's origin on the axis and runs the groove's width along the normal.
+         * @param inputs - Shaft or bore, its diameter, the unit and the frame
+         * @returns The tool as a solid
+         * @group grooves
+         * @shortname ansi ring groove tool
+         * @drawable true
+         * @example
+         * ```typescript
+         * const cutter = await bitbybit.occt.parts.mechanical.machining.ansi.ringGrooveTool({ kind: Bit.Inputs.Engineering.retainingRingKindEnum.shaft, diameter: 0.75 });
+         * ```
+         */
+        ringGrooveTool(inputs: Inputs.OCCT.AnsiRingGrooveToolDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Cuts the groove of an inch tapered retaining ring into a shaft or a bore, as `ringGrooveTool`
+         * places it; `parts.mechanical.retainingRings.ansi.retainingRing` at the same frame sits in it.
+         *
+         * The body given is kept; a new solid comes back.
+         * @param inputs - The body, shaft or bore, its diameter, the unit and the frame
+         * @returns The body with the groove cut
+         * @group grooves
+         * @shortname ansi ring groove
+         * @drawable true
+         * @example
+         * ```typescript
+         * const shaft = await bitbybit.occt.shapes.solid.createCylinder({ radius: 0.375, height: 2, center: [0, 0, 0], direction: [0, 1, 0] });
+         * const grooved = await bitbybit.occt.parts.mechanical.machining.ansi.ringGroove({ shape: shaft, diameter: 0.75, frame: { origin: [0, 1.5, 0], normal: [0, 1, 0], direction: [1, 0, 0] } });
+         * ```
+         */
+        ringGroove(inputs: Inputs.OCCT.AnsiRingGrooveDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes the solid an ASME B94.6 knurl removes from a round shaft: diametral pitch teeth at the
+         * standard's depth, straight, diagonal at 30 degrees or crossing in a raised diamond.
+         *
+         * Its crests sit on the diameter the pitch divides into whole teeth, nearest the one given; it
+         * starts at the frame's origin and runs `length` along the normal.
+         * @param inputs - The diameter, the length, the diametral pitch, the pattern, the unit and the frame
+         * @returns The tool as a solid
+         * @group knurls
+         * @shortname ansi knurl tool
+         * @drawable true
+         * @example
+         * ```typescript
+         * const cutter = await bitbybit.occt.parts.mechanical.machining.ansi.knurlTool({ diameter: 0.5, length: 0.5, diametralPitch: 96, pattern: Bit.Inputs.Engineering.knurlPatternEnum.diamond });
+         * ```
+         */
+        knurlTool(inputs: Inputs.OCCT.AnsiKnurlToolDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Knurls a round shaft, as `knurlTool` places the knurl.
+         *
+         * A diamond on a long knurl is heavy to build, its grooves crossing on every tooth. The body given
+         * is kept; a new solid comes back.
+         * @param inputs - The shaft, the diameter, the length, the diametral pitch, the pattern, the unit and the frame
+         * @returns The knurled shaft
+         * @group knurls
+         * @shortname ansi knurl
+         * @drawable true
+         * @example
+         * ```typescript
+         * const knob = await bitbybit.occt.shapes.solid.createCylinder({ radius: 0.25, height: 0.625, center: [0, 0, 0], direction: [0, 1, 0] });
+         * const knurled = await bitbybit.occt.parts.mechanical.machining.ansi.knurl({ shape: knob, diameter: 0.5, length: 0.5, diametralPitch: 96 });
+         * ```
+         */
+        knurl(inputs: Inputs.OCCT.AnsiKnurlDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes an ANSI B92.1 involute splined shaft: its teeth at 30 degrees with a flat root, sized from
+         * the number of teeth and the pitch, `length` long.
+         *
+         * It starts at the frame's origin, runs along the normal, and a tooth points along the frame's
+         * direction.
+         * @param inputs - The teeth, the pitch, the length, the unit and the frame
+         * @returns A new solid
+         * @group splines
+         * @shortname ansi splined shaft
+         * @drawable true
+         * @example
+         * ```typescript
+         * const shaft = await bitbybit.occt.parts.mechanical.machining.ansi.splinedShaft({ teeth: 24, pitch: Bit.Inputs.Engineering.ansiSplinePitchEnum.p16_32, length: 1 });
+         * ```
+         */
+        splinedShaft(inputs: Inputs.OCCT.AnsiSplineDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes the solid an ANSI B92.1 hub spline removes: the shaft's flanks, with the hub's tip and
+         * root diameters, so the shaft of the same size slides into the cut.
+         *
+         * It starts at the frame's origin, runs `length` along the normal, and a gap faces the frame's
+         * direction, where `splinedShaft` at the same frame has a tooth.
+         * @param inputs - The teeth, the pitch, the length, the unit and the frame
+         * @returns The tool as a solid
+         * @group splines
+         * @shortname ansi splined hub tool
+         * @drawable true
+         * @example
+         * ```typescript
+         * const cutter = await bitbybit.occt.parts.mechanical.machining.ansi.splinedHubTool({ teeth: 24, pitch: Bit.Inputs.Engineering.ansiSplinePitchEnum.p16_32, length: 0.5 });
+         * ```
+         */
+        splinedHubTool(inputs: Inputs.OCCT.AnsiSplineDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Cuts an ANSI B92.1 spline through a hub, as `splinedHubTool` places it.
+         *
+         * The body given is kept; a new solid comes back.
+         * @param inputs - The hub, the teeth, the pitch, the length, the unit and the frame
+         * @returns The hub with the spline cut
+         * @group splines
+         * @shortname ansi splined hub
+         * @drawable true
+         * @example
+         * ```typescript
+         * const blank = await bitbybit.occt.shapes.solid.createCylinder({ radius: 1, height: 0.5, center: [0, 0, 0], direction: [0, 1, 0] });
+         * const hub = await bitbybit.occt.parts.mechanical.machining.ansi.splinedHub({ shape: blank, teeth: 24, pitch: Bit.Inputs.Engineering.ansiSplinePitchEnum.p16_32, length: 0.5 });
+         * ```
+         */
+        splinedHub(inputs: Inputs.OCCT.AnsiSplinedHubDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+    }
+    /**
+     * Machining on round shafts and bores sized from the metric DIN tables, in the unit asked for: DIN
+     * 6885 keyways milled into a shaft or cut through a hub, the grooves DIN 471 and DIN 472 retaining
+     * rings sit in, DIN 82 knurls, and DIN 5480 involute splines on a shaft and through a hub. Each comes
+     * as a tool for a design's boolean and as a method that cuts it from a body.
+     */
+    declare class OCCTMachiningDin {
+        private readonly occWorkerManager;
+        /**
+         * Makes the solid a DIN 6885 keyway removes: the round-ended pocket milled into a shaft, or the
+         * straight keyway cut through a hub's bore, sized for the diameter.
+         *
+         * It starts at the frame's origin on the axis, runs `length` along the normal and faces the
+         * frame's direction.
+         * @param inputs - The diameter, the length, shaft or hub, the unit and the frame
+         * @returns The tool as a solid
+         * @group keyways
+         * @shortname din keyway tool
+         * @drawable true
+         * @example
+         * ```typescript
+         * const cutter = await bitbybit.occt.parts.mechanical.machining.din.keywayTool({ diameter: 20, length: 25 });
+         * ```
+         */
+        keywayTool(inputs: Inputs.OCCT.DinKeywayToolDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Cuts a DIN 6885 keyway into a shaft or through a hub, as `keywayTool` places it.
+         *
+         * The body given is kept; a new solid comes back.
+         * @param inputs - The body, the diameter, the length, shaft or hub, the unit and the frame
+         * @returns The body with the keyway cut
+         * @group keyways
+         * @shortname din keyway
+         * @drawable true
+         * @example
+         * ```typescript
+         * const shaft = await bitbybit.occt.shapes.solid.createCylinder({ radius: 10, height: 40, center: [0, 0, 0], direction: [0, 1, 0] });
+         * const keyed = await bitbybit.occt.parts.mechanical.machining.din.keyway({ shape: shaft, diameter: 20, length: 25, frame: { origin: [0, 5, 0], normal: [0, 1, 0], direction: [1, 0, 0] } });
+         * ```
+         */
+        keyway(inputs: Inputs.OCCT.DinKeywayDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes the solid the groove of a DIN 471 or DIN 472 retaining ring removes from a shaft or a
+         * bore: as wide as the groove, down to its diameter.
+         *
+         * It starts at the frame's origin on the axis and runs the groove's width along the normal.
+         * @param inputs - Shaft or bore, its diameter, the unit and the frame
+         * @returns The tool as a solid
+         * @group grooves
+         * @shortname din ring groove tool
+         * @drawable true
+         * @example
+         * ```typescript
+         * const cutter = await bitbybit.occt.parts.mechanical.machining.din.ringGrooveTool({ kind: Bit.Inputs.Engineering.retainingRingKindEnum.shaft, diameter: 20 });
+         * ```
+         */
+        ringGrooveTool(inputs: Inputs.OCCT.DinRingGrooveToolDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Cuts the groove of a DIN 471 or DIN 472 retaining ring into a shaft or a bore, as
+         * `ringGrooveTool` places it; `parts.mechanical.retainingRings.din.retainingRing` at the same frame sits in it.
+         *
+         * The body given is kept; a new solid comes back.
+         * @param inputs - The body, shaft or bore, its diameter, the unit and the frame
+         * @returns The body with the groove cut
+         * @group grooves
+         * @shortname din ring groove
+         * @drawable true
+         * @example
+         * ```typescript
+         * const shaft = await bitbybit.occt.shapes.solid.createCylinder({ radius: 10, height: 40, center: [0, 0, 0], direction: [0, 1, 0] });
+         * const grooved = await bitbybit.occt.parts.mechanical.machining.din.ringGroove({ shape: shaft, diameter: 20, frame: { origin: [0, 30, 0], normal: [0, 1, 0], direction: [1, 0, 0] } });
+         * ```
+         */
+        ringGroove(inputs: Inputs.OCCT.DinRingGrooveDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes the solid a DIN 82 knurl removes from a round shaft: 90 degree grooves half the pitch
+         * deep, straight, helical at 30 degrees or crossing in a raised diamond.
+         *
+         * Its crests sit on the diameter the pitch divides evenly, nearest the one given; it starts at the
+         * frame's origin and runs `length` along the normal.
+         * @param inputs - The diameter, the length, the pitch, the pattern, the unit and the frame
+         * @returns The tool as a solid
+         * @group knurls
+         * @shortname din knurl tool
+         * @drawable true
+         * @example
+         * ```typescript
+         * const cutter = await bitbybit.occt.parts.mechanical.machining.din.knurlTool({ diameter: 10, length: 10, pitch: 1, pattern: Bit.Inputs.Engineering.knurlPatternEnum.diamond });
+         * ```
+         */
+        knurlTool(inputs: Inputs.OCCT.DinKnurlToolDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Knurls a round shaft, as `knurlTool` places the knurl.
+         *
+         * A diamond on a long knurl is heavy to build, its grooves crossing on every pitch. The body given
+         * is kept; a new solid comes back.
+         * @param inputs - The shaft, the diameter, the length, the pitch, the pattern, the unit and the frame
+         * @returns The knurled shaft
+         * @group knurls
+         * @shortname din knurl
+         * @drawable true
+         * @example
+         * ```typescript
+         * const knob = await bitbybit.occt.shapes.solid.createCylinder({ radius: 5, height: 12, center: [0, 0, 0], direction: [0, 1, 0] });
+         * const knurled = await bitbybit.occt.parts.mechanical.machining.din.knurl({ shape: knob, diameter: 10, length: 10, pitch: 1 });
+         * ```
+         */
+        knurl(inputs: Inputs.OCCT.DinKnurlDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes a DIN 5480 involute splined shaft: its teeth at 30 degrees, sized from the reference
+         * diameter and the module, `length` long.
+         *
+         * It starts at the frame's origin, runs along the normal, and a tooth points along the frame's
+         * direction.
+         * @param inputs - The reference diameter, the module, the length, the unit and the frame
+         * @returns A new solid
+         * @group splines
+         * @shortname din splined shaft
+         * @drawable true
+         * @example
+         * ```typescript
+         * const shaft = await bitbybit.occt.parts.mechanical.machining.din.splinedShaft({ referenceDiameter: 25, module: 1.25, length: 30 });
+         * ```
+         */
+        splinedShaft(inputs: Inputs.OCCT.DinSplineDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes the solid a DIN 5480 hub spline removes: the shaft's flanks, with the hub's tip and root
+         * diameters, so the shaft of the same size slides into the cut.
+         *
+         * It starts at the frame's origin, runs `length` along the normal, and a gap faces the frame's
+         * direction, where `splinedShaft` at the same frame has a tooth.
+         * @param inputs - The reference diameter, the module, the length, the unit and the frame
+         * @returns The tool as a solid
+         * @group splines
+         * @shortname din splined hub tool
+         * @drawable true
+         * @example
+         * ```typescript
+         * const cutter = await bitbybit.occt.parts.mechanical.machining.din.splinedHubTool({ referenceDiameter: 25, module: 1.25, length: 15 });
+         * ```
+         */
+        splinedHubTool(inputs: Inputs.OCCT.DinSplineDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Cuts a DIN 5480 spline through a hub, as `splinedHubTool` places it.
+         *
+         * The body given is kept; a new solid comes back.
+         * @param inputs - The hub, the reference diameter, the module, the length, the unit and the frame
+         * @returns The hub with the spline cut
+         * @group splines
+         * @shortname din splined hub
+         * @drawable true
+         * @example
+         * ```typescript
+         * const blank = await bitbybit.occt.shapes.solid.createCylinder({ radius: 25, height: 15, center: [0, 0, 0], direction: [0, 1, 0] });
+         * const hub = await bitbybit.occt.parts.mechanical.machining.din.splinedHub({ shape: blank, referenceDiameter: 25, module: 1.25, length: 15 });
+         * ```
+         */
+        splinedHub(inputs: Inputs.OCCT.DinSplinedHubDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+    }
+    /**
+     * ISO metric threads modelled on shanks and in holes, in the unit asked for: the 60 degree groove
+     * swept along a right-hand helix, at the size's coarse pitch or a fine one. Each comes as a tool for
+     * a design's boolean and as a method that cuts it from a body.
+     */
+    declare class OCCTMachiningIso {
+        private readonly occWorkerManager;
+        /**
+         * Makes the solid an ISO metric thread removes: the 60 degree groove swept along a right-hand
+         * helix.
+         *
+         * It runs `length` from the frame's origin into the part, against the normal, stopping at the
+         * origin's plane. Shanks sit to 6g and holes to 6H: on frames whole pitches apart, the two mesh
+         * with play.
+         * @param inputs - The size, the pitch, the length, inside or out, the unit and the frame
+         * @returns The tool as a solid
+         * @group threads
+         * @shortname iso thread tool
+         * @drawable true
+         * @example
+         * ```typescript
+         * const cutter = await bitbybit.occt.parts.mechanical.machining.iso.threadTool({ size: Bit.Inputs.Engineering.isoThreadSizeEnum.m3, length: 10 });
+         * ```
+         */
+        threadTool(inputs: Inputs.OCCT.IsoThreadToolDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Models an ISO metric thread on a shank or in a hole, as `threadTool` places it, instead of the
+         * cosmetic thread `parts.mechanical.fasteners.iso` draws.
+         *
+         * Turn the shank to the nominal diameter, or drill the hole to the minor; a modelled thread is
+         * heavy, so keep it to the parts that need it. Its defaults thread a default bolt.
+         * @param inputs - The body, the size, the pitch, the length, inside or out, the unit and the frame
+         * @returns The threaded body
+         * @group threads
+         * @shortname iso thread
+         * @drawable true
+         * @example
+         * ```typescript
+         * const rod = await bitbybit.occt.shapes.solid.createCylinder({ radius: 4, height: 20, center: [0, -20, 0], direction: [0, 1, 0] });
+         * const threaded = await bitbybit.occt.parts.mechanical.machining.iso.thread({ shape: rod, size: Bit.Inputs.Engineering.isoThreadSizeEnum.m8, length: 16 });
+         * ```
+         */
+        thread(inputs: Inputs.OCCT.IsoThreadCutDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+    }
+    /**
+     * Machining on round shafts and bores, by the standard that sizes it: `iso` models ISO metric
+     * threads, `din` cuts DIN keyways, ring grooves, knurls and splines, and `ansi` cuts their inch
+     * counterparts, Unified threads included, each in the unit asked for. Flats, sized by their own
+     * depth in model units, sit here beside them; each feature comes as a tool for a design's boolean
+     * and as a method that cuts it from a body.
+     */
+    declare class OCCTMachining {
+        private readonly occWorkerManager;
+        readonly iso: OCCTMachiningIso;
+        readonly din: OCCTMachiningDin;
+        readonly ansi: OCCTMachiningAnsi;
+        /**
+         * Makes the solid a flat on a round shaft removes: everything beyond a plane `depth` in from the
+         * surface, along `length`.
+         *
+         * It starts at the frame's origin on the axis, runs along the normal and faces the frame's
+         * direction.
+         * @param inputs - The diameter, the depth, the length and the frame
+         * @returns The tool as a solid
+         * @group flats
+         * @shortname flat tool
+         * @drawable true
+         * @example
+         * ```typescript
+         * const cutter = await bitbybit.occt.parts.mechanical.machining.flatTool({ diameter: 8, depth: 0.5, length: 12 });
+         * ```
+         */
+        flatTool(inputs: Inputs.OCCT.FlatToolDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Cuts a flat into a round shaft, as `flatTool` places it, such as the D flat a set screw bears on.
+         *
+         * The body given is kept; a new solid comes back.
+         * @param inputs - The shaft, the diameter, the depth, the length and the frame
+         * @returns The shaft with the flat cut
+         * @group flats
+         * @shortname flat
+         * @drawable true
+         * @example
+         * ```typescript
+         * const shaft = await bitbybit.occt.shapes.solid.createCylinder({ radius: 4, height: 30, center: [0, 0, 0], direction: [0, 1, 0] });
+         * const flatted = await bitbybit.occt.parts.mechanical.machining.flat({ shape: shaft, diameter: 8, depth: 0.5, length: 12 });
+         * ```
+         */
+        flat(inputs: Inputs.OCCT.FlatDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+    }
+    /**
+     * Mechanical standard parts as solids, the shapes of what `bitbybit.engineering.mechanical` sizes:
+     * `gears`, `fasteners`, `springs`, `bearings`, `keys` and `retainingRings`, with `machining` for the
+     * keyways, flats, grooves, threads, knurls and splines cut into shafts and hubs. Each family holds one
+     * member per standard, such as `iso` or `din`, whose parts are made in the `unit` asked for.
+     */
+    declare class OCCTPartsMechanical {
+        readonly gears: OCCTGears;
+        readonly fasteners: OCCTFasteners;
+        readonly springs: OCCTSprings;
+        readonly bearings: OCCTBearings;
+        readonly keys: OCCTKeys;
+        readonly retainingRings: OCCTRetainingRings;
+        readonly machining: OCCTMachining;
+    }
+    /**
+     * Inch tapered retaining rings, external for shafts and internal for bores, made from the shaft's or
+     * the bore's diameter in the unit asked for: each ring at its free diameter, with its lugs and the holes
+     * the pliers take. `parts.mechanical.machining.ansi.ringGroove` cuts the groove it sits in.
+     */
+    declare class OCCTRetainingRingsAnsi {
+        private readonly occWorkerManager;
+        /**
+         * Makes an inch tapered retaining ring, external for a shaft or internal for a bore, fitted in its
+         * groove.
+         *
+         * Its centre lies on the frame's origin, one side on the frame's plane, it rises along the normal
+         * and its lugs point along the direction.
+         * @param inputs - Shaft or bore, its diameter, the unit and the frame
+         * @returns A new solid
+         * @group circlips
+         * @shortname ansi retaining ring
+         * @drawable true
+         * @example
+         * ```typescript
+         * const clip = await bitbybit.occt.parts.mechanical.retainingRings.ansi.retainingRing({ kind: Bit.Inputs.Engineering.retainingRingKindEnum.shaft, diameter: 0.75 });
+         * ```
+         */
+        retainingRing(inputs: Inputs.OCCT.AnsiRetainingRingDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes a retaining ring as `retainingRing` does and names the role each face plays.
+         *
+         * The roles `seat` (the face in the groove), `rim`, `start`, `end`, `gap` and `lug` (the plier
+         * holes) list face indexes as `shapes.face.getFaces` numbers them. The `centre` frame is the
+         * input frame.
+         * @param inputs - Shaft or bore, its diameter, the unit and the frame
+         * @returns The ring, the faces each role names and its centre
+         * @group circlips
+         * @shortname ansi retaining ring with roles
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, roles } = await bitbybit.occt.parts.mechanical.retainingRings.ansi.retainingRingWithRoles({ kind: Bit.Inputs.Engineering.retainingRingKindEnum.bore, diameter: 1 });
+         * ```
+         */
+        retainingRingWithRoles(inputs: Inputs.OCCT.AnsiRetainingRingDto): Promise<Models.OCCT.ShapeWithRoles<Inputs.OCCT.TopoDSShapePointer>>;
+    }
+    /**
+     * DIN 471 retaining rings for shafts and DIN 472 rings for bores, made from the shaft's or the bore's
+     * diameter in the unit asked for: each ring at its free diameter, with its lugs and the holes the
+     * pliers take. `parts.mechanical.machining.din.ringGroove` cuts the groove it sits in.
+     */
+    declare class OCCTRetainingRingsDin {
+        private readonly occWorkerManager;
+        /**
+         * Makes a DIN 471 retaining ring for a shaft or a DIN 472 ring for a bore, fitted in its groove.
+         *
+         * Its centre lies on the frame's origin, one side on the frame's plane, it rises along the normal
+         * and its lugs point along the direction.
+         * @param inputs - Shaft or bore, its diameter, the unit and the frame
+         * @returns A new solid
+         * @group circlips
+         * @shortname din retaining ring
+         * @drawable true
+         * @example
+         * ```typescript
+         * const clip = await bitbybit.occt.parts.mechanical.retainingRings.din.retainingRing({ kind: Bit.Inputs.Engineering.retainingRingKindEnum.shaft, diameter: 20 });
+         * ```
+         */
+        retainingRing(inputs: Inputs.OCCT.DinRetainingRingDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes a retaining ring as `retainingRing` does and names the role each face plays.
+         *
+         * The roles `seat` (the face in the groove), `rim`, `start`, `end`, `gap` and `lug` (the plier
+         * holes) list face indexes as `shapes.face.getFaces` numbers them. The `centre` frame is the
+         * input frame.
+         * @param inputs - Shaft or bore, its diameter, the unit and the frame
+         * @returns The ring, the faces each role names and its centre
+         * @group circlips
+         * @shortname din retaining ring with roles
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, roles } = await bitbybit.occt.parts.mechanical.retainingRings.din.retainingRingWithRoles({ kind: Bit.Inputs.Engineering.retainingRingKindEnum.bore, diameter: 47 });
+         * ```
+         */
+        retainingRingWithRoles(inputs: Inputs.OCCT.DinRetainingRingDto): Promise<Models.OCCT.ShapeWithRoles<Inputs.OCCT.TopoDSShapePointer>>;
+    }
+    /**
+     * Retaining rings as solids, by the standard that sizes them: `din` holds the metric DIN 471 rings
+     * for shafts and DIN 472 rings for bores and `ansi` the inch tapered rings, each in the unit asked
+     * for, with their lugs and lug holes.
+     */
+    declare class OCCTRetainingRings {
+        readonly din: OCCTRetainingRingsDin;
+        readonly ansi: OCCTRetainingRingsAnsi;
+    }
+    /**
+     * Springs made from their wire and coils: compression springs with closed and ground ends, at any
+     * length from free to solid, so a spring between two moving parts can be rebuilt at the length the
+     * parts leave it.
+     */
+    declare class OCCTSprings {
+        private readonly occWorkerManager;
+        /**
+         * Makes a compression spring with closed and ground ends: a round wire coiled about the frame's
+         * normal, its end coils closed onto the next and ground flat, standing on the frame's origin.
+         *
+         * The active coils share the length the end coils leave, so a shorter `length` compresses the
+         * spring; one shorter than solid, every coil touching, is refused.
+         * @param inputs - The wire, the coils, the length and the frame
+         * @returns A new solid
+         * @group springs
+         * @shortname compression spring
+         * @drawable true
+         * @example
+         * ```typescript
+         * const free = await bitbybit.occt.parts.mechanical.springs.compressionSpring({ wireDiameter: 0.2, diameter: 2, activeCoils: 6, length: 4 });
+         * const pressed = await bitbybit.occt.parts.mechanical.springs.compressionSpring({ wireDiameter: 0.2, diameter: 2, activeCoils: 6, length: 2.5 });
+         * ```
+         */
+        compressionSpring(inputs: Inputs.OCCT.CompressionSpringDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes a compression spring as `compressionSpring` does and names the role each face plays.
+         *
+         * The roles `bottom` and `top` (the ground ends) and `coil` list face indexes as
+         * `shapes.face.getFaces` numbers them. The `bottom` frame is the input frame and the `top` frame
+         * lies `length` along its normal.
+         * @param inputs - The wire, the coils, the length and the frame
+         * @returns The spring, the faces each role names and its two ends
+         * @group springs
+         * @shortname compression spring with roles
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, frames } = await bitbybit.occt.parts.mechanical.springs.compressionSpringWithRoles({ length: 3 });
+         * console.log(frames["top"]);
+         * ```
+         */
+        compressionSpringWithRoles(inputs: Inputs.OCCT.CompressionSpringDto): Promise<Models.OCCT.ShapeWithRoles<Inputs.OCCT.TopoDSShapePointer>>;
+        /**
+         * Makes the centre line of a compression spring's wire, coiled about the frame's normal as
+         * `compressionSpring` coils it, to sweep a wire of another section along.
+         *
+         * It runs three quarters of a coil past the frame's origin and past `length`: cut the swept solid
+         * flat at both to grind its ends.
+         * @param inputs - The wire, the coils, the length and the frame
+         * @returns A new wire
+         * @group springs
+         * @shortname compression spring path
+         * @drawable true
+         * @example
+         * ```typescript
+         * const path = await bitbybit.occt.parts.mechanical.springs.compressionSpringPath({ wireDiameter: 0.2, diameter: 2, activeCoils: 6, length: 4 });
+         * ```
+         */
+        compressionSpringPath(inputs: Inputs.OCCT.CompressionSpringDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+    }
+    /**
+     * Standard parts made from their sizes, so a part is asked for by what defines it, such as a gear's
+     * module and teeth, a screw's thread size and length or a bearing's designation, instead of being
+     * drawn, grouped by discipline: `mechanical` holds gears, fasteners, springs, bearings, keys,
+     * retaining rings and machining. Each part also comes as a twin whose faces are named by the part
+     * they play, with the frames it is placed by.
+     */
+    declare class OCCTParts {
+        readonly mechanical: OCCTPartsMechanical;
     }
     /**
      * A generic 2D path builder: describe an outline as subpaths of line, quadratic, cubic and arc
@@ -49884,6 +56931,25 @@ declare namespace Bit {
          * ```
          */
         buildDocument(inputs: Inputs.OCCT.BuildRecipeDocumentDto): Promise<Inputs.OCCT.TDocStdDocumentPointer>;
+        /**
+         * Describes a shape exactly as a recipe: a brep step for its solids and their cavities, and one
+         * for the faces outside any solid.
+         *
+         * Lines, circles, ellipses and elementary surfaces stay as they are, swept surfaces keep their
+         * curve, and the rest become B-splines, as do cones and swept surfaces under `ifcSurfaces`.
+         * `recipes.build` builds it back.
+         * @param inputs - The shape, its unit and whether to keep to the surfaces IFC takes
+         * @returns A recipe whose one root is the shape
+         * @group describe
+         * @shortname describe shape
+         * @drawable false
+         * @example
+         * ```typescript
+         * const recipe = await bitbybit.occt.recipes.describe({ shape });
+         * const [again] = await bitbybit.occt.recipes.build({ recipe });
+         * ```
+         */
+        describe(inputs: Inputs.OCCT.DescribeRecipeDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.Base.Recipe>;
     }
     /**
      * Choosing the edges of an OpenCascade shape by what they are, where they lie and how they meet,
@@ -50746,6 +57812,8 @@ declare namespace Bit {
         /**
          * Makes a circular arc that starts at the first point, passes through the middle one and ends
          * at the last.
+         *
+         * No arc passes through three points on one line or two at the same place, so those are refused.
          * @param inputs - The three points
          * @returns The arc edge
          * @group primitives
@@ -50761,7 +57829,8 @@ declare namespace Bit {
          * Makes a circular arc from one point to another that leaves the first point in a given
          * direction.
          *
-         * The tangent fixes the plane and the radius of the arc.
+         * The tangent fixes the plane and the radius of the arc, so it must not run along the line from
+         * the start to the end, and the two points must differ.
          * @param inputs - The start point, the tangent direction there and the end point
          * @returns The arc edge
          * @group primitives
@@ -50805,8 +57874,8 @@ declare namespace Bit {
          */
         arcFromCircleAndTwoAngles(inputs: Inputs.OCCT.ArcEdgeCircleTwoAnglesDto<Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.OCCT.TopoDSEdgePointer>;
         /**
-         * Cuts an arc out of a circle edge that starts at a point on the circle and spans a given
-         * angle, in degrees.
+         * Cuts an arc out of a circle edge from a point on the circle to an angle on it, in degrees,
+         * measured from the circle's own start rather than from the point.
          *
          * `sense` picks which way round the circle the arc runs.
          * @param inputs - The circle edge, the start point, the angle in degrees and the direction of travel
@@ -50836,7 +57905,7 @@ declare namespace Bit {
         /**
          * Makes a full ellipse as one closed edge, lying in the plane whose normal is `direction`.
          *
-         * `radiusMajor` must not be smaller than `radiusMinor`, or the kernel refuses the ellipse.
+         * Both radii must be above 0, and `radiusMajor` must not be smaller than `radiusMinor`.
          * @param inputs - The center, the plane normal and the two radii
          * @returns The ellipse edge
          * @group primitives
@@ -51288,6 +58357,8 @@ declare namespace Bit {
         framesOnEdgeAtLengths(inputs: Inputs.OCCT.FramesOnCurveAtLengthsDto<Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.Base.Frame[]>;
         /**
          * Reads the point where an edge starts, in the edge's own direction.
+         *
+         * A degenerate edge, such as the pole of a ball, is a single point, and that point is its start.
          * @param inputs - The edge
          * @returns The start point
          * @group extract
@@ -51314,6 +58385,8 @@ declare namespace Bit {
         startPointsOnEdges(inputs: Inputs.OCCT.ShapesDto<Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.Base.Point3[]>;
         /**
          * Reads the point where an edge ends, in the edge's own direction.
+         *
+         * A degenerate edge, such as the pole of a ball, is a single point, and that point is its end.
          * @param inputs - The edge
          * @returns The end point
          * @group extract
@@ -51891,11 +58964,11 @@ declare namespace Bit {
          */
         createFaceFromWire(inputs: Inputs.OCCT.FaceFromWireDto<Inputs.OCCT.TopoDSWirePointer>): Promise<Inputs.OCCT.TopoDSFacePointer>;
         /**
-         * Creates one face from several wires: the first wire is the outer boundary and every further
-         * wire cuts a hole in it.
+         * Creates one face from several wires: the first is the outer boundary and every further one a
+         * hole, whichever way it runs.
          *
-         * With `planar` true the wires must lie in one plane. The hole wires must sit inside the outer
-         * one without crossing it or each other.
+         * The outer wire's direction sets which way the face faces; `planar` keeps it flat. Holes must
+         * lie inside it, apart from it and from each other.
          * @param inputs - The wires, outer boundary first, and whether the face must be flat
          * @returns The face with holes
          * @group from
@@ -51910,8 +58983,8 @@ declare namespace Bit {
          */
         createFaceFromWires(inputs: Inputs.OCCT.FaceFromWiresDto<Inputs.OCCT.TopoDSWirePointer>): Promise<Inputs.OCCT.TopoDSFacePointer>;
         /**
-         * Creates one face from several wires on the surface of a guiding face: the first wire is the
-         * outer boundary and every further wire cuts a hole.
+         * Creates one face on the surface of a guiding face: the first wire is the outer boundary and
+         * every further one a hole, whichever way it runs.
          *
          * The face takes the curvature of the guiding surface. `inside` applies to the first wire: true
          * turns it so the face is the region it encloses; false lets its own direction decide.
@@ -51926,6 +58999,22 @@ declare namespace Bit {
          * ```
          */
         createFaceFromWiresOnFace(inputs: Inputs.OCCT.FaceFromWiresOnFaceDto<Inputs.OCCT.TopoDSWirePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSFacePointer>;
+        /**
+         * Creates the one face of a guiding face's surface that wires lying on it bound, given in 3D in
+         * any order: the outer boundary and holes, or two loops round a closed surface such as a cone.
+         *
+         * The edges get their curves on the surface, so wires built anywhere work if they lie on it.
+         * @param inputs - The wires and the guiding face
+         * @returns The bounded face
+         * @group from
+         * @shortname face bounded by wires on face
+         * @drawable true
+         * @example
+         * ```typescript
+         * const band = await bitbybit.occt.shapes.face.createFaceBoundedByWiresOnFace({ wires: [lowerCircle, upperCircle], face: coneFace });
+         * ```
+         */
+        createFaceBoundedByWiresOnFace(inputs: Inputs.OCCT.FaceBoundedByWiresOnFaceDto<Inputs.OCCT.TopoDSWirePointer, Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSFacePointer>;
         /**
          * Creates one face per closed wire, each as `createFaceFromWire` would.
          *
@@ -52192,7 +59281,7 @@ declare namespace Bit {
          * Creates a flat elliptical face.
          *
          * `direction` is the normal of its plane: the default `[0, 1, 0]` lays it flat on the ground.
-         * `radiusMajor` must be at least `radiusMinor`.
+         * Both radii must be above 0, and `radiusMajor` must be at least `radiusMinor`.
          * @param inputs - The two radii, the center and the plane normal
          * @returns The ellipse face
          * @group primitives
@@ -53185,6 +60274,21 @@ declare namespace Bit {
          */
         unifySameDomain(inputs: Inputs.OCCT.UnifySameDomainDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
         /**
+         * Merges faces and edges as `unifySameDomain` does, and reports what each face, edge and vertex
+         * of the shape became: both halves of a face a fuse split name the one face they merge into.
+         * @param inputs - The shape and which kinds of merge to apply
+         * @returns The simplified shape and its history
+         * @group edit
+         * @shortname unify same domain with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, history } = await bitbybit.occt.shapes.shape.unifySameDomainWithHistory({ shape: fused, unifyEdges: true, unifyFaces: true, concatBSplines: true });
+         * const mergedTop = history.faces[topIndex];
+         * ```
+         */
+        unifySameDomainWithHistory(inputs: Inputs.OCCT.UnifySameDomainDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.ShapeWithHistory<Inputs.OCCT.TopoDSShapePointer>>;
+        /**
          * Tells whether the kernel has the shape flagged as closed, such as a wire that loops back to
          * its start or a shell with no gaps.
          * @param inputs - The shape
@@ -53397,6 +60501,24 @@ declare namespace Bit {
          */
         sewFaces(inputs: Inputs.OCCT.SewDto<Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.TopoDSShellPointer>;
         /**
+         * Sews faces and shells as `sewFaces` does, and reports per shape given which faces of the sewn
+         * shape each of its faces became.
+         *
+         * `histories[i].faces[j]` lists the result faces face `j` of shape `i` became, as
+         * `shapes.face.getFaces` numbers both.
+         * @param inputs - The faces or shells and the sewing tolerance
+         * @returns The sewn shape and one history per shape given
+         * @group create
+         * @shortname sew with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, histories } = await bitbybit.occt.shapes.shell.sewFacesWithHistory({ shapes: [top, bottom, side], tolerance: 1e-7 });
+         * const sewnTop = histories[0].faces[0];
+         * ```
+         */
+        sewFacesWithHistory(inputs: Inputs.OCCT.SewDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.ShapeWithHistories<Inputs.OCCT.TopoDSShapePointer>>;
+        /**
          * Measures the total area of all the faces of a shell, in square model units.
          * @param inputs - The shell
          * @returns The surface area
@@ -53454,6 +60576,36 @@ declare namespace Bit {
          * ```
          */
         fromClosedShell(inputs: Inputs.OCCT.ShapeDto<Inputs.OCCT.TopoDSShellPointer>): Promise<Inputs.OCCT.TopoDSSolidPointer>;
+        /**
+         * Sews faces and shells that close a volume into one solid, turned so its material is inside,
+         * which builds a body face by face without a boolean.
+         *
+         * Faces that leave a gap wider than the tolerance, or that close several volumes, are refused.
+         * @param inputs - The faces or shells and the sewing tolerance
+         * @returns The solid
+         * @group from
+         * @shortname solid from faces
+         * @drawable true
+         * @example
+         * ```typescript
+         * const box = await bitbybit.occt.shapes.solid.fromFaces({ shapes: [bottom, top, ...sides], tolerance: 1e-7 });
+         * ```
+         */
+        fromFaces(inputs: Inputs.OCCT.SewDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Makes a solid as `fromFaces` does, and reports per shape given which faces of the solid each of
+         * its faces became, as `shapes.face.getFaces` numbers both.
+         * @param inputs - The faces or shells and the sewing tolerance
+         * @returns The solid and one history per shape given
+         * @group from
+         * @shortname solid from faces with history
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { shape, histories } = await bitbybit.occt.shapes.solid.fromFacesWithHistory({ shapes: [bottom, top, ...sides], tolerance: 1e-7 });
+         * ```
+         */
+        fromFacesWithHistory(inputs: Inputs.OCCT.SewDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.ShapeWithHistories<Inputs.OCCT.TopoDSShapePointer>>;
         /**
          * Creates a box solid with its sides parallel to the axes.
          *
@@ -54715,11 +61867,11 @@ declare namespace Bit {
         interpolateWires(inputs: Inputs.OCCT.InterpolateWiresDto): Promise<Inputs.OCCT.TopoDSWirePointer[] | Inputs.OCCT.TopoDSCompoundPointer>;
         /**
          * Makes a smooth B-spline wire that approximates a list of points: it follows them closely but
-         * need not pass through each one exactly.
+         * need not pass through each one.
          *
-         * `closed` appends the first point again so the ends meet. The fit uses a degree between 3 and
-         * 8 and a tolerance of 0.001 model units; use `interpolatePoints` when the curve must go
-         * through the points.
+         * `closed` appends the first point so the ends meet. The fit has a degree of 3 to 8 and a
+         * tolerance of 0.001; use `interpolatePoints` to pass through the points. It needs two points
+         * or more.
          * @param inputs - The points and whether to close the curve
          * @returns The B-spline wire
          * @group via points
@@ -55432,7 +62584,7 @@ declare namespace Bit {
          * Makes a full ellipse as a closed single-edge wire, lying in the plane whose normal is
          * `direction`.
          *
-         * `radiusMajor` must not be smaller than `radiusMinor`, or the kernel refuses the ellipse; the
+         * Both radii must be above 0 and `radiusMajor` must not be smaller than `radiusMinor`; the
          * default direction `[0, 1, 0]` lays it flat on the ground.
          * @param inputs - The center, the plane normal and the two radii
          * @returns The ellipse wire
@@ -55451,7 +62603,7 @@ declare namespace Bit {
          *
          * It starts beside `center` and climbs along `direction`; `clockwise` reverses the winding. The
          * helix is approximated by a smooth curve within `tolerance`. A radius, pitch or height of 0 or
-         * less gives a null wire.
+         * less is refused.
          * @param inputs - The radius, the pitch, the height, the base center, the axis direction, the winding and the tolerance
          * @returns The helix wire
          * @group primitives
@@ -55465,7 +62617,8 @@ declare namespace Bit {
         createHelixWire(inputs: Inputs.OCCT.HelixWireDto): Promise<Inputs.OCCT.TopoDSWirePointer>;
         /**
          * Makes a helix wire like `createHelixWire`, but sized by `numTurns` instead of a height: the
-         * coil climbs `pitch` model units per turn, `numTurns` times.
+         * coil climbs `pitch` model units per turn, `numTurns` times. A radius, pitch or number of turns
+         * of 0 or less is refused.
          * @param inputs - The radius, the pitch, the number of turns, the base center, the axis direction, the winding and the tolerance
          * @returns The helix wire
          * @group primitives
@@ -55481,8 +62634,8 @@ declare namespace Bit {
          * Makes a conical helix wire whose radius changes evenly from `startRadius` at the base to
          * `endRadius` at the top, climbing `pitch` model units per turn until it reaches `height`.
          *
-         * It starts beside `center` and climbs along `direction`; `clockwise` reverses the winding. The
-         * curve is approximated within `tolerance`.
+         * It starts beside `center`, climbs along `direction` and is approximated within `tolerance`;
+         * `clockwise` reverses the winding. A radius, pitch or height of 0 or less is refused.
          * @param inputs - The start and end radii, the pitch, the height, the base center, the axis direction, the winding and the tolerance
          * @returns The tapered helix wire
          * @group primitives
@@ -55499,7 +62652,8 @@ declare namespace Bit {
          * radius grows evenly from `startRadius` to `endRadius`.
          *
          * The default direction `[0, 1, 0]` lays it flat on the ground; `clockwise` reverses the
-         * winding, and the curve is approximated within `tolerance`.
+         * winding and `tolerance` bounds the fit. It may start at the center; an `endRadius` or
+         * `numTurns` of 0 or less is refused.
          * @param inputs - The start and end radii, the number of turns, the center, the plane normal, the winding and the tolerance
          * @returns The spiral wire
          * @group primitives
@@ -55761,8 +62915,8 @@ declare namespace Bit {
         /**
          * Projects a wire onto a shape along a direction, like casting its shadow onto the surface.
          *
-         * The result is a compound of the curves where the projection meets the shape's faces, which
-         * can be on both its near and far side. Cut a face with it through
+         * The result is a compound of the curves where the projection meets the shape's faces, near
+         * side and far side alike, and empty when it misses. Cut a face with it through
          * `shapes.face.createFaceFromWireOnFace` or use it as a path.
          * @param inputs - The wire, the shape to project onto and the direction
          * @returns A compound of the projected curves
@@ -55776,7 +62930,8 @@ declare namespace Bit {
          */
         project(inputs: Inputs.OCCT.ProjectWireDto<Inputs.OCCT.TopoDSWirePointer, Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSCompoundPointer>;
         /**
-         * Projects several wires onto a shape along one direction, as `project` does for one.
+         * Projects several wires onto a shape along one direction, as `project` does for one: a wire
+         * whose projection misses gives an empty compound.
          * @param inputs - The wires, the shape to project onto and the direction
          * @returns One compound of projected curves per wire, in the same order
          * @group place
@@ -57299,6 +64454,31 @@ declare namespace Bit {
         camera: PlayCanvasCamera;
     }
     /**
+     * Every service of the base package, wired to each other once. The kernels, the renderers and code
+     * running in Node take this one object rather than building the services themselves, so each package
+     * calls the same maths a user does.
+     */
+    declare class BaseBitByBit {
+        readonly geometryHelper: GeometryHelper;
+        readonly math: MathBitByBit;
+        readonly vector: Vector;
+        readonly transforms: Transforms;
+        readonly lists: Lists;
+        readonly point: Point;
+        readonly line: Line;
+        readonly polyline: Polyline;
+        readonly mesh: MeshBitByBit;
+        readonly textService: TextBitByBit;
+        readonly io: IoBitByBit;
+        readonly frame: Frame;
+        readonly color: Color;
+        readonly logic: Logic;
+        readonly dates: Dates;
+        readonly engineering: Engineering;
+        readonly recipes: Recipes;
+        constructor();
+    }
+    /**
      * Colors in the two forms the library uses: a hex text such as `#ff5733`, and an object `{ r, g, b
      * }` or `{ r, g, b, a }` whose channels run either from 0 to 255 or from 0 to 1. The methods here
      * build colors in each form, convert between them with an explicit channel range, read single
@@ -57415,8 +64595,8 @@ declare namespace Bit {
         /**
          * Writes three channel values as a hex color.
          *
-         * `min` and `max` say which range the values use; a range other than 0 to 255 is remapped
-         * first, so channels from 0 to 1 work as well.
+         * `min` and `max` give the values' range; a range other than 0 to 255 is remapped first, and
+         * each channel is rounded and held between 0 and 255.
          * Example: r 255, g 87, b 51 in [0,255] -> '#ff5733'; r 1, g 0.5, b 0.2 in [0,1] -> '#ff8033'
          * @param inputs - The red, green and blue values and their range
          * @returns The hex color
@@ -57557,6 +64737,39 @@ declare namespace Bit {
          * ```
          */
         invert(inputs: Inputs.Color.InvertHexDto): Inputs.Base.Color;
+        /**
+         * Turns one sRGB-encoded color channel into linear light, the form glTF, STEP colors read by
+         * XCAF and the renderers' lighting work in. A hex color's channels are sRGB-encoded.
+         *
+         * Example: 0.5 -> 0.214
+         * @param inputs - The encoded channel, from 0 to 1
+         * @returns The linear channel, from 0 to 1
+         * @group linear light
+         * @shortname srgb to linear
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { r, g, b } = bitbybit.color.hexToRgbMapped({ color: "#ff8800", from: 0, to: 1 });
+         * const linear = [r, g, b].map(channel => bitbybit.color.srgbToLinear({ channel }));
+         * ```
+         */
+        srgbToLinear(inputs: Inputs.Color.ChannelDto): number;
+        /**
+         * Turns one linear-light color channel back into its sRGB encoding, the inverse of
+         * `srgbToLinear`, as a hex color holds it.
+         *
+         * Example: 0.214 -> 0.5
+         * @param inputs - The linear channel, from 0 to 1
+         * @returns The encoded channel, from 0 to 1
+         * @group linear light
+         * @shortname linear to srgb
+         * @drawable false
+         * @example
+         * ```typescript
+         * const half = bitbybit.color.linearToSrgb({ channel: 0.214 });
+         * ```
+         */
+        linearToSrgb(inputs: Inputs.Color.ChannelDto): number;
     }
     /**
      * Dates and times as JavaScript `Date` values: creating them, reading and setting their parts, and
@@ -58118,6 +65331,1014 @@ declare namespace Bit {
          * ```
          */
         setUTCMilliseconds(inputs: Inputs.Dates.DateMillisecondsDto): Date;
+    }
+    /**
+     * Engineering knowledge by its numbers, grouped by domain, with no CAD kernel needed. `mechanical`
+     * holds the machine elements: gears and racks, fasteners and threads, ball bearings, keys, retaining
+     * rings, splines, knurls and springs, each standard's sizes in the unit asked for. Each domain gives
+     * sizes and outlines for any kernel to build from.
+     * @beta
+     */
+    declare class Engineering {
+        readonly mechanical: EngineeringMechanical;
+        constructor();
+    }
+    /**
+     * The sizes of inch deep groove ball bearings of the R-series, from the miniature R1-4 to R20, with
+     * no CAD kernel needed, in the unit asked for. `occt.parts.mechanical.bearings.ansi` builds them as
+     * solids.
+     * @beta
+     */
+    declare class EngineeringBearingsAnsi {
+        /**
+         * Gives an R-series ball bearing by its designation: its bore, its outside diameter and its width,
+         * open or shielded.
+         *
+         * Several sizes are wider shielded than open. Example: R8 -> 1/2 bore, 1-1/8 outside, 1/4 wide
+         * open, 5/16 shielded
+         * @param inputs - The designation, whether it is shielded and the unit
+         * @returns The bearing's sizes in `unit`
+         * @group ball bearings
+         * @shortname ansi ball bearing sizes
+         * @drawable false
+         * @example
+         * ```typescript
+         * const bearing = bitbybit.engineering.mechanical.bearings.ansi.ballBearingSizes({ designation: Bit.Inputs.Engineering.ansiBallBearingEnum.r8 });
+         * const housingBore = bearing.outside;
+         * ```
+         */
+        ballBearingSizes(inputs: Inputs.Engineering.AnsiBallBearingSizesDto): BallBearingSizes;
+        /**
+         * Lists the designations of the R-series ball bearings the tables hold.
+         * @returns The designations, the miniature series first
+         * @group ball bearings
+         * @shortname ansi ball bearing designations
+         * @drawable false
+         * @example
+         * ```typescript
+         * const designations = bitbybit.engineering.mechanical.bearings.ansi.designations();
+         * ```
+         */
+        designations(): AnsiBallBearingDesignation[];
+    }
+    /**
+     * The sizes of metric deep groove ball bearings, from the 60 and 62 series and the small 62x and 60x
+     * sizes, with no CAD kernel needed, in the unit asked for. `occt.parts.mechanical.bearings.iso`
+     * builds them as solids.
+     * @beta
+     */
+    declare class EngineeringBearingsIso {
+        /**
+         * Gives a deep groove ball bearing by its designation: its bore, its outside diameter and its
+         * width.
+         *
+         * Example: 608 -> 8 bore, 22 outside, 7 wide, in millimetres
+         * @param inputs - The designation and the unit
+         * @returns The bearing's sizes in `unit`
+         * @group ball bearings
+         * @shortname iso ball bearing sizes
+         * @drawable false
+         * @example
+         * ```typescript
+         * const bearing = bitbybit.engineering.mechanical.bearings.iso.ballBearingSizes({ designation: Bit.Inputs.Engineering.isoBallBearingEnum.b6204 });
+         * const housingBore = bearing.outside;
+         * ```
+         */
+        ballBearingSizes(inputs: Inputs.Engineering.IsoBallBearingSizesDto): BallBearingSizes;
+        /**
+         * Lists the designations of the metric ball bearings the tables hold.
+         * @returns The designations, small series first
+         * @group ball bearings
+         * @shortname iso ball bearing designations
+         * @drawable false
+         * @example
+         * ```typescript
+         * const designations = bitbybit.engineering.mechanical.bearings.iso.designations();
+         * ```
+         */
+        designations(): IsoBallBearingDesignation[];
+    }
+    /**
+     * The sizes of deep groove ball bearings by the standard that sets them, with no CAD kernel needed:
+     * `iso` holds the metric 60 and 62 series and the small 62x and 60x sizes, `ansi` the inch R-series,
+     * each in the unit asked for.
+     * `occt.parts.mechanical.bearings` builds them as solids.
+     * @beta
+     */
+    declare class EngineeringBearings {
+        readonly iso: EngineeringBearingsIso;
+        readonly ansi: EngineeringBearingsAnsi;
+        constructor();
+    }
+    /**
+     * The sizes of ASME inch fasteners from #0 to 1 inch, with no CAD kernel needed: clearance holes
+     * (B18.2.8), cap screws with a hexagon recess and set screws (B18.3), hex cap screws (B18.2.1), hex nuts (B18.2.2
+     * and B18.6.3) and plain washers (B18.22.1), in the unit asked for. `occt.parts.mechanical.fasteners.ansi`
+     * builds them as solids.
+     * @beta
+     */
+    declare class EngineeringFastenersAnsi {
+        /**
+         * Gives the diameter of an ASME B18.2.8 clearance hole for a screw: close, normal or loose.
+         *
+         * Example: 1/4, normal -> 0.281 inches, a 9/32 drill
+         * @param inputs - The size, the fit and the unit
+         * @returns The hole's diameter in `unit`
+         * @group holes
+         * @shortname ansi clearance hole
+         * @drawable false
+         * @example
+         * ```typescript
+         * const hole = bitbybit.engineering.mechanical.fasteners.ansi.clearanceHole({ size: Bit.Inputs.Engineering.ansiThreadSizeEnum.in1_4, fit: Bit.Inputs.Engineering.clearanceFitEnum.normal });
+         * ```
+         */
+        clearanceHole(inputs: Inputs.Engineering.AnsiClearanceHoleDto): number;
+        /**
+         * Gives the head of an ASME B18.3 cap screw: its diameter and height, its hexagon recess, the
+         * threaded length and the counterbore that sinks it.
+         *
+         * The counterbore is 0.02 deeper than the head, so the head sits below the face. Example: 1/4 ->
+         * head 0.375 by 0.25, a 3/16 recess, counterbore 7/16 by 0.27
+         * @param inputs - The size and the unit
+         * @returns The head's sizes in `unit`
+         * @group screws
+         * @shortname ansi cap screw sizes
+         * @drawable false
+         * @example
+         * ```typescript
+         * const head = bitbybit.engineering.mechanical.fasteners.ansi.socketHeadCapScrewSizes({ size: Bit.Inputs.Engineering.ansiThreadSizeEnum.n10 });
+         * ```
+         */
+        socketHeadCapScrewSizes(inputs: Inputs.Engineering.AnsiSizeDto): SocketHeadCapScrewSizes;
+        /**
+         * Gives an ASME B18.2.1 hex cap screw's width across flats, head height and threaded length.
+         *
+         * A screw up to 6 inches long is threaded twice its diameter and a quarter of an inch, a longer
+         * one half an inch more. Example: 1/4, 1 inch long -> 7/16 across flats, 0.75 threaded
+         * @param inputs - The size, the length and the unit
+         * @returns The screw's sizes in `unit`
+         * @group screws
+         * @shortname ansi hex bolt sizes
+         * @drawable false
+         * @example
+         * ```typescript
+         * const bolt = bitbybit.engineering.mechanical.fasteners.ansi.hexBoltSizes({ size: Bit.Inputs.Engineering.ansiThreadSizeEnum.in3_8, length: 1.5 });
+         * ```
+         */
+        hexBoltSizes(inputs: Inputs.Engineering.AnsiHexBoltSizesDto): HexBoltSizes;
+        /**
+         * Gives an ASME hex nut: a B18.6.3 machine screw nut from #0 to #12, a B18.2.2 hex nut from 1/4
+         * up, as its width across flats and its height.
+         *
+         * Example: 1/4 -> 7/16 across flats, 7/32 high
+         * @param inputs - The size and the unit
+         * @returns The nut's sizes in `unit`
+         * @group nuts and washers
+         * @shortname ansi hex nut sizes
+         * @drawable false
+         * @example
+         * ```typescript
+         * const nut = bitbybit.engineering.mechanical.fasteners.ansi.hexNutSizes({ size: Bit.Inputs.Engineering.ansiThreadSizeEnum.in1_4 });
+         * ```
+         */
+        hexNutSizes(inputs: Inputs.Engineering.AnsiSizeDto): HexNutSizes;
+        /**
+         * Gives an ASME B18.22.1 type A plain washer, narrow or wide: its inner and outer diameters and
+         * its thickness.
+         *
+         * The table starts at #6, which takes one washer in both series. Example: 1/4 narrow -> 0.281
+         * inside, 0.625 outside, 0.065 thick
+         * @param inputs - The size, the series and the unit
+         * @returns The washer's sizes in `unit`
+         * @group nuts and washers
+         * @shortname ansi washer sizes
+         * @drawable false
+         * @example
+         * ```typescript
+         * const washer = bitbybit.engineering.mechanical.fasteners.ansi.washerSizes({ size: Bit.Inputs.Engineering.ansiThreadSizeEnum.in1_4, series: Bit.Inputs.Engineering.ansiWasherSeriesEnum.wide });
+         * ```
+         */
+        washerSizes(inputs: Inputs.Engineering.AnsiWasherSizesDto): WasherSizes;
+        /**
+         * Gives an ASME B18.3 set screw by its size and point: its hexagon recess's size and least depth,
+         * and the point's diameter, length, angle and, for an oval point, radius.
+         *
+         * A screw shorter than its point's shortest long screw takes the shallower recess makers give it,
+         * and a short cone is blunter, 118 degrees.
+         * @param inputs - The size, the point, the thread series, the length and the unit
+         * @returns The sizes in `unit` and the point's angle in degrees
+         * @group screws
+         * @shortname ansi set screw sizes
+         * @drawable false
+         * @example
+         * ```typescript
+         * const grub = bitbybit.engineering.mechanical.fasteners.ansi.setScrewSizes({ size: Bit.Inputs.Engineering.ansiThreadSizeEnum.in1_4, point: Bit.Inputs.Engineering.ansiSetScrewPointEnum.halfDog, length: 0.5 });
+         * ```
+         */
+        setScrewSizes(inputs: Inputs.Engineering.AnsiSetScrewSizesDto): SetScrewSizes;
+    }
+    /**
+     * The sizes of ISO metric fasteners from M1.6 to M24, with no CAD kernel needed: clearance holes,
+     * cap screws, hexagon bolts and nuts, plain washers and set screws, in the unit asked for; their
+     * threads are in `threads.iso`. `occt.parts.mechanical.fasteners.iso` builds them as solids.
+     * @beta
+     */
+    declare class EngineeringFastenersIso {
+        /**
+         * Gives the diameter of an ISO 273 clearance hole for a screw: close, normal or loose.
+         *
+         * Example: M6, normal -> 6.6 millimetres
+         * @param inputs - The size, the fit and the unit
+         * @returns The hole's diameter in `unit`
+         * @group holes
+         * @shortname iso clearance hole
+         * @drawable false
+         * @example
+         * ```typescript
+         * const hole = bitbybit.engineering.mechanical.fasteners.iso.clearanceHole({ size: Bit.Inputs.Engineering.isoThreadSizeEnum.m6, fit: Bit.Inputs.Engineering.clearanceFitEnum.normal });
+         * ```
+         */
+        clearanceHole(inputs: Inputs.Engineering.IsoClearanceHoleDto): number;
+        /**
+         * Gives the head of an ISO 4762 cap screw: its diameter and height, its hexagon recess, the
+         * threaded length and the DIN 974-1 counterbore that sinks it.
+         *
+         * The counterbore is the head's height and half a millimetre deep. Example: M5 -> head 8.5
+         * across and 5 high, a 4 mm recess, counterbore 10 across and 5.5 deep
+         * @param inputs - The size and the unit
+         * @returns The head's sizes in `unit`
+         * @group screws
+         * @shortname iso cap screw sizes
+         * @drawable false
+         * @example
+         * ```typescript
+         * const head = bitbybit.engineering.mechanical.fasteners.iso.socketHeadCapScrewSizes({ size: Bit.Inputs.Engineering.isoThreadSizeEnum.m5 });
+         * ```
+         */
+        socketHeadCapScrewSizes(inputs: Inputs.Engineering.IsoSizeDto): SocketHeadCapScrewSizes;
+        /**
+         * Gives the head of an ISO 4014 or 4017 hexagon bolt and how much of its length ISO 4014
+         * threads: the width across flats, the head's height and the threaded length.
+         *
+         * `length` is in `unit`. Example: M8, 40 millimetres long -> 13 across flats, a 5.3 high head, 22
+         * threaded
+         * @param inputs - The size, the length and the unit
+         * @returns The bolt's sizes in `unit`
+         * @group screws
+         * @shortname iso hex bolt sizes
+         * @drawable false
+         * @example
+         * ```typescript
+         * const bolt = bitbybit.engineering.mechanical.fasteners.iso.hexBoltSizes({ size: Bit.Inputs.Engineering.isoThreadSizeEnum.m8, length: 40 });
+         * ```
+         */
+        hexBoltSizes(inputs: Inputs.Engineering.IsoHexBoltSizesDto): HexBoltSizes;
+        /**
+         * Gives an ISO 4032 hexagon nut: its width across flats and its height.
+         *
+         * Example: M8 -> 13 across flats, 6.8 high, in millimetres
+         * @param inputs - The size and the unit
+         * @returns The nut's sizes in `unit`
+         * @group nuts and washers
+         * @shortname iso hex nut sizes
+         * @drawable false
+         * @example
+         * ```typescript
+         * const nut = bitbybit.engineering.mechanical.fasteners.iso.hexNutSizes({ size: Bit.Inputs.Engineering.isoThreadSizeEnum.m8 });
+         * ```
+         */
+        hexNutSizes(inputs: Inputs.Engineering.IsoSizeDto): HexNutSizes;
+        /**
+         * Gives an ISO 7089 plain washer: its inner and outer diameters and its thickness.
+         *
+         * Example: M8 -> 8.4 inside, 16 outside, 1.6 thick, in millimetres
+         * @param inputs - The size and the unit
+         * @returns The washer's sizes in `unit`
+         * @group nuts and washers
+         * @shortname iso washer sizes
+         * @drawable false
+         * @example
+         * ```typescript
+         * const washer = bitbybit.engineering.mechanical.fasteners.iso.washerSizes({ size: Bit.Inputs.Engineering.isoThreadSizeEnum.m8 });
+         * ```
+         */
+        washerSizes(inputs: Inputs.Engineering.IsoSizeDto): WasherSizes;
+        /**
+         * Gives a set screw with a hexagon recess by its size and point: the recess's size and least depth,
+         * and the point's diameter, length and angle, as ISO 4026 to 4029 give them.
+         *
+         * A short screw gets a shallower recess, a short dog and a blunter cone. Example: M5 dog -> a
+         * 2.5 mm recess and a 3.5 mm dog
+         * @param inputs - The size, the point, the length and the unit
+         * @returns The sizes in `unit` and the point's angle in degrees
+         * @group screws
+         * @shortname iso set screw sizes
+         * @drawable false
+         * @example
+         * ```typescript
+         * const grub = bitbybit.engineering.mechanical.fasteners.iso.setScrewSizes({ size: Bit.Inputs.Engineering.isoThreadSizeEnum.m5, point: Bit.Inputs.Engineering.isoSetScrewPointEnum.dog, length: 10 });
+         * ```
+         */
+        setScrewSizes(inputs: Inputs.Engineering.IsoSetScrewSizesDto): SetScrewSizes;
+        /**
+         * Gives an ISO 7090 washer, chamfered on the outside of one face: its inner and outer diameters,
+         * its thickness and its chamfer's height and width.
+         *
+         * It shares the ISO 7089 washer's sizes and starts at M5. Example: M8 -> 8.4 inside, 16 outside,
+         * 1.6 thick, in millimetres
+         * @param inputs - The size and the unit
+         * @returns The washer's sizes in `unit`
+         * @group nuts and washers
+         * @shortname iso chamfered washer sizes
+         * @drawable false
+         * @example
+         * ```typescript
+         * const washer = bitbybit.engineering.mechanical.fasteners.iso.chamferedWasherSizes({ size: Bit.Inputs.Engineering.isoThreadSizeEnum.m8 });
+         * ```
+         */
+        chamferedWasherSizes(inputs: Inputs.Engineering.IsoSizeDto): ChamferedWasherSizes;
+    }
+    /**
+     * The sizes of fasteners by the standard that sets them, with no CAD kernel needed: `iso` holds the
+     * ISO metric clearance holes, cap screws, hexagon bolts and nuts, washers and set screws, `ansi` the
+     * ASME inch ones, each in the unit asked for. `occt.parts.mechanical.fasteners` builds the same parts as solids.
+     * @beta
+     */
+    declare class EngineeringFasteners {
+        readonly iso: EngineeringFastenersIso;
+        readonly ansi: EngineeringFastenersAnsi;
+        constructor();
+    }
+    /**
+     * Involute gears by their numbers, with no CAD kernel needed: the circles of spur and ring gears,
+     * and their outlines as points on the XY plane for any kernel to extrude. `occt.parts.mechanical.gears` builds
+     * the same teeth as solids. Gears mesh when they share `module` and `pressureAngle`: two spur gears
+     * half the module times their teeth together apart, a spur gear in a ring half the module times the
+     * difference.
+     * @beta
+     */
+    declare class EngineeringGears {
+        /**
+         * Works out the circles of an involute spur gear: the pitch circle meshing gears roll on, the
+         * base circle its flanks unwind from, the tip and root circles, and half the angle a tooth
+         * spans at the pitch circle.
+         *
+         * Example: module 1, 20 teeth -> pitch radius 10, tip radius 11, root radius 8.75
+         * @param inputs - The teeth
+         * @returns The four radii in model units and the half tooth angle in radians
+         * @group spur
+         * @shortname spur gear sizes
+         * @drawable false
+         * @example
+         * ```typescript
+         * const pinion = bitbybit.engineering.mechanical.gears.spurGearSizes({ module: 1, teeth: 20 });
+         * const wheel = bitbybit.engineering.mechanical.gears.spurGearSizes({ module: 1, teeth: 30 });
+         * const centreDistance = pinion.pitchRadius + wheel.pitchRadius;
+         * ```
+         */
+        spurGearSizes(inputs: Inputs.Engineering.SpurGearSizesDto): GearSizes;
+        /**
+         * Draws the outline of an involute spur gear as points on the XY plane, a closed counterclockwise
+         * loop that does not repeat its start, ready to extrude in any kernel.
+         *
+         * The flanks follow the involute within a ten-thousandth of the module; `segments` sets the
+         * points per curve. Tips that reach only inside the base circle are refused.
+         * @param inputs - The teeth, the turn and the segments per curve
+         * @returns The points of the outline
+         * @group spur
+         * @shortname spur gear outline
+         * @drawable true
+         * @example
+         * ```typescript
+         * const outline = bitbybit.engineering.mechanical.gears.spurGearOutline({ module: 1, teeth: 20 });
+         * const gear = await bitbybit.jscad.extrusions.extrudeLinear({ geometry: await bitbybit.jscad.polygon.createFromPoints({ points: outline }), height: 5, twistAngle: 0, twistSteps: 1 });
+         * ```
+         */
+        spurGearOutline(inputs: Inputs.Engineering.SpurGearOutlineDto): Inputs.Base.Point3[];
+        /**
+         * Works out the circles of an involute ring gear, whose teeth point in toward its centre: the
+         * pitch and base circles, the tip circle inside them, the root circle beyond, and half the
+         * angle a tooth spans at the pitch circle.
+         *
+         * Example: module 1, 40 teeth -> pitch radius 20, tip radius 19, root radius 21.25
+         * @param inputs - The teeth
+         * @returns The four radii in model units and the half tooth angle in radians
+         * @group ring
+         * @shortname ring gear sizes
+         * @drawable false
+         * @example
+         * ```typescript
+         * const ring = bitbybit.engineering.mechanical.gears.ringGearSizes({ module: 1, teeth: 40 });
+         * const outsideAtLeast = 2 * ring.rootRadius;
+         * ```
+         */
+        ringGearSizes(inputs: Inputs.Engineering.RingGearSizesDto): GearSizes;
+        /**
+         * Draws the teeth of an involute ring gear as points on the XY plane around the origin: the edge
+         * of the hole inside the ring, a closed loop counterclockwise that does not repeat its start.
+         *
+         * Cut it from a circle larger than twice the root radius to make the ring; `segments` sets how
+         * many points stand for each curve.
+         * @param inputs - The teeth, the turn and the segments per curve
+         * @returns The points of the outline
+         * @group ring
+         * @shortname ring gear outline
+         * @drawable true
+         * @example
+         * ```typescript
+         * const teeth = bitbybit.engineering.mechanical.gears.ringGearOutline({ module: 1, teeth: 40 });
+         * ```
+         */
+        ringGearOutline(inputs: Inputs.Engineering.RingGearOutlineDto): Inputs.Base.Point3[];
+        /**
+         * Works out the circles of an involute helical gear's section square to its axis, with that
+         * section's module and pressure angle, and how many degrees the teeth turn per model unit along
+         * the axis.
+         *
+         * Example: module 1, 20 teeth, 20 degrees -> pitch radius 10.64, twist 1.96
+         * @param inputs - The teeth and their lean
+         * @returns The radii, the half tooth angle, the transverse module and pressure angle and the twist
+         * @group helical
+         * @shortname helical gear sizes
+         * @drawable false
+         * @example
+         * ```typescript
+         * const pinion = bitbybit.engineering.mechanical.gears.helicalGearSizes({ module: 1, teeth: 20, helixAngle: 20 });
+         * const wheel = bitbybit.engineering.mechanical.gears.helicalGearSizes({ module: 1, teeth: 30, helixAngle: -20 });
+         * const centreDistance = pinion.pitchRadius + wheel.pitchRadius;
+         * ```
+         */
+        helicalGearSizes(inputs: Inputs.Engineering.HelicalGearSizesDto): HelicalGearSizes;
+        /**
+         * Draws a helical gear's section square to its axis as points on the XY plane around the origin, a
+         * closed loop counterclockwise that does not repeat its start.
+         *
+         * Extrude it with a twist of `twist` from `helicalGearSizes` times the height to make the gear.
+         * @param inputs - The teeth, their lean, the turn and the segments per curve
+         * @returns The points of the outline
+         * @group helical
+         * @shortname helical gear outline
+         * @drawable true
+         * @example
+         * ```typescript
+         * const sizes = bitbybit.engineering.mechanical.gears.helicalGearSizes({ module: 1, teeth: 20 });
+         * const outline = bitbybit.engineering.mechanical.gears.helicalGearOutline({ module: 1, teeth: 20 });
+         * const section = await bitbybit.jscad.polygon.createFromPoints({ points: outline });
+         * const gear = await bitbybit.jscad.extrusions.extrudeLinear({ geometry: section, height: 5, twistAngle: sizes.twist * 5, twistSteps: 10 });
+         * ```
+         */
+        helicalGearOutline(inputs: Inputs.Engineering.HelicalGearOutlineDto): Inputs.Base.Point3[];
+        /**
+         * Works out the cones and outer circles of a straight bevel gear meshing a mate at a shaft
+         * angle: its pitch, tip and root cones, back radii and apex distance.
+         *
+         * A tip cone of 90 degrees or more is refused.
+         * Example: module 2, 20 teeth meshing 40 at 90 degrees -> pitch cone 26.57 degrees, apex 40 away
+         * @param inputs - The teeth, the mate's teeth and the shaft angle
+         * @returns The radii and distances in model units and the cone angles in degrees
+         * @group bevel
+         * @shortname bevel gear sizes
+         * @drawable false
+         * @example
+         * ```typescript
+         * const pinion = bitbybit.engineering.mechanical.gears.bevelGearSizes({ module: 2, teeth: 20, mateTeeth: 40 });
+         * const wheel = bitbybit.engineering.mechanical.gears.bevelGearSizes({ module: 2, teeth: 40, mateTeeth: 20 });
+         * ```
+         */
+        bevelGearSizes(inputs: Inputs.Engineering.BevelGearSizesDto): BevelGearSizes;
+        /**
+         * Draws a straight bevel gear's teeth as points on the XY plane around the origin, as seen from
+         * the apex on the plane of the outer pitch circle, by Tredgold's approximation.
+         *
+         * The flanks run straight to the apex, so the section in a plane nearer it is this outline scaled
+         * by its distance over `apexDistance`.
+         * @param inputs - The teeth, the mate's teeth, the shaft angle, the turn and the segments per curve
+         * @returns The points of the outline
+         * @group bevel
+         * @shortname bevel gear outline
+         * @drawable true
+         * @example
+         * ```typescript
+         * const sizes = bitbybit.engineering.mechanical.gears.bevelGearSizes({ module: 1, teeth: 20, mateTeeth: 30 });
+         * const outline = bitbybit.engineering.mechanical.gears.bevelGearOutline({ module: 1, teeth: 20, mateTeeth: 30 });
+         * const section = await bitbybit.manifold.crossSection.crossSectionFromPoints({ points: outline, fillRule: Bit.Inputs.Manifold.fillRuleEnum.positive, removeDuplicates: false, tolerance: 1e-7 });
+         * const gear = await bitbybit.manifold.crossSection.operations.extrude({ crossSection: section, height: sizes.apexDistance / 4, nDivisions: 1, twistDegrees: 0, scaleTopX: 0.75, scaleTopY: 0.75, center: false });
+         * ```
+         */
+        bevelGearOutline(inputs: Inputs.Engineering.BevelGearOutlineDto): Inputs.Base.Point3[];
+        /**
+         * Works out how two external spur gears mesh: centre distance, working pressure angle, contact
+         * ratio and ratio, profile shifts included.
+         *
+         * The contact ratio counts only involute contact, `interferes` flags tips reaching past it, and
+         * `tipShortening` and `clearance` show how shifts crowd tips into roots.
+         * Example: module 2, 20 and 30 teeth -> 50 apart, contact ratio 1.61
+         * @param inputs - The module, the teeth, the pressure angle, the tooth heights and the profile shifts
+         * @returns The centre distance, working pressure angle, contact ratio, ratio, interference, tip shortening and clearance
+         * @group pairs
+         * @shortname gear pair
+         * @drawable false
+         * @example
+         * ```typescript
+         * const pair = bitbybit.engineering.mechanical.gears.gearPair({ module: 2, teethA: 12, teethB: 20, profileShiftA: 0.5, profileShiftB: 0.5 });
+         * const sound = !pair.interferes && pair.clearance > 0 && pair.contactRatio > 1.2;
+         * ```
+         */
+        gearPair(inputs: Inputs.Engineering.GearPairDto): GearPairSizes;
+        /**
+         * Works out a spur gear meshing inside a ring gear: centre distance, contact ratio, ratio and
+         * interference.
+         *
+         * The contact ratio counts only involute contact. `interferes` flags ring tips below the gear's
+         * base circle, or gear tips catching ring tips when the two differ by few teeth.
+         * Example: module 2, 20 teeth in 60 -> 40 apart, ratio 3
+         * @param inputs - The module, the teeth and the pressure angle
+         * @returns The centre distance, contact ratio, ratio and interference
+         * @group pairs
+         * @shortname internal gear pair
+         * @drawable false
+         * @example
+         * ```typescript
+         * const pair = bitbybit.engineering.mechanical.gears.internalGearPair({ module: 2, pinionTeeth: 24, ringTeeth: 60 });
+         * ```
+         */
+        internalGearPair(inputs: Inputs.Engineering.InternalGearPairDto): InternalGearPairSizes;
+        /**
+         * Lays out a planetary gear set around a sun at rotation 0: the ring's teeth, where the planets
+         * sit, how far each planet and the ring turn to mesh, the ratio with the ring held, and whether
+         * the planets mesh, keep clear of each other and interfere.
+         *
+         * They mesh when the sun's and ring's teeth together divide by the planets.
+         * @param inputs - The module, the sun's and a planet's teeth, the planets and the pressure angle
+         * @returns The layout and its checks
+         * @group planetary
+         * @shortname planetary set
+         * @drawable false
+         * @example
+         * ```typescript
+         * const set = bitbybit.engineering.mechanical.gears.planetarySet({ module: 1, sunTeeth: 24, planetTeeth: 24, planets: 4 });
+         * const ringTeeth = set.ringTeeth;
+         * ```
+         */
+        planetarySet(inputs: Inputs.Engineering.PlanetarySetDto): PlanetarySet;
+        /**
+         * Works out the lines of an involute rack: its pitch, its length, how far its tips stand above
+         * the pitch line, how deep its gaps reach below it and how thick each tooth is on it.
+         *
+         * Example: module 2, 10 teeth -> pitch 6.28, 62.8 long
+         * @param inputs - The teeth and the height
+         * @returns The sizes in model units
+         * @group racks
+         * @shortname rack sizes
+         * @drawable false
+         * @example
+         * ```typescript
+         * const rack = bitbybit.engineering.mechanical.gears.rackSizes({ module: 2, teeth: 10, height: 6 });
+         * ```
+         */
+        rackSizes(inputs: Inputs.Engineering.RackSizesDto): RackSizes;
+        /**
+         * Draws an involute rack's outline as points on the XY plane, a closed counterclockwise loop not
+         * repeating its start: pitch line on the x axis, teeth along +y, the first tooth's middle on the
+         * origin.
+         *
+         * A spur gear of the same module meshes with its centre its pitch radius, plus its profile shift
+         * times the module, above the pitch line.
+         * @param inputs - The teeth, the height and the segments per curve
+         * @returns The points of the outline
+         * @group racks
+         * @shortname rack outline
+         * @drawable true
+         * @example
+         * ```typescript
+         * const outline = bitbybit.engineering.mechanical.gears.rackOutline({ module: 2, teeth: 10, height: 6 });
+         * ```
+         */
+        rackOutline(inputs: Inputs.Engineering.RackOutlineDto): Inputs.Base.Point3[];
+        /**
+         * Gives the module of an inch gear from its diametral pitch, in the model's unit, so the gear
+         * methods can size it.
+         *
+         * The module is the pitch diameter over the teeth, the inverse of the diametral pitch: 1 / DP
+         * inches, or 25.4 / DP millimetres. Example: 10 DP -> 0.1 inches, or 2.54 millimetres
+         * @param inputs - The diametral pitch and the unit
+         * @returns The module in `unit`
+         * @group spur
+         * @shortname module from diametral pitch
+         * @drawable false
+         * @example
+         * ```typescript
+         * const gearModule = bitbybit.engineering.mechanical.gears.moduleFromDiametralPitch({ diametralPitch: 12, unit: Bit.Inputs.Base.unitOfLengthEnum.inch });
+         * const pinion = bitbybit.engineering.mechanical.gears.spurGearSizes({ module: gearModule, teeth: 24 });
+         * ```
+         */
+        moduleFromDiametralPitch(inputs: Inputs.Engineering.ModuleFromDiametralPitchDto): number;
+    }
+    /**
+     * The sizes of ANSI B17.1 square parallel keys and their keyseats, with no CAD kernel needed, in the
+     * unit asked for. `occt.parts.mechanical.keys.ansi` builds the keys as solids and
+     * `occt.parts.mechanical.machining.ansi` cuts their keyseats.
+     * @beta
+     */
+    declare class EngineeringKeysAnsi {
+        /**
+         * Gives the ANSI B17.1 square key for a shaft: the key's width and height, and how deep its
+         * keyseat goes into the shaft and into the hub.
+         *
+         * Depths are from the top of the round, half the key standing at each keyseat's side. Example: a 1
+         * inch shaft -> a 1/4 square key, 0.141 deep in the shaft
+         * @param inputs - The shaft's diameter and the unit
+         * @returns The key's and keyseat's sizes in `unit`
+         * @group parallel keys
+         * @shortname ansi parallel key sizes
+         * @drawable false
+         * @example
+         * ```typescript
+         * const key = bitbybit.engineering.mechanical.keys.ansi.parallelKeySizes({ shaftDiameter: 1 });
+         * ```
+         */
+        parallelKeySizes(inputs: Inputs.Engineering.AnsiParallelKeySizesDto): ParallelKeySizes;
+    }
+    /**
+     * The sizes of DIN 6885 form A parallel keys and their keyways, with no CAD kernel needed, in the
+     * unit asked for. `occt.parts.mechanical.keys.din` builds the keys as solids and
+     * `occt.parts.mechanical.machining.din` cuts their keyways.
+     * @beta
+     */
+    declare class EngineeringKeysDin {
+        /**
+         * Gives the DIN 6885 parallel key for a shaft: the key's width and height, and how deep its
+         * keyway goes into the shaft and into the hub.
+         *
+         * Example: a 20 mm shaft -> a 6 by 6 key, 3.5 deep in the shaft, 2.8 in the hub
+         * @param inputs - The shaft's diameter and the unit
+         * @returns The key's and keyway's sizes in `unit`
+         * @group parallel keys
+         * @shortname din parallel key sizes
+         * @drawable false
+         * @example
+         * ```typescript
+         * const key = bitbybit.engineering.mechanical.keys.din.parallelKeySizes({ shaftDiameter: 20 });
+         * ```
+         */
+        parallelKeySizes(inputs: Inputs.Engineering.DinParallelKeySizesDto): ParallelKeySizes;
+    }
+    /**
+     * The sizes of parallel keys and their keyways by the standard that sets them, with no CAD kernel
+     * needed: `din` holds the metric DIN 6885 form A keys, `ansi` the ANSI B17.1 square keys, each in
+     * the unit asked for.
+     * `occt.parts.mechanical.keys` builds the keys as solids.
+     * @beta
+     */
+    declare class EngineeringKeys {
+        readonly din: EngineeringKeysDin;
+        readonly ansi: EngineeringKeysAnsi;
+        constructor();
+    }
+    /**
+     * The grooves of ASME B94.6 diametral pitch knurls on a cylinder, with no CAD kernel needed, in the
+     * unit asked for. `occt.parts.mechanical.machining.ansi` cuts them into a body.
+     * @beta
+     */
+    declare class EngineeringKnurlsAnsi {
+        /**
+         * Works out a diametral pitch knurl's grooves on a cylinder: how many, the diameter they track on,
+         * how deep B94.6 presses them and their angle to the axis.
+         *
+         * A blank needs 24 teeth round it at 64 and 96 DP, 18 at 128 and 15 at 160. Example: 0.5 at 96 DP
+         * -> 48 grooves, 0.016 deep
+         * @param inputs - The diameter, the diametral pitch, the pattern and the unit
+         * @returns The grooves, the diameter that tracks and the depth in `unit`, and the helix angle
+         * @group knurls
+         * @shortname ansi knurl sizes
+         * @drawable false
+         * @example
+         * ```typescript
+         * const knurl = bitbybit.engineering.mechanical.knurls.ansi.knurlSizes({ diameter: 0.5, diametralPitch: 96, pattern: Bit.Inputs.Engineering.knurlPatternEnum.diamond });
+         * ```
+         */
+        knurlSizes(inputs: Inputs.Engineering.AnsiKnurlSizesDto): KnurlSizes;
+    }
+    /**
+     * The grooves of DIN 82 knurls on a cylinder, with no CAD kernel needed, in the unit asked for.
+     * `occt.parts.mechanical.machining.din` cuts them into a body.
+     * @beta
+     */
+    declare class EngineeringKnurlsDin {
+        /**
+         * Works out a knurl's grooves on a cylinder: how many fit at the pitch, the diameter that
+         * makes them divide it evenly, their depth and their angle to the axis.
+         *
+         * Turn the cylinder to the corrected diameter before knurling; the pitch is in millimetres as
+         * DIN 82 names it. Example: 19.6 at pitch 0.8 -> 77 grooves on 19.608
+         * @param inputs - The diameter, the pitch, the pattern and the unit
+         * @returns The grooves, the corrected diameter and the depth in `unit`, and the helix angle
+         * @group knurls
+         * @shortname din knurl sizes
+         * @drawable false
+         * @example
+         * ```typescript
+         * const knurl = bitbybit.engineering.mechanical.knurls.din.knurlSizes({ diameter: 19.6, pitch: 0.8, pattern: Bit.Inputs.Engineering.knurlPatternEnum.diamond });
+         * ```
+         */
+        knurlSizes(inputs: Inputs.Engineering.DinKnurlSizesDto): KnurlSizes;
+    }
+    /**
+     * The grooves of knurls on a cylinder by the standard that sets them, with no CAD kernel needed:
+     * `din` holds the metric DIN 82 knurls, `ansi` the ASME B94.6 diametral pitch ones, each in the unit
+     * asked for. `occt.parts.mechanical.machining`
+     * cuts them into a body.
+     * @beta
+     */
+    declare class EngineeringKnurls {
+        readonly din: EngineeringKnurlsDin;
+        readonly ansi: EngineeringKnurlsAnsi;
+        constructor();
+    }
+    /**
+     * Mechanical engineering by its numbers: the sizes and outlines of involute gears and racks, and
+     * the threads, fasteners, ball bearings, parallel keys, retaining rings, splines and knurls of each
+     * standard, with compression springs, for any kernel to build from. Each family holds one member per
+     * standard, such as `iso` or `din`, whose sizes come in the `unit` asked for; gears and springs are
+     * in model units. `occt.parts.mechanical` builds the same parts as solids with named faces.
+     * @beta
+     */
+    declare class EngineeringMechanical {
+        readonly gears: EngineeringGears;
+        readonly threads: EngineeringThreads;
+        readonly fasteners: EngineeringFasteners;
+        readonly bearings: EngineeringBearings;
+        readonly keys: EngineeringKeys;
+        readonly retainingRings: EngineeringRetainingRings;
+        readonly splines: EngineeringSplines;
+        readonly knurls: EngineeringKnurls;
+        readonly springs: EngineeringSprings;
+        constructor();
+    }
+    /**
+     * The sizes of inch tapered retaining rings, external for shafts and internal for bores, with their
+     * grooves, with no CAD kernel needed, in the unit asked for: the series interchangeable with MS16624
+     * and MS16625. `occt.parts.mechanical.retainingRings.ansi` builds the rings as solids.
+     * @beta
+     */
+    declare class EngineeringRetainingRingsAnsi {
+        /**
+         * Gives the inch ring for a shaft or a bore, with its groove: the ring's thickness, free diameter,
+         * lugs and lug holes, and the groove's diameter, width and least distance from the end.
+         *
+         * A diameter within a thousandth of an inch of a listed one takes it. Example: a 3/4 shaft -> a
+         * groove 0.704 across
+         * @param inputs - Shaft or bore, its diameter and the unit
+         * @returns The ring's and the groove's sizes in `unit`
+         * @group circlips
+         * @shortname ansi retaining ring sizes
+         * @drawable false
+         * @example
+         * ```typescript
+         * const clip = bitbybit.engineering.mechanical.retainingRings.ansi.retainingRingSizes({ kind: Bit.Inputs.Engineering.retainingRingKindEnum.shaft, diameter: 0.75 });
+         * const groove = clip.grooveDiameter;
+         * ```
+         */
+        retainingRingSizes(inputs: Inputs.Engineering.AnsiRetainingRingSizesDto): RetainingRingSizes;
+        /**
+         * Lists the shaft or bore diameters the inch rings come for.
+         *
+         * Example: shaft -> 0.125, 0.156, 0.188 and on up to 2, in inches
+         * @param inputs - Shaft or bore, and the unit
+         * @returns The diameters in `unit`, smallest first
+         * @group circlips
+         * @shortname ansi retaining ring diameters
+         * @drawable false
+         * @example
+         * ```typescript
+         * const sizes = bitbybit.engineering.mechanical.retainingRings.ansi.diameters({ kind: Bit.Inputs.Engineering.retainingRingKindEnum.bore });
+         * ```
+         */
+        diameters(inputs: Inputs.Engineering.AnsiRetainingRingDiametersDto): number[];
+    }
+    /**
+     * The sizes of DIN 471 retaining rings for shafts and DIN 472 rings for bores, with their grooves,
+     * with no CAD kernel needed, in the unit asked for. `occt.parts.mechanical.retainingRings.din`
+     * builds the rings as solids.
+     * @beta
+     */
+    declare class EngineeringRetainingRingsDin {
+        /**
+         * Gives the DIN 471 ring for a shaft or the DIN 472 ring for a bore, with its groove: the
+         * ring's thickness, free diameter, lugs and lug holes, and the groove's diameter, width and
+         * least distance from the end.
+         *
+         * Example: a 20 mm shaft -> a 1.2 thick ring in a groove 19 across and 1.3 wide
+         * @param inputs - Shaft or bore, its diameter and the unit
+         * @returns The ring's and the groove's sizes in `unit`
+         * @group circlips
+         * @shortname din retaining ring sizes
+         * @drawable false
+         * @example
+         * ```typescript
+         * const clip = bitbybit.engineering.mechanical.retainingRings.din.retainingRingSizes({ kind: Bit.Inputs.Engineering.retainingRingKindEnum.shaft, diameter: 20 });
+         * const groove = clip.grooveDiameter;
+         * ```
+         */
+        retainingRingSizes(inputs: Inputs.Engineering.DinRetainingRingSizesDto): RetainingRingSizes;
+        /**
+         * Lists the shaft or bore diameters DIN 471 or DIN 472 gives a ring for.
+         *
+         * Example: shaft -> 3, 4, 5 and on up to 100, in millimetres
+         * @param inputs - Shaft or bore, and the unit
+         * @returns The diameters in `unit`, smallest first
+         * @group circlips
+         * @shortname din retaining ring diameters
+         * @drawable false
+         * @example
+         * ```typescript
+         * const sizes = bitbybit.engineering.mechanical.retainingRings.din.diameters({ kind: Bit.Inputs.Engineering.retainingRingKindEnum.bore });
+         * ```
+         */
+        diameters(inputs: Inputs.Engineering.DinRetainingRingDiametersDto): number[];
+    }
+    /**
+     * The sizes of retaining rings and their grooves by the standard that sets them, with no CAD kernel
+     * needed: `din` holds the metric DIN 471 rings for shafts and DIN 472 rings for bores, `ansi` the inch
+     * tapered rings, each in the unit asked for. `occt.parts.mechanical.retainingRings` builds the rings as solids.
+     * @beta
+     */
+    declare class EngineeringRetainingRings {
+        readonly din: EngineeringRetainingRingsDin;
+        readonly ansi: EngineeringRetainingRingsAnsi;
+        constructor();
+    }
+    /**
+     * The sizes of ANSI B92.1 involute splines, 30 degree flat root side fit, with no CAD kernel needed,
+     * in the unit asked for. `occt.parts.mechanical.machining.ansi` builds a splined shaft and cuts the
+     * hub to fit it.
+     * @beta
+     */
+    declare class EngineeringSplinesAnsi {
+        /**
+         * Works out an ANSI B92.1 involute spline from its teeth and pitch: its pitch diameter and module,
+         * and the major and minor diameters of the shaft and the hub.
+         *
+         * The teeth are unshifted, the pitch diameter the teeth over the pitch. Example: 24 teeth of 16/32
+         * -> 1.5 pitch diameter, shaft 1.5625 across its tips, hub 1.4375 across its own
+         * @param inputs - The teeth, the pitch and the unit
+         * @returns The spline's sizes in `unit`
+         * @group involute
+         * @shortname ansi involute spline sizes
+         * @drawable false
+         * @example
+         * ```typescript
+         * const spline = bitbybit.engineering.mechanical.splines.ansi.involuteSplineSizes({ teeth: 24, pitch: Bit.Inputs.Engineering.ansiSplinePitchEnum.p16_32 });
+         * ```
+         */
+        involuteSplineSizes(inputs: Inputs.Engineering.AnsiInvoluteSplineSizesDto): InvoluteSplineSizes;
+    }
+    /**
+     * The sizes of DIN 5480 involute splines, with no CAD kernel needed, in the unit asked for.
+     * `occt.parts.mechanical.machining.din` builds a splined shaft and cuts the hub to fit it.
+     * @beta
+     */
+    declare class EngineeringSplinesDin {
+        /**
+         * Works out a DIN 5480 involute spline from its reference diameter and module: its teeth,
+         * profile shift, and the shaft's and the hub's tip and root diameters.
+         *
+         * Both inputs are in millimetres, as the standard names them; the sizes come back in `unit`.
+         * Example: 25 by 1.25 -> 18 teeth, shaft tips 24.75 across, hub tips 22.5
+         * @param inputs - The reference diameter, the module and the unit
+         * @returns The spline's sizes in `unit`
+         * @group involute
+         * @shortname din involute spline sizes
+         * @drawable false
+         * @example
+         * ```typescript
+         * const spline = bitbybit.engineering.mechanical.splines.din.involuteSplineSizes({ referenceDiameter: 25, module: 1.25 });
+         * ```
+         */
+        involuteSplineSizes(inputs: Inputs.Engineering.DinInvoluteSplineSizesDto): InvoluteSplineSizes;
+    }
+    /**
+     * The sizes of involute splines by the standard that sets them, with no CAD kernel needed: `din`
+     * holds the metric DIN 5480 splines, `ansi` the ANSI B92.1 inch splines, each in the unit asked for. `occt.parts.mechanical.machining` builds
+     * a splined shaft and cuts the hub to fit it.
+     * @beta
+     */
+    declare class EngineeringSplines {
+        readonly din: EngineeringSplinesDin;
+        readonly ansi: EngineeringSplinesAnsi;
+        constructor();
+    }
+    /**
+     * Compression springs with closed and ground ends, with no CAD kernel needed: the path of the wire's
+     * centre, its pitch and its solid length. `occt.parts.mechanical.springs` sweeps the wire into a solid.
+     * @beta
+     */
+    declare class EngineeringSprings {
+        /**
+         * Works out the centre line of a compression spring's wire up +Z, with a closed coil at each
+         * end, the active coils' pitch and the solid length, where every coil touches the next.
+         *
+         * The wire runs three quarters of a coil past 0 and `length`: sweep it along the points, then
+         * cut it flat at both.
+         * @param inputs - The wire, the coils and the length
+         * @returns The centre line's points, the pitch and the solid length
+         * @group compression
+         * @shortname compression spring path
+         * @drawable false
+         * @example
+         * ```typescript
+         * const spring = bitbybit.engineering.mechanical.springs.compressionSpringPath({ wireDiameter: 0.2, diameter: 2, activeCoils: 6, length: 4 });
+         * const wire = spring.points;
+         * ```
+         */
+        compressionSpringPath(inputs: Inputs.Engineering.CompressionSpringPathDto): CompressionSpringPath;
+    }
+    /**
+     * The sizes of Unified inch screw threads after ASME B1.1, from #0 to 1 inch, with no CAD kernel
+     * needed: diameters, pitches and tap drills, coarse (UNC), fine (UNF) or of a pitch of their own, in
+     * the unit asked for. The fasteners of `occt.parts.mechanical.fasteners.ansi` carry them.
+     * @beta
+     */
+    declare class EngineeringThreadsAnsi {
+        /**
+         * Gives a Unified inch thread by its size and series: the nominal, pitch and minor diameters, the
+         * pitch, the internal thread's minor diameter and the drill for tapping it.
+         *
+         * The minor diameter is the rounded UNR root's; `threadsPerInch` names a pitch of its own, a UN
+         * thread. Example: 1/4 UNC -> 20 threads per inch, tap drill 0.201 inches
+         * @param inputs - The size, the series, an optional pitch of its own and the unit
+         * @returns The thread's diameters and pitch in `unit`
+         * @group threads
+         * @shortname ansi thread
+         * @drawable false
+         * @example
+         * ```typescript
+         * const thread = bitbybit.engineering.mechanical.threads.ansi.thread({ size: Bit.Inputs.Engineering.ansiThreadSizeEnum.in1_4, series: Bit.Inputs.Engineering.ansiThreadSeriesEnum.unc });
+         * const drill = thread.tapDrill;
+         * ```
+         */
+        thread(inputs: Inputs.Engineering.AnsiThreadDto): AnsiThreadSizes;
+        /**
+         * Lists the Unified inch thread sizes the tables hold, from #0 to 1 inch.
+         * @returns The sizes, smallest first
+         * @group threads
+         * @shortname ansi thread sizes
+         * @drawable false
+         * @example
+         * ```typescript
+         * const sizes = bitbybit.engineering.mechanical.threads.ansi.sizes();
+         * ```
+         */
+        sizes(): AnsiThreadSize[];
+    }
+    /**
+     * The sizes of ISO metric screw threads from M1.6 to M24, with no CAD kernel needed: diameters,
+     * pitches and tap drills, coarse or fine, in the unit asked for. The fasteners of
+     * `occt.parts.mechanical.fasteners.iso` carry them.
+     * @beta
+     */
+    declare class EngineeringThreadsIso {
+        /**
+         * Gives an ISO metric thread by its size: the nominal, pitch and minor diameters, the pitch,
+         * the internal thread's minor diameter and the drill for tapping it.
+         *
+         * The coarse pitch unless `pitch` gives a fine one, in millimetres as ISO names it; the sizes come
+         * back in `unit`. Example: M8 -> pitch 1.25, tap drill 6.8
+         * @param inputs - The size, an optional fine pitch and the unit
+         * @returns The thread's diameters and pitch in `unit`
+         * @group threads
+         * @shortname iso thread
+         * @drawable false
+         * @example
+         * ```typescript
+         * const thread = bitbybit.engineering.mechanical.threads.iso.thread({ size: Bit.Inputs.Engineering.isoThreadSizeEnum.m8 });
+         * const drill = thread.tapDrill;
+         * ```
+         */
+        thread(inputs: Inputs.Engineering.IsoThreadDto): IsoThreadSizes;
+        /**
+         * Lists the ISO metric thread sizes the tables hold, from M1.6 to M24.
+         * @returns The sizes, smallest first
+         * @group threads
+         * @shortname iso thread sizes
+         * @drawable false
+         * @example
+         * ```typescript
+         * const sizes = bitbybit.engineering.mechanical.threads.iso.sizes();
+         * ```
+         */
+        sizes(): IsoThreadSize[];
+    }
+    /**
+     * The sizes of screw threads by the standard that sets them, with no CAD kernel needed: `iso` holds
+     * the ISO metric threads, `ansi` the Unified inch threads. Each gives diameters, pitches and tap
+     * drills in the unit asked for; `occt.parts.mechanical.machining` cuts the threads into a body.
+     * @beta
+     */
+    declare class EngineeringThreads {
+        readonly iso: EngineeringThreadsIso;
+        readonly ansi: EngineeringThreadsAnsi;
+        constructor();
     }
     /**
      * Frames: a frame is a point with three axes at right angles, written as its `origin`, its `normal`
@@ -58757,9 +66978,25 @@ declare namespace Bit {
         arePointsTheSame(pointA: Inputs.Base.Point3 | Inputs.Base.Point2, pointB: Inputs.Base.Point3 | Inputs.Base.Point2, tolerance: number): boolean;
         private transformCoordinates;
     }
+    declare function srgbToLinear(channel: number): number;
+    declare function linearToSrgb(channel: number): number;
     type Point3 = Inputs.Base.Point3;
-    declare const arcThroughThreePoints: (start: Point3, middle: Point3, end: Point3) => ThreePointArc | undefined;
-    declare const pointsOnArc: (arc: ThreePointArc, start: Point3, end: Point3, segments: number) => Point3[];
+    declare const expandedKnots: (knots: readonly number[], multiplicities: readonly number[]) => number[];
+    declare const knotDomain: (degree: number, knots: readonly number[]) => [
+        number,
+        number
+    ];
+    declare const nurbsCurvePoint: (degree: number, points: readonly Point3[], weights: readonly number[] | undefined, knots: readonly number[], t: number) => Point3;
+    declare const nurbsSurfacePoint: (degrees: readonly [
+        number,
+        number
+    ], net: readonly (readonly Point3[])[], weights: readonly (readonly number[])[] | undefined, knots: readonly [
+        readonly number[],
+        readonly number[]
+    ], u: number, v: number) => Point3;
+    type Point2 = Inputs.Base.Point2;
+    type Point3 = Inputs.Base.Point3;
+    declare const refinedSurfaceMesh: (uv: readonly Point2[], positions: readonly Point3[], loops: readonly (readonly number[])[], pointAt: (u: number, v: number) => Point3) => RefinedSurfaceMesh;
     declare function crc32(data: Uint8Array): number;
     declare class DxfGenerator {
         private entityHandle;
@@ -58770,6 +67007,7 @@ declare namespace Bit {
          */
         generateDxf(dxfInputs: Inputs.IO.DxfModelDto): string;
         private generateHeader;
+        private unitHeader;
         private generateTables;
         private generateLineTypeTable;
         private generateStyleTable;
@@ -58797,6 +67035,10 @@ declare namespace Bit {
         private convertColorToDxf;
         private rgbToAciColorIndex;
     }
+    declare const DXF_FIRST_ENTITY_HANDLE = 256;
+    declare const DXF_INSUNITS: Readonly<Record<string, string>>;
+    declare const DXF_IMPERIAL_MEASUREMENT = "0";
+    declare const DXF_METRIC_MEASUREMENT = "1";
     declare class Dxf {
         private dxfGenerator;
         /**
@@ -58883,81 +67125,31 @@ declare namespace Bit {
          */
         dxfCreate(inputs: Inputs.IO.DxfModelDto): string;
     }
-    type Vec3 = Inputs.Base.Vector3;
-    /**
-     * The sine below which two directions count as parallel wherever a frame is squared: a direction
-     * closer than this to its normal leaves the X axis to rounding.
-     */
-    declare const PARALLEL_SINE = 1e-9;
-    /**
-     * A frame as the four vectors the maths reads: the origin and three unit axes at right angles,
-     * with `y` the cross product of `z` and `x`.
-     */
-    interface FrameAxes {
-        readonly origin: Vec3;
-        readonly x: Vec3;
-        readonly y: Vec3;
-        readonly z: Vec3;
-    }
-    /** Whether a value is three finite numbers. */
-    declare const isTriple: (value: unknown) => value is Vec3;
-    /** Whether a value has the shape of a frame: an `origin`, a `normal` and a `direction`, three finite numbers each. */
-    declare const isFrameShaped: (value: unknown) => value is Inputs.Base.Frame;
-    /**
-     * A vector scaled to length 1, or undefined for one of no length. It is divided by its largest
-     * component before it is measured, so no square overflows or underflows at any finite size.
-     */
-    declare const unitOf: (vector: Vec3) => Vec3 | undefined;
-    /**
-     * The axes of an origin, a normal and a rough X direction: the normal scaled to length 1 and the
-     * direction turned square to it. Gives the name of the part that cannot be squared instead: a
-     * normal of no length, or a direction of no length or within `PARALLEL_SINE` of the normal.
-     *
-     * The direction is projected twice: a direction close to the normal loses most of its digits to
-     * the first subtraction, and the second takes out what rounding left along the normal.
-     */
-    declare const squareFrame: (origin: Vec3, normal: Vec3, direction: Vec3) => FrameAxes | "normal" | "direction";
-    declare const WORLD_AXES: FrameAxes;
-    declare const vectorToWorld: (axes: FrameAxes, vector: Vec3) => Vec3;
-    declare const pointToWorld: (axes: FrameAxes, point: Vec3) => Vec3;
-    declare const vectorToLocal: (axes: FrameAxes, vector: Vec3) => Vec3;
-    declare const pointToLocal: (axes: FrameAxes, point: Vec3) => Vec3;
-    declare const composeAxes: (parent: FrameAxes, child: FrameAxes) => FrameAxes;
-    declare const relativeAxes: (parent: FrameAxes, child: FrameAxes) => FrameAxes;
-    declare const axesToMatrix: (axes: FrameAxes) => Inputs.Base.TransformMatrix;
-    interface ThreePointArc {
-        readonly center: Inputs.Base.Point3;
-        readonly x: Inputs.Base.Vector3;
-        readonly y: Inputs.Base.Vector3;
-        readonly radius: number;
-        readonly sweep: number;
-    }
-    interface CreasedMesh {
-        readonly positions: Float32Array;
-        readonly normals: Float32Array;
-        readonly indices: Uint32Array;
-    }
-    interface MeshArrays {
-        readonly positions: number[];
-        readonly indices: number[];
-    }
-    interface HuffmanTable {
-        readonly entries: Int32Array;
-        readonly bits: number;
-    }
-    interface ZipEntry {
-        readonly name: string;
-        readonly method: number;
-        readonly crc32: number;
-        readonly compressedSize: number;
-        readonly size: number;
-        readonly localOffset: number;
-        readonly encrypted: boolean;
-    }
-    interface RefinedSurfaceMesh {
-        readonly positions: Inputs.Base.Point3[];
-        readonly triangles: number[];
-    }
+    declare const GLB_MAGIC = 1179937895;
+    declare const GLB_VERSION = 2;
+    declare const GLB_HEADER_SIZE = 12;
+    declare const GLB_VERSION_AT = 4;
+    declare const GLB_LENGTH_AT = 8;
+    declare const GLB_CHUNK_TYPE_AT = 4;
+    declare const GLB_CHUNK_HEADER_SIZE = 8;
+    declare const GLB_JSON_CHUNK = 1313821514;
+    declare const GLB_ALIGNMENT = 4;
+    declare const GLB_JSON_PADDING = 32;
+    declare const GLB_SCALE_NODE_NAME = "unit scale";
+    declare function glbWithRootScale(glb: Uint8Array, scale: number): Uint8Array;
+    declare const GZIP_MAGIC_FIRST = 31;
+    declare const GZIP_MAGIC_SECOND = 139;
+    declare const GZIP_DEFLATE_METHOD = 8;
+    declare const GZIP_HEADER_SIZE = 10;
+    declare const GZIP_TRAILER_SIZE = 8;
+    declare const GZIP_FLAGS_AT = 3;
+    declare const GZIP_METHOD_AT = 2;
+    declare const GZIP_HEADER_CRC_FLAG = 2;
+    declare const GZIP_EXTRA_FLAG = 4;
+    declare const GZIP_NAME_FLAG = 8;
+    declare const GZIP_COMMENT_FLAG = 16;
+    declare function isGzip(bytes: Uint8Array): boolean;
+    declare function gunzipped(bytes: Uint8Array): Uint8Array;
     declare const MAX_CODE_BITS = 15;
     declare const SYMBOL_SHIFT = 4;
     declare const LENGTH_MASK = 15;
@@ -59003,6 +67195,7 @@ declare namespace Bit {
     declare const REPEAT_ZERO_LONG_BITS = 7;
     declare const REPEAT_ZERO_LONG_BASE = 11;
     declare const INITIAL_OUTPUT: number;
+    declare const MOST_DEFLATE_RATIO = 1032;
     declare const CODE_LENGTH_ORDER: Uint8Array<ArrayBuffer>;
     declare const LENGTH_BASE: Uint16Array<ArrayBuffer>;
     declare const LENGTH_EXTRA: Uint8Array<ArrayBuffer>;
@@ -59011,109 +67204,6 @@ declare namespace Bit {
     declare const STORED_LENGTH_BYTES = 2;
     declare function huffmanTable(lengths: ArrayLike<number>): HuffmanTable;
     declare function inflateRaw(data: Uint8Array, expectedSize?: number): Uint8Array;
-    declare const RIGID_TOLERANCE = 1e-7;
-    declare const LINEAR_COLUMN_STARTS: readonly [
-        0,
-        4,
-        8
-    ];
-    type Vec3 = Inputs.Base.Vector3;
-    /** Whether a value is one column-major 4 x 4 matrix: sixteen finite numbers. */
-    declare const isTransformMatrix: (value: unknown) => value is Inputs.Base.TransformMatrix;
-    /** The product of two column-major 4 x 4 matrices: `first` applied, then `second`. */
-    declare const followedBy: (first: readonly number[], second: readonly number[]) => Inputs.Base.TransformMatrix;
-    /** The determinant of a column-major 4 x 4 matrix's rotation and scale part: negative when it mirrors, near zero when it flattens. */
-    declare const linearDeterminant: (matrix: readonly number[]) => number;
-    /**
-     * Whether a column-major 4 x 4 matrix only turns and moves: its rotation and scale part has columns
-     * of length 1 and at right angles, within `tolerance` on their squared lengths and dot products, and
-     * keeps its handedness.
-     */
-    declare const isRigidMatrix: (matrix: readonly number[], tolerance?: number) => boolean;
-    /** One column-major 4 x 4 matrix that applies a list of them first to last; the identity for an empty list. */
-    declare const composed: (matrices: readonly (readonly number[])[]) => Inputs.Base.TransformMatrix;
-    /**
-     * The eigenvalues of a symmetric 3 x 3 matrix, largest first, each with its unit eigenvector, by
-     * cyclic Jacobi rotations; the vectors come out at right angles to each other.
-     */
-    declare const symmetricEigen: (matrix: readonly (readonly number[])[]) => {
-        value: number;
-        vector: Vec3;
-    }[];
-    declare const signedVolumeOf: (positions: ArrayLike<number>, indices: ArrayLike<number>, start?: number, end?: number) => number;
-    /**
-     * Compute smooth vertex normals for a mesh that arrives without them.
-     * Accumulates each triangle's cross product onto its three vertices, then normalizes, so a vertex
-     * shared by several triangles ends up with their average and the mesh shades smoothly.
-     * @param positions - Flat array of vertex positions [x,y,z,x,y,z,...]
-     * @param indices - Triangle indices
-     * @returns Flat array of normals [nx,ny,nz,nx,ny,nz,...]
-     */
-    declare function computeVertexNormals(positions: number[], indices: number[]): number[];
-    declare const creasedMesh: (positions: ArrayLike<number>, indices: ArrayLike<number>, minSharpAngle: number) => CreasedMesh;
-    declare const ICOSAHEDRON_POINTS: [
-        number,
-        number,
-        number
-    ][];
-    declare const ICOSAHEDRON_FACES: [
-        number,
-        number,
-        number
-    ][];
-    declare const icosphere: (detail: number) => MeshArrays;
-    declare const frustum: (sides: number, bottomRadius: number, topRadius: number, height: number) => MeshArrays;
-    type Point3 = Inputs.Base.Point3;
-    declare const expandedKnots: (knots: readonly number[], multiplicities: readonly number[]) => number[];
-    declare const knotDomain: (degree: number, knots: readonly number[]) => [
-        number,
-        number
-    ];
-    declare const nurbsCurvePoint: (degree: number, points: readonly Point3[], weights: readonly number[] | undefined, knots: readonly number[], t: number) => Point3;
-    declare const nurbsSurfacePoint: (degrees: readonly [
-        number,
-        number
-    ], net: readonly (readonly Point3[])[], weights: readonly (readonly number[])[] | undefined, knots: readonly [
-        readonly number[],
-        readonly number[]
-    ], u: number, v: number) => Point3;
-    type Vec3 = Inputs.Base.Vector3;
-    type Point3 = Inputs.Base.Point3;
-    declare const pathTangents: (points: readonly Point3[], start?: Vec3, end?: Vec3) => Vec3[];
-    declare const transportedAxes: (points: readonly Point3[], tangents: readonly Vec3[], first: Vec3) => Vec3[];
-    declare const sweepMatrices: (points: readonly Point3[], tangents: readonly Vec3[], xAxes: readonly Vec3[]) => Inputs.Base.TransformMatrix[];
-    declare const roundedPath3: (points: readonly Point3[], radius: number, segmentsFor: (sweep: number) => number) => Point3[];
-    type Point2 = Inputs.Base.Point2;
-    declare const signedArea2: (points: readonly Point2[]) => number;
-    declare const wound2: (points: readonly Point2[], counterClockwise: boolean) => Point2[];
-    declare const isInsidePolygon2: (point: Point2, outline: readonly Point2[]) => boolean;
-    declare const perimeter2: (points: readonly Point2[]) => number;
-    declare const roundedCorners2: (points: readonly Point2[], radii: readonly number[], segmentsFor: (sweep: number) => number) => Point2[];
-    type Point2 = Inputs.Base.Point2;
-    type Point3 = Inputs.Base.Point3;
-    declare const refinedSurfaceMesh: (uv: readonly Point2[], positions: readonly Point3[], loops: readonly (readonly number[])[], pointAt: (u: number, v: number) => Point3) => RefinedSurfaceMesh;
-    declare function newellNormal(positions: ArrayLike<number>, loop: readonly number[]): [
-        number,
-        number,
-        number
-    ];
-    declare function triangulateFace(positions: ArrayLike<number>, loops: readonly (readonly number[])[]): number[];
-    type Vec2 = Inputs.Base.Vector2;
-    type Vec3 = Inputs.Base.Vector3;
-    declare const add2: (a: Vec2, b: Vec2) => Vec2;
-    declare const subtract2: (a: Vec2, b: Vec2) => Vec2;
-    declare const scale2: (a: Vec2, factor: number) => Vec2;
-    declare const dot2: (a: Vec2, b: Vec2) => number;
-    declare const cross2: (a: Vec2, b: Vec2) => number;
-    declare const length2: (a: Vec2) => number;
-    declare const leftOf2: (a: Vec2) => Vec2;
-    declare const unit2Of: (a: Vec2) => Vec2 | undefined;
-    declare const add3: (a: Vec3, b: Vec3) => Vec3;
-    declare const subtract3: (a: Vec3, b: Vec3) => Vec3;
-    declare const scale3: (a: Vec3, factor: number) => Vec3;
-    declare const dot3: (a: Vec3, b: Vec3) => number;
-    declare const cross3: (a: Vec3, b: Vec3) => Vec3;
-    declare const length3: (a: Vec3) => number;
     declare const CRC32_POLYNOMIAL = 3988292384;
     declare const CRC32_ALL_ONES = 4294967295;
     declare const BYTE_MASK = 255;
@@ -59151,6 +67241,319 @@ declare namespace Bit {
     declare function isZip(bytes: Uint8Array): boolean;
     declare function zipEntries(bytes: Uint8Array): ZipEntry[];
     declare function zipEntryData(bytes: Uint8Array, entry: ZipEntry): Uint8Array;
+    type Point2 = Inputs.Base.Point2;
+    type Point3 = Inputs.Base.Point3;
+    declare const arcThroughThreePoints: (start: Point3, middle: Point3, end: Point3) => ThreePointArc | undefined;
+    declare const pointsOnArc: (arc: ThreePointArc, start: Point3, end: Point3, segments: number) => Point3[];
+    declare const pointOnCubic2: (from: Point2, control1: Point2, control2: Point2, to: Point2, t: number) => Point2;
+    declare const pointOnCubic3: (from: Point3, control1: Point3, control2: Point3, to: Point3, t: number) => Point3;
+    type Vec3 = Inputs.Base.Vector3;
+    /**
+     * The sine below which two directions count as parallel wherever a frame is squared: a direction
+     * closer than this to its normal leaves the X axis to rounding.
+     */
+    declare const PARALLEL_SINE = 1e-9;
+    /**
+     * A frame as the four vectors the maths reads: the origin and three unit axes at right angles,
+     * with `y` the cross product of `z` and `x`.
+     */
+    interface FrameAxes {
+        readonly origin: Vec3;
+        readonly x: Vec3;
+        readonly y: Vec3;
+        readonly z: Vec3;
+    }
+    /** Whether a value is three finite numbers. */
+    declare const isTriple: (value: unknown) => value is Vec3;
+    /** Whether a value has the shape of a frame: an `origin`, a `normal` and a `direction`, three finite numbers each. */
+    declare const isFrameShaped: (value: unknown) => value is Inputs.Base.Frame;
+    declare const unitOf: (vector: Vec3) => Vec3 | undefined;
+    /**
+     * The axes of an origin, a normal and a rough X direction: the normal scaled to length 1 and the
+     * direction turned square to it. Gives the name of the part that cannot be squared instead: a
+     * normal of no length, or a direction of no length or within `PARALLEL_SINE` of the normal.
+     *
+     * The direction is projected twice: a direction close to the normal loses most of its digits to
+     * the first subtraction, and the second takes out what rounding left along the normal.
+     */
+    declare const squareFrame: (origin: Vec3, normal: Vec3, direction: Vec3) => FrameAxes | "normal" | "direction";
+    /**
+     * The axes of an origin and a normal alone: X is the world axis least aligned with the normal,
+     * squared to it, so the choice never comes close to parallel. Axes within a billionth of the least
+     * aligned count as tied and the first of them, in X, Y, Z order, is taken, so rounding noise in the
+     * normal cannot turn the frame. Gives undefined for a normal of no length.
+     */
+    declare const axesAlong: (origin: Vec3, normal: Vec3) => FrameAxes | undefined;
+    declare const WORLD_AXES: FrameAxes;
+    declare const vectorToWorld: (axes: FrameAxes, vector: Vec3) => Vec3;
+    declare const pointToWorld: (axes: FrameAxes, point: Vec3) => Vec3;
+    declare const vectorToLocal: (axes: FrameAxes, vector: Vec3) => Vec3;
+    declare const pointToLocal: (axes: FrameAxes, point: Vec3) => Vec3;
+    declare const composeAxes: (parent: FrameAxes, child: FrameAxes) => FrameAxes;
+    declare const relativeAxes: (parent: FrameAxes, child: FrameAxes) => FrameAxes;
+    declare const axesToMatrix: (axes: FrameAxes) => Inputs.Base.TransformMatrix;
+    declare const MILLIMETRES_PER_UNIT: Readonly<Record<UnitOfLength, number>>;
+    declare const CONVERTED_PLACES = 9;
+    declare const TABLE_PLACES: Readonly<Record<UnitOfLength, number>>;
+    declare const checkedUnitOfLength: (unit: unknown, property: string) => UnitOfLength;
+    declare const millimetresPerUnitOf: (unit: UnitOfLength) => number;
+    declare const lengthConverted: (value: number, from: UnitOfLength, to: UnitOfLength) => number;
+    declare const snappedLength: (value: number, from: UnitOfLength, to: UnitOfLength) => number;
+    declare const tableLength: (value: number, from: UnitOfLength, table: UnitOfLength) => number;
+    declare function lengthsConverted<T extends Readonly<Record<K, number>>, K extends keyof T>(record: T, fields: readonly K[], from: UnitOfLength, to: UnitOfLength): T;
+    declare const RIGID_TOLERANCE = 1e-7;
+    declare const LINEAR_COLUMN_STARTS: readonly [
+        0,
+        4,
+        8
+    ];
+    declare const MATRIX_COLUMN = 4;
+    declare const TRANSLATION_START = 12;
+    declare const W_AXIS = 3;
+    declare const POSITION_SIZE = 3;
+    declare const IDENTITY_MATRIX: Inputs.Base.TransformMatrix;
+    type Vec3 = Inputs.Base.Vector3;
+    declare const isTransformMatrix: (value: unknown) => value is Inputs.Base.TransformMatrix;
+    declare const movedCoordinate: (matrix: readonly number[], x: number, y: number, z: number, axis: number) => number;
+    declare const movedPoint: (matrix: readonly number[], point: readonly number[]) => Inputs.Base.Point3;
+    declare const turnedVector: (matrix: readonly number[], vector: readonly number[]) => Inputs.Base.Vector3;
+    declare const movedPositions: (matrix: readonly number[], positions: ArrayLike<number>) => Float64Array;
+    declare const followedBy: (first: readonly number[], second: readonly number[]) => Inputs.Base.TransformMatrix;
+    declare const rigidInverse: (matrix: readonly number[]) => Inputs.Base.TransformMatrix;
+    declare const linearDeterminant: (matrix: readonly number[]) => number;
+    declare const isRigidMatrix: (matrix: readonly number[], tolerance?: number) => boolean;
+    declare const composed: (matrices: readonly (readonly number[])[]) => Inputs.Base.TransformMatrix;
+    declare const symmetricEigen: (matrix: readonly (readonly number[])[]) => {
+        value: number;
+        vector: Vec3;
+    }[];
+    type Vec3 = Inputs.Base.Vector3;
+    type Point3 = Inputs.Base.Point3;
+    declare const pathLength3: (points: readonly Point3[]) => number;
+    declare const pathTangents: (points: readonly Point3[], start?: Vec3, end?: Vec3) => Vec3[];
+    declare const transportedAxes: (points: readonly Point3[], tangents: readonly Vec3[], first: Vec3) => Vec3[];
+    declare const sweepMatrices: (points: readonly Point3[], tangents: readonly Vec3[], xAxes: readonly Vec3[]) => Inputs.Base.TransformMatrix[];
+    declare const roundedPath3: (points: readonly Point3[], radius: number, segmentsFor: (sweep: number) => number) => Point3[];
+    type Point2 = Inputs.Base.Point2;
+    declare const signedArea2: (points: readonly Point2[]) => number;
+    declare const wound2: (points: readonly Point2[], counterClockwise: boolean) => Point2[];
+    declare const isInsidePolygon2: (point: Point2, outline: readonly Point2[]) => boolean;
+    declare const perimeter2: (points: readonly Point2[]) => number;
+    declare const roundedCorners2: (points: readonly Point2[], radii: readonly number[], segmentsFor: (sweep: number) => number) => Point2[];
+    declare const smoothstep: (value: number) => number;
+    declare const roundedTo: (value: number, places: number) => number;
+    declare const roundedToMillionths: (value: number) => number;
+    declare const fractionOf: (value: number) => number;
+    declare const radiansOf: (degrees: number) => number;
+    declare const degreesOf: (radians: number) => number;
+    declare const angleOfCosine: (cosine: number) => number;
+    declare const interpolated: (start: number, end: number, share: number) => number;
+    declare function fractionText(value: number, denominator: number): string;
+    declare function newellNormal(positions: ArrayLike<number>, loop: readonly number[]): [
+        number,
+        number,
+        number
+    ];
+    declare function triangulateFace(positions: ArrayLike<number>, loops: readonly (readonly number[])[]): number[];
+    /**
+     * Keeps the first of every group of vectors that agree within `tolerance` in each component, and
+     * says for every vector given which kept one it matched: the first in order, as a plain scan finds.
+     * Kept vectors are filed in a grid of cells a few tolerances wide, so a vector is compared only with
+     * those in the cells it could match. The grid only narrows the candidates; every one is still
+     * compared component by component. A vector the grid cannot place (a component not finite, a
+     * tolerance that is not positive and finite, a magnitude where the cell arithmetic stops being exact)
+     * is compared with every kept vector instead, and kept ones of that kind are held apart, where the
+     * grid path looks too.
+     */
+    declare const uniqueVectors: (vectors: readonly number[][], tolerance: number) => UniqueVectors;
+    type Vec2 = Inputs.Base.Vector2;
+    type Vec3 = Inputs.Base.Vector3;
+    declare const add2: (a: Vec2, b: Vec2) => Vec2;
+    declare const subtract2: (a: Vec2, b: Vec2) => Vec2;
+    declare const scale2: (a: Vec2, factor: number) => Vec2;
+    declare const dot2: (a: Vec2, b: Vec2) => number;
+    declare const cross2: (a: Vec2, b: Vec2) => number;
+    declare const length2: (a: Vec2) => number;
+    declare const distance2: (a: Vec2, b: Vec2) => number;
+    declare const leftOf2: (a: Vec2) => Vec2;
+    declare const between2: (a: Vec2, b: Vec2, share: number) => Vec2;
+    declare const polar2: (radius: number, angle: number) => Vec2;
+    declare const rotated2: (a: Vec2, angle: number) => Vec2;
+    declare const unit2Of: (a: Vec2) => Vec2 | undefined;
+    declare const unitVectorOf: (vector: readonly number[]) => number[] | undefined;
+    declare const add3: (a: Vec3, b: Vec3) => Vec3;
+    declare const subtract3: (a: Vec3, b: Vec3) => Vec3;
+    declare const scale3: (a: Vec3, factor: number) => Vec3;
+    declare const dot3: (a: Vec3, b: Vec3) => number;
+    declare const cross3: (a: Vec3, b: Vec3) => Vec3;
+    declare const length3: (a: Vec3) => number;
+    declare const between3: (a: Vec3, b: Vec3, share: number) => Vec3;
+    declare const distance3: (a: Vec3, b: Vec3) => number;
+    interface ThreePointArc {
+        readonly center: Inputs.Base.Point3;
+        readonly x: Inputs.Base.Vector3;
+        readonly y: Inputs.Base.Vector3;
+        readonly radius: number;
+        readonly sweep: number;
+    }
+    interface CreasedMesh {
+        readonly positions: Float32Array;
+        readonly normals: Float32Array;
+        readonly indices: Uint32Array;
+    }
+    interface MeshArrays {
+        readonly positions: number[];
+        readonly indices: number[];
+    }
+    interface HuffmanTable {
+        readonly entries: Int32Array;
+        readonly bits: number;
+    }
+    interface ZipEntry {
+        readonly name: string;
+        readonly method: number;
+        readonly crc32: number;
+        readonly compressedSize: number;
+        readonly size: number;
+        readonly localOffset: number;
+        readonly encrypted: boolean;
+    }
+    interface RefinedSurfaceMesh {
+        readonly positions: Inputs.Base.Point3[];
+        readonly triangles: number[];
+    }
+    interface WindingComponents {
+        readonly flips: Uint8Array;
+        readonly component: Int32Array;
+        readonly count: number;
+    }
+    interface EdgeUses {
+        readonly uses: Map<number, number[]>;
+        readonly stride: number;
+    }
+    interface TriangleTree {
+        readonly corners: Float64Array;
+        readonly boxes: Float64Array;
+        readonly starts: Uint32Array;
+        readonly counts: Uint32Array;
+        readonly lefts: Int32Array;
+        readonly rights: Int32Array;
+    }
+    interface TreeBox {
+        readonly min: Inputs.Base.Point3;
+        readonly max: Inputs.Base.Point3;
+    }
+    interface VectorCellRange {
+        readonly center: number[];
+        readonly lowest: number[];
+        readonly highest: number[];
+    }
+    interface UniqueVectors {
+        readonly kept: number[][];
+        readonly indexes: number[];
+    }
+    interface CreasedVertices {
+        readonly sources: Uint32Array;
+        readonly normals: Float64Array;
+        readonly indices: Uint32Array;
+    }
+    interface RoundedCorner {
+        readonly corner: Inputs.Base.Point2;
+        readonly radius: number;
+        readonly toPrevious: Inputs.Base.Vector2;
+        readonly toNext: Inputs.Base.Vector2;
+        readonly half: number;
+        readonly reach: number;
+    }
+    interface GltfNode {
+        readonly name?: string;
+        readonly scale?: readonly number[];
+        readonly children?: readonly number[];
+    }
+    interface GltfScene {
+        readonly nodes?: readonly number[];
+    }
+    interface GltfJson {
+        readonly scene?: number;
+        readonly scenes?: readonly GltfScene[];
+        readonly nodes?: readonly GltfNode[];
+    }
+    type UnitOfLength = `${Inputs.Base.unitOfLengthEnum}`;
+    declare const signedVolumeOf: (positions: ArrayLike<number>, indices: ArrayLike<number>, start?: number, end?: number) => number;
+    /**
+     * Smooth normals for a mesh that arrives without them: each point takes the sum of the normals of
+     * the triangles around it, each as long as twice its triangle's area, scaled to length 1, so a large
+     * triangle counts for more than a sliver and the mesh shades smoothly. A point that no triangle with
+     * an area touches keeps a normal of zero.
+     * @param positions - Flat array of vertex positions [x,y,z,x,y,z,...]
+     * @param indices - Triangle indices
+     * @returns Flat array of normals [nx,ny,nz,nx,ny,nz,...]
+     */
+    declare function computeVertexNormals(positions: ArrayLike<number>, indices: ArrayLike<number>): number[];
+    /**
+     * Normals that keep sharp edges sharp: around each point, a triangle's corner takes the
+     * area-weighted sum of the normals of the triangles around that point that turn from it by less than
+     * `minSharpAngle` degrees. Where corners of one point end up with different normals the point is
+     * split, so a cube keeps hard edges while a cylinder's side stays smooth. Gives, for each point made,
+     * the point it was made from, its normal, and the triangles over the points made; points no
+     * triangle uses are left out.
+     */
+    declare const creasedVertices: (positions: ArrayLike<number>, indices: ArrayLike<number>, minSharpAngle: number) => CreasedVertices;
+    declare const creasedMesh: (positions: ArrayLike<number>, indices: ArrayLike<number>, minSharpAngle: number) => CreasedMesh;
+    /**
+     * Finds which triangles of a mesh to turn over so that every edge two triangles share is run one way
+     * by one and the other way by the other, and which connected piece each triangle belongs to. The
+     * first triangle of each piece keeps its winding; an edge shared by more than two triangles is not
+     * followed.
+     * @param indices - Triangle corners, three per triangle
+     * @param start - The first index of the range to read
+     * @param end - The index after the range to read
+     * @returns For each triangle of the range, whether to turn it over and its piece, and how many pieces there are
+     */
+    declare function windingComponents(indices: ArrayLike<number>, start?: number, end?: number): WindingComponents;
+    /**
+     * Finds which triangles of a mesh wind against the rest of their connected piece and should be
+     * turned over: within each piece, the winding most of its area already has is kept, so a few faces
+     * written inside out are mended while a piece wound inward on purpose, such as the inside of a
+     * hollow profile, stays as it is.
+     * @param positions - Flat `x, y, z` triples
+     * @param indices - Triangle corners, three per triangle
+     * @param start - The first index of the range to read
+     * @param end - The index after the range to read
+     * @returns For each triangle of the range, 1 where it should be turned over
+     */
+    declare function windingRepairs(positions: ArrayLike<number>, indices: ArrayLike<number>, start?: number, end?: number): Uint8Array;
+    declare const ICOSAHEDRON_POINTS: [
+        number,
+        number,
+        number
+    ][];
+    declare const ICOSAHEDRON_FACES: [
+        number,
+        number,
+        number
+    ][];
+    declare const icosphere: (detail: number) => MeshArrays;
+    declare const frustum: (sides: number, bottomRadius: number, topRadius: number, height: number) => MeshArrays;
+    declare const LEAF_TRIANGLES = 8;
+    declare const RAY_DIRECTIONS: readonly (readonly [
+        number,
+        number,
+        number
+    ])[];
+    declare const PARALLEL = 1e-12;
+    declare const POINT_SHARE = 1e-12;
+    declare const FLAT_SHARE = 1e-28;
+    declare const WELD_SHARE = 1e-9;
+    declare const PRUNE_SLACK: number;
+    type Vec = Inputs.Base.Point3;
+    declare function triangleTree(positions: ArrayLike<number>, indices: ArrayLike<number>): TriangleTree;
+    declare function treesWithin(first: TriangleTree, second: TriangleTree, limit: number): boolean;
+    declare function pointInTree(tree: TriangleTree, point: Vec): boolean;
+    declare function pointOnTree(tree: TriangleTree): Vec | undefined;
+    declare function treesNested(first: TriangleTree, second: TriangleTree): boolean;
+    declare function pointsOnTree(tree: TriangleTree, most: number): Vec[];
+    declare function treeBox(tree: TriangleTree): TreeBox | undefined;
     /**
      * Reading and writing files: exporting geometry to the supported formats, importing it back, and
      * the download and upload helpers that move files between the browser and the user's machine.
@@ -60634,6 +69037,53 @@ declare namespace Bit {
          */
         radToDeg(inputs: Inputs.Math.NumberDto): number;
         /**
+         * Converts a length from one unit to another.
+         *
+         * The factors are exact: an inch is 25.4 millimetres. A length in its own unit comes back
+         * unchanged. Example: 1 inch -> 25.4 millimetres, 250 millimetres -> 0.25 metres.
+         * @param inputs - The length and the units it is converted from and to
+         * @returns The length in `to`
+         * @group basics
+         * @shortname convert length
+         * @drawable false
+         * @example
+         * ```typescript
+         * const millimetres = bitbybit.math.convertLength({ value: 0.25, from: Bit.Inputs.Base.unitOfLengthEnum.inch, to: Bit.Inputs.Base.unitOfLengthEnum.millimetre });
+         * ```
+         */
+        convertLength(inputs: Inputs.Math.ConvertLengthDto): number;
+        /**
+         * Gives how many millimetres one of a unit of length holds.
+         *
+         * Example: inch -> 25.4, centimetre -> 10, metre -> 1000.
+         * @param inputs - The unit
+         * @returns Millimetres in one of the unit
+         * @group basics
+         * @shortname millimetres per unit
+         * @drawable false
+         * @example
+         * ```typescript
+         * const perInch = bitbybit.math.millimetresPerUnit({ unit: Bit.Inputs.Base.unitOfLengthEnum.inch });
+         * ```
+         */
+        millimetresPerUnit(inputs: Inputs.Math.UnitOfLengthDto): number;
+        /**
+         * Writes a number as a whole number and a reduced fraction, rounded to the nearest
+         * `1/denominator`, as inch sizes are written.
+         *
+         * Example: 1.25 with denominator 64 -> "1-1/4", 0.375 -> "3/8", 2 -> "2", -0.5 -> "-1/2".
+         * @param inputs - The number and the finest fraction to round to
+         * @returns The number as text
+         * @group basics
+         * @shortname to fraction text
+         * @drawable false
+         * @example
+         * ```typescript
+         * const size = bitbybit.math.toFractionText({ number: 0.4375, denominator: 64 });
+         * ```
+         */
+        toFractionText(inputs: Inputs.Math.FractionTextDto): string;
+        /**
          * Maps a value from 0 to 1 onto the range `min` to `max` along an easing curve, so the result
          * speeds up or slows down instead of changing evenly.
          *
@@ -60834,8 +69284,10 @@ declare namespace Bit {
     /**
      * Geometry on plain triangle meshes: a mesh is a list of triangles, each three points. The methods
      * here work out the plane of a triangle, the distance from a point to a plane, and where two meshes
-     * cut through each other, as segments, as polylines or as point lists. They need no CAD kernel, so
-     * they run on any triangulated data.
+     * cut through each other, as segments, as polylines or as point lists, measure the volume a closed
+     * mesh holds, and build simple meshes (an icosphere, a frustum). Indexed meshes, which store each
+     * point once, convert to and from triangle lists and take smooth or creased normals and consistent
+     * winding. They need no CAD kernel, so they run on any triangulated data.
      */
     declare class MeshBitByBit {
         private readonly vector;
@@ -60982,6 +69434,176 @@ declare namespace Bit {
          * ```
          */
         signedVolume(inputs: Inputs.Mesh.MeshDto): number;
+        /**
+         * Tells whether two triangle meshes come within a distance of each other, touching and
+         * crossing included, as a quick collision test.
+         *
+         * It stops at the first triangles close enough; a mesh, or any separate piece of one, wholly
+         * inside a closed one counts too.
+         * Example: two unit cubes half a unit apart, distance 0.6 -> true; distance 0.4 -> false
+         * @param inputs - The two meshes and the distance
+         * @returns True when the meshes come within the distance
+         * @group measure
+         * @shortname meshes within
+         * @drawable false
+         * @example
+         * ```typescript
+         * const close = bitbybit.mesh.meshesWithin({ mesh1: bracket, mesh2: bolt, distance: 0.5 });
+         * ```
+         */
+        meshesWithin(inputs: Inputs.Mesh.MeshesWithinDto): boolean;
+        /**
+         * Tells whether a point lies inside a closed triangle mesh.
+         *
+         * Rays from the point in three directions count the triangles they cross; an odd count for
+         * most of them means inside. A mesh that is not closed has no inside, and the answer means
+         * nothing. Example: [0.5, 0.5, 0.5] in a unit cube -> true
+         * @param inputs - The closed mesh and the point
+         * @returns True when the point is inside the mesh
+         * @group measure
+         * @shortname is point inside
+         * @drawable false
+         * @example
+         * ```typescript
+         * const inside = bitbybit.mesh.isPointInside({ mesh: housing, point: [0, 0, 5] });
+         * ```
+         */
+        isPointInside(inputs: Inputs.Mesh.MeshPointDto): boolean;
+        /**
+         * Makes a sphere as an evenly triangulated mesh, the icosahedron split `detail` times.
+         *
+         * Its triangles are close to equal in size everywhere, unlike a sphere made of latitude and
+         * longitude bands, and each faces outward. Each level of detail has four times the triangles.
+         * Example: detail 0 -> 20 triangles, detail 2 -> 320
+         * @param inputs - The center, the radius and the detail
+         * @returns The sphere's triangles
+         * @group primitives
+         * @shortname icosphere
+         * @drawable true
+         * @example
+         * ```typescript
+         * const sphere = bitbybit.mesh.icosphere({ center: [0, 0, 0], radius: 5, detail: 3 });
+         * ```
+         */
+        icosphere(inputs: Inputs.Mesh.IcosphereDto): Inputs.Base.Mesh3;
+        /**
+         * Makes a cone, a cylinder or a cone with its tip cut off, as a closed triangulated mesh.
+         *
+         * It stands on `center` and rises along `direction` by `height`, with flat ends and `sides`
+         * flat faces around. Equal radii make a cylinder.
+         * Example: top radius 0, height 2 -> a cone 2 units tall
+         * @param inputs - The bottom center, the direction, the radii, the height and the sides
+         * @returns The shape's triangles
+         * @group primitives
+         * @shortname frustum
+         * @drawable true
+         * @example
+         * ```typescript
+         * const cone = bitbybit.mesh.frustum({ center: [0, 0, 0], bottomRadius: 2, topRadius: 0, height: 4, sides: 32 });
+         * ```
+         */
+        frustum(inputs: Inputs.Mesh.FrustumDto): Inputs.Base.Mesh3;
+        /**
+         * Turns a list of triangles into an indexed mesh, which stores each point once.
+         *
+         * Corners that agree within `tolerance` in every coordinate become one point, kept where it first
+         * appears, so triangles that meet share their corners and the mesh knows its neighbours.
+         * Example: two triangles that share an edge -> 4 points and 6 indices
+         * @param inputs - The triangles and the tolerance
+         * @returns The indexed mesh
+         * @group indexed
+         * @shortname to indexed
+         * @drawable false
+         * @example
+         * ```typescript
+         * const indexed = bitbybit.mesh.toIndexed({ mesh: bitbybit.mesh.icosphere({ radius: 1, detail: 1 }) });
+         * ```
+         */
+        toIndexed(inputs: Inputs.Mesh.MeshToIndexedDto): Inputs.Base.IndexedMesh;
+        /**
+         * Turns an indexed mesh back into a list of triangles, each written out as its three points.
+         *
+         * Normals the mesh carries are left out, since a triangle list has no place for them.
+         * Example: 4 points and indices [0, 1, 2, 1, 3, 2] -> 2 triangles
+         * @param inputs - The indexed mesh
+         * @returns The triangles
+         * @group indexed
+         * @shortname from indexed
+         * @drawable true
+         * @example
+         * ```typescript
+         * const triangles = bitbybit.mesh.fromIndexed({ mesh: { positions: [0, 0, 0, 1, 0, 0, 0, 1, 0], indices: [0, 1, 2] } });
+         * ```
+         */
+        fromIndexed(inputs: Inputs.Mesh.IndexedMeshDto): Inputs.Base.Mesh3;
+        /**
+         * Gives an indexed mesh smooth normals, one per point, so it shades without visible facets.
+         *
+         * Each point's normal sums those of the triangles around it, a large triangle counting for more
+         * than a sliver. The points and triangles stay as they are.
+         * Example: a welded cube -> 2 corner normals on diagonals, 6 tipped 19.47 degrees
+         * @param inputs - The indexed mesh
+         * @returns The mesh with `normals` filled in
+         * @group indexed
+         * @shortname smooth normals
+         * @drawable false
+         * @example
+         * ```typescript
+         * const smooth = bitbybit.mesh.smoothNormals({ mesh: bitbybit.mesh.toIndexed({ mesh: bitbybit.mesh.icosphere({ radius: 1, detail: 2 }) }) });
+         * ```
+         */
+        smoothNormals(inputs: Inputs.Mesh.IndexedMeshDto): Inputs.Base.IndexedMesh;
+        /**
+         * Gives an indexed mesh normals that keep its sharp edges sharp and smooth the rest.
+         *
+         * Where triangles turn from each other by more than `angle`, the point between them is split,
+         * one copy per side, so a cube keeps hard edges while a cylinder's side shades smoothly.
+         * Example: a welded cube, angle 30 -> 24 points, 4 per face
+         * @param inputs - The indexed mesh and the angle of its sharp edges
+         * @returns The mesh with its points split at sharp edges and `normals` filled in
+         * @group indexed
+         * @shortname creased normals
+         * @drawable false
+         * @example
+         * ```typescript
+         * const shaded = bitbybit.mesh.creasedNormals({ mesh: indexed, angle: 30 });
+         * ```
+         */
+        creasedNormals(inputs: Inputs.Mesh.CreasedNormalsDto): Inputs.Base.IndexedMesh;
+        /**
+         * Splits an indexed mesh into its connected pieces and finds the triangles that wind against
+         * the first triangle of their piece.
+         *
+         * Triangles that share an edge belong to one piece; an edge more than two share is not followed.
+         * Example: two separate triangles -> count 2, nothing to turn over
+         * @param inputs - The indexed mesh
+         * @returns Per triangle, whether to turn it over and its piece, and the number of pieces
+         * @group indexed
+         * @shortname winding pieces
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { count, pieces } = bitbybit.mesh.windingPieces({ mesh: indexed });
+         * ```
+         */
+        windingPieces(inputs: Inputs.Mesh.IndexedMeshDto): Inputs.Base.MeshWindingPieces;
+        /**
+         * Turns over the triangles of an indexed mesh that wind against the rest of their piece.
+         *
+         * Each connected piece keeps the winding most of its area has, so a few triangles written inside
+         * out are mended and a piece wound inward on purpose stays.
+         * Example: a cube with one face inside out -> every face outward
+         * @param inputs - The indexed mesh
+         * @returns The mesh with those triangles turned over; normals are left out
+         * @group indexed
+         * @shortname orient consistently
+         * @drawable false
+         * @example
+         * ```typescript
+         * const mended = bitbybit.mesh.orientConsistently({ mesh: indexed });
+         * ```
+         */
+        orientConsistently(inputs: Inputs.Mesh.IndexedMeshDto): Inputs.Base.IndexedMesh;
     }
     /**
      * Points as plain number arrays. A point is `[x, y, z]` with Y pointing up, the same shape as a
@@ -61577,11 +70199,18 @@ declare namespace Bit {
          */
         arcThroughThreePoints(inputs: Inputs.Point.ArcThroughThreePointsDto): Inputs.Base.Point3[];
     }
+    interface SweepPath {
+        readonly points: Inputs.Base.Point3[];
+        readonly tangents: Inputs.Base.Vector3[];
+        readonly axes: Inputs.Base.Vector3[];
+    }
     /**
      * Polylines: chains of straight segments through a list of points, held as plain objects of the
      * form `{ points, isClosed }`. A closed polyline joins its last point back to its first. The
      * methods here measure a polyline, convert it to segments or lines, find where polylines cross,
-     * sort loose segments into chains and size fillets for its corners. Lengths are in model units.
+     * sort loose segments into chains and size fillets for its corners. They also measure, orient and
+     * round 2D outlines, and frame a sweep along a polyline: the frames or matrices that carry a profile
+     * along it without twisting. Lengths are in model units.
      */
     declare class Polyline {
         private readonly vector;
@@ -61845,7 +70474,245 @@ declare namespace Bit {
          * ```
          */
         polygonArea(inputs: Inputs.Polyline.PolylineDto): number;
+        /**
+         * Measures the area of a flat outline, signed by the way it runs.
+         *
+         * The area is positive when the outline runs counter-clockwise and negative when it runs
+         * clockwise, so the sign tells which way an outline turns.
+         * Example: [[0,0], [4,0], [4,4], [0,4]] -> 16; the same corners reversed -> -16
+         * @param inputs - The outline's corners
+         * @returns The signed area in square model units
+         * @group polygon 2d
+         * @shortname signed area 2d
+         * @drawable false
+         * @example
+         * ```typescript
+         * const area = bitbybit.polyline.signedArea2d({ points: [[0, 0], [4, 0], [4, 4], [0, 4]] });
+         * ```
+         */
+        signedArea2d(inputs: Inputs.Polyline.Polygon2Dto): number;
+        /**
+         * Measures the length around a flat outline, its closing side included.
+         *
+         * Example: [[0,0], [3,0], [3,4]] -> 12
+         * @param inputs - The outline's corners
+         * @returns The perimeter in model units
+         * @group polygon 2d
+         * @shortname perimeter 2d
+         * @drawable false
+         * @example
+         * ```typescript
+         * const around = bitbybit.polyline.perimeter2d({ points: [[0, 0], [3, 0], [3, 4]] });
+         * ```
+         */
+        perimeter2d(inputs: Inputs.Polyline.Polygon2Dto): number;
+        /**
+         * Tells whether a point lies inside a flat outline.
+         *
+         * It counts the outline's sides a ray from the point crosses, so it holds for outlines that are
+         * not convex; a point exactly on a side may fall either way.
+         * Example: [2,2] in [[0,0], [4,0], [4,4], [0,4]] -> true
+         * @param inputs - The outline's corners and the point
+         * @returns True when the point is inside
+         * @group polygon 2d
+         * @shortname is point inside 2d
+         * @drawable false
+         * @example
+         * ```typescript
+         * const inside = bitbybit.polyline.isPointInside2d({ points: [[0, 0], [4, 0], [4, 4], [0, 4]], point: [2, 2] });
+         * ```
+         */
+        isPointInside2d(inputs: Inputs.Polyline.PointInPolygon2Dto): boolean;
+        /**
+         * Makes a flat outline run counter-clockwise, or clockwise.
+         *
+         * An outline already running that way comes back as it was; otherwise its corners are reversed.
+         * Example: [[0,0], [0,4], [4,4], [4,0]], counter-clockwise -> [[4,0], [4,4], [0,4], [0,0]]
+         * @param inputs - The outline's corners and the way it should run
+         * @returns The corners, running the asked way
+         * @group polygon 2d
+         * @shortname orient 2d
+         * @drawable false
+         * @example
+         * ```typescript
+         * const ccw = bitbybit.polyline.orient2d({ points: [[0, 0], [0, 4], [4, 4], [4, 0]], counterClockwise: true });
+         * ```
+         */
+        orient2d(inputs: Inputs.Polyline.OrientPolygon2Dto): Inputs.Base.Point2[];
+        /**
+         * Rounds the corners of a flat outline with arcs, drawn as short straight pieces.
+         *
+         * Every corner takes `radius`, or its own entry of `radiusList`; a radius of 0 leaves it sharp.
+         * A radius too large for the sides beside its corner is refused.
+         * Example: a 10 by 10 square, radius 2 -> four quarter arcs at the corners
+         * @param inputs - The outline, the radius or radii and the pieces per quarter turn
+         * @returns The rounded outline's points
+         * @group polygon 2d
+         * @shortname round corners 2d
+         * @drawable false
+         * @example
+         * ```typescript
+         * const rounded = bitbybit.polyline.roundCorners2d({ points: [[0, 0], [10, 0], [10, 10], [0, 10]], radius: 2, segments: 8 });
+         * ```
+         */
+        roundCorners2d(inputs: Inputs.Polyline.RoundPolygon2Dto): Inputs.Base.Point2[];
+        /**
+         * Finds the direction a path heads in at each of its points.
+         *
+         * At an inner point it bisects the segments either side; at the ends it follows the end
+         * segments, unless `startTangent` or `endTangent` is given. Every direction has length 1. A
+         * closed polyline is refused.
+         * Example: [[0,0,0], [1,0,0], [1,1,0]] -> [[1,0,0], [0.707,0.707,0], [0,1,0]]
+         * @param inputs - The path and, optionally, its end directions
+         * @returns One unit direction per point
+         * @group sweep
+         * @shortname tangents
+         * @drawable false
+         * @example
+         * ```typescript
+         * const directions = bitbybit.polyline.tangents({ polyline: { points: [[0, 0, 0], [1, 0, 0], [1, 1, 0]] } });
+         * ```
+         */
+        tangents(inputs: Inputs.Polyline.PolylineTangentsDto): Inputs.Base.Vector3[];
+        /**
+         * Places a frame at each point of a path, facing along it without twisting.
+         *
+         * Each normal is the path's direction there. Each direction, the profile's X axis, turns by the
+         * smallest angle between points, so a swept profile does not spin. `firstDirection` sets it at
+         * the start.
+         * Example: a straight path along X -> frames that differ only in origin
+         * @param inputs - The path and the first X direction
+         * @returns One frame per point
+         * @group sweep
+         * @shortname sweep frames
+         * @drawable true
+         * @example
+         * ```typescript
+         * const frames = bitbybit.polyline.sweepFrames({ polyline: { points: [[0, 0, 0], [0, 0, 5], [5, 0, 10]] }, firstDirection: [1, 0, 0] });
+         * ```
+         */
+        sweepFrames(inputs: Inputs.Polyline.PolylineSweepDto): Inputs.Base.Frame[];
+        /**
+         * Builds a matrix per point of a path that places a flat profile there, for sweeping it.
+         *
+         * Each puts the XY plane on that point's `sweepFrames` frame, Z along the path, and stretches it
+         * across a bend so the pieces either side meet.
+         * Example: a straight path along Z -> matrices that only move up it
+         * @param inputs - The path and the first X direction
+         * @returns One placement matrix per point
+         * @group sweep
+         * @shortname sweep placements
+         * @drawable false
+         * @example
+         * ```typescript
+         * const placements = bitbybit.polyline.sweepPlacements({ polyline: { points: [[0, 0, 0], [0, 0, 5], [5, 0, 10]] } });
+         * const ring = bitbybit.point.transformPoints({ points: [[1, 0, 0], [0, 1, 0], [-1, 0, 0]], transformation: [placements[1]] });
+         * ```
+         */
+        sweepPlacements(inputs: Inputs.Polyline.PolylineSweepDto): Inputs.Base.TransformMatrix[];
+        /**
+         * Rounds the corners of a path in space with arcs, drawn as short straight pieces.
+         *
+         * Where the segments beside a corner are too short for `radius`, it gets the largest arc that
+         * fits half of each. The ends stay; a closed polyline is refused.
+         * Example: [[0,0,0], [10,0,0], [10,10,0]], radius 2 -> one quarter arc at the corner
+         * @param inputs - The path, the radius and the pieces per quarter turn
+         * @returns The rounded path
+         * @group sweep
+         * @shortname round corners
+         * @drawable true
+         * @example
+         * ```typescript
+         * const rounded = bitbybit.polyline.roundCorners({ polyline: { points: [[0, 0, 0], [10, 0, 0], [10, 10, 0]] }, radius: 2, segments: 8 });
+         * ```
+         */
+        roundCorners(inputs: Inputs.Polyline.RoundPolylineDto): Inputs.Polyline.PolylinePropertiesDto;
         private newellOf;
+        private sweepOf;
+        private pathOf;
+        private outlineOf;
+        private pointOf;
+        private isPoint2;
+        private directionOf;
+        private segmentsFor;
+    }
+    /**
+     * Recipes with no CAD kernel needed: solids described as a list of steps that `occt.recipes` and
+     * `manifold.recipes` build and the `ifc` package writes, so a pipeline can hand geometry to any
+     * kernel as data. Check one before a kernel runs it, read one from JSON, draw its roots made of
+     * triangles, and find what a root places. Experimental: the recipe format may still change.
+     * @beta
+     */
+    declare class Recipes {
+        /**
+         * Checks a value against the recipe format and lists what is wrong with it: steps that refer
+         * forward or out of range, ranges outside their buffers, coordinates that are not finite or
+         * too large, matrices that flatten, lists past their limits.
+         *
+         * Run it on a recipe from a file, another thread or a caller before a kernel builds it.
+         * @param inputs - The recipe
+         * @returns What is wrong, at most a hundred issues, each a path such as `nodes[3].depth` and a sentence; empty when nothing is
+         * @group check
+         * @shortname check recipe
+         * @drawable false
+         * @example
+         * ```typescript
+         * const issues = bitbybit.recipes.check({ recipe });
+         * const buildable = issues.length === 0;
+         * ```
+         */
+        check(inputs: Inputs.Recipes.RecipeDto): RecipeIssue[];
+        /**
+         * Reads a recipe whose buffers may be lists of numbers, as JSON holds them, into the typed
+         * arrays the format keeps, and refuses one `check` finds anything wrong with.
+         *
+         * The value given is left as it was.
+         * @param inputs - The recipe
+         * @returns The recipe with typed buffers
+         * @group read
+         * @shortname read recipe
+         * @drawable false
+         * @example
+         * ```typescript
+         * const recipe = bitbybit.recipes.read({ recipe: JSON.parse(text) });
+         * ```
+         */
+        read(inputs: Inputs.Recipes.RecipeDto): Inputs.Base.Recipe;
+        /**
+         * Gives the triangle meshes of the roots built from triangle nodes alone, through transforms,
+         * compounds and unions, placed by their matrices, so an open mesh no solid kernel accepts can
+         * still be drawn.
+         *
+         * A root holding any other step, such as an extrusion, gives undefined.
+         * @param inputs - The recipe, the roots to read and whether Z turns into Y
+         * @returns One mesh per root asked for, in that order: positions three numbers a vertex, indices three a triangle
+         * @group read
+         * @shortname surface meshes
+         * @drawable false
+         * @example
+         * ```typescript
+         * const [mesh] = bitbybit.recipes.surfaceMeshes({ recipe, roots: [0] });
+         * ```
+         */
+        surfaceMeshes(inputs: Inputs.Recipes.RecipeSurfaceMeshesDto): (RecipeSurfaceMesh | undefined)[];
+        /**
+         * Follows a node through the transforms that only turn and move to the step it places, folding
+         * them into the matrix, so roots that place one step through different moves share it, as an
+         * instanced drawing or an assembly wants.
+         *
+         * A transform that mirrors, scales or stretches stays a step of its own.
+         * @param inputs - The recipe, the node and what places it
+         * @returns The step reached and the matrix placing it
+         * @group read
+         * @shortname source of node
+         * @drawable false
+         * @example
+         * ```typescript
+         * const root = recipe.roots[0];
+         * const { node, matrix } = bitbybit.recipes.sourceOf({ recipe, node: root.node, matrix: root.matrix });
+         * ```
+         */
+        sourceOf(inputs: Inputs.Recipes.RecipeSourceDto): RecipeSource;
     }
     /**
      * Working with text: splitting, joining, searching, trimming, padding, changing case, regular
@@ -62375,13 +71242,84 @@ declare namespace Bit {
      * Builds transformation matrices for moving, rotating, scaling and stretching geometry. A
      * transformation is a 4x4 matrix as 16 numbers in column-major order; most methods return a short
      * list of them that is applied in order, so a rotation about a point is a move to the origin, the
-     * rotation, and the move back. Angles are in degrees. Apply the result with the transform methods
-     * of `point`, `polyline`, `line` and the kernels.
+     * rotation, and the move back. Angles are in degrees. Such a list can also be combined into one
+     * matrix, undone, and read for whether it keeps shapes rigid. Apply the result with the transform
+     * methods of `point`, `polyline`, `line` and the kernels.
      */
     declare class Transforms {
         private readonly vector;
         private readonly math;
         constructor(vector: Vector, math: MathBitByBit);
+        /**
+         * Folds a transformation into the one matrix that does all its steps in order.
+         *
+         * The lists `rotationCenterAxis` and the other builders return become a single matrix, which is
+         * what a renderer or a placement often wants. An empty list gives the identity.
+         * Example: a move by [1,0,0] followed by a move by [0,2,0] -> one move by [1,2,0]
+         * @param inputs - The transformation: a matrix, or a list applied in order
+         * @returns A list holding the one combined matrix
+         * @group combine
+         * @shortname combine
+         * @drawable false
+         * @example
+         * ```typescript
+         * const turn = bitbybit.transforms.rotationCenterAxis({ center: [5, 0, 0], axis: [0, 1, 0], angle: 90 });
+         * const single = bitbybit.transforms.combine({ transformation: turn });
+         * ```
+         */
+        combine(inputs: Inputs.Transforms.TransformationDto): Base.TransformMatrixes;
+        /**
+         * Builds the transformation that undoes one that only moves and turns.
+         *
+         * The transformation is combined first. One that scales, stretches or mirrors is refused, since
+         * undoing it exactly takes a general inverse; `isRigid` tells the two apart.
+         * Example: a quarter turn about Z, then a move by [10,0,0] -> the move back, then the turn back
+         * @param inputs - The transformation: a matrix, or a list applied in order
+         * @returns A list holding the one matrix that undoes it
+         * @group combine
+         * @shortname rigid inverse
+         * @drawable false
+         * @example
+         * ```typescript
+         * const placement = bitbybit.transforms.rotationCenterAxis({ center: [0, 0, 0], axis: [0, 0, 1], angle: 90 });
+         * const back = bitbybit.transforms.rigidInverse({ transformation: placement });
+         * ```
+         */
+        rigidInverse(inputs: Inputs.Transforms.TransformationDto): Base.TransformMatrixes;
+        /**
+         * Measures how a transformation scales volumes, and whether it mirrors.
+         *
+         * It is the determinant of the combined matrix's turn-and-scale part: 1 for a move and turn, the
+         * volume factor for a scale, negative when the transformation mirrors.
+         * Example: a uniform scale by 2 -> 8
+         * @param inputs - The transformation: a matrix, or a list applied in order
+         * @returns The determinant
+         * @group combine
+         * @shortname determinant
+         * @drawable false
+         * @example
+         * ```typescript
+         * const factor = bitbybit.transforms.determinant({ transformation: bitbybit.transforms.uniformScale({ scale: 2 }) });
+         * ```
+         */
+        determinant(inputs: Inputs.Transforms.TransformationDto): number;
+        /**
+         * Tells whether a transformation only moves and turns, without scaling, stretching or mirroring.
+         *
+         * The transformation is combined first; each of its axes must have length 1 and stand square to
+         * the others within `tolerance`.
+         * Example: a rotation -> true, a scale by 2 -> false
+         * @param inputs - The transformation and the tolerance
+         * @returns True when it is a rigid motion
+         * @group combine
+         * @shortname is rigid
+         * @drawable false
+         * @example
+         * ```typescript
+         * const rigid = bitbybit.transforms.isRigid({ transformation: bitbybit.transforms.rotationCenterX({ center: [0, 0, 0], angle: 30 }) });
+         * ```
+         */
+        isRigid(inputs: Inputs.Transforms.TransformationToleranceDto): boolean;
         /**
          * Builds a rotation about an axis that passes through a center point.
          *
@@ -62608,6 +71546,7 @@ declare namespace Bit {
         private rotationYawPitchRoll;
         private rotationMatrixFromQuat;
         private stretchDirection;
+        private matricesOf;
     }
     /**
      * Vector maths on plain number arrays. A vector is an array of numbers; in 3D it is `[x, y, z]`
@@ -63004,11 +71943,12 @@ declare namespace Bit {
          */
         norm(inputs: Inputs.Vector.VectorDto): number;
         /**
-         * Scales a 3D vector to length 1 while keeping its direction.
+         * Scales a vector to length 1 while keeping its direction.
          *
-         * A vector shorter than 1e-8 has no direction to keep, so the result is undefined.
+         * A vector shorter than 1e-8, or with a component that is not finite, has no direction to keep,
+         * so the result is undefined; a very long vector is scaled without overflowing.
          * Example: [3,4,0] -> [0.6,0.8,0]
-         * @param inputs - The 3D vector to normalize
+         * @param inputs - The vector to normalize
          * @returns The unit vector, or undefined for a zero-length input
          * @group base
          * @shortname normalized
@@ -63759,6 +72699,32 @@ declare namespace Bit {
         private convertEscapeSequences;
     }
     /**
+     * Elements of any kind with an exact or meshed body: everything `elements` offers in the IFC worker,
+     * plus `addShape`, which describes an OpenCascade shape for IFC and adds it in one call. It needs both
+     * the IFC and the OCCT workers.
+     * @beta
+     */
+    declare class IFCWElements extends IFCElements {
+        private readonly occt;
+        /**
+         * Adds an element of any class whose body is an OpenCascade shape, standing on a storey.
+         *
+         * The shape is described with only the surfaces IFC's advanced faces take, its cones and swept
+         * surfaces as B-splines and its cavities cut from it, and scaled from its unit to the model's.
+         * @param inputs - The model, the storey, the shape and its unit, and the element's class, name, placement and material
+         * @returns A new model with the element
+         * @group create
+         * @shortname add shape element
+         * @drawable false
+         * @example
+         * ```typescript
+         * const bracket = await bitbybit.occt.shapes.solid.createBox({ width: 400, length: 200, height: 300, center: [0, 0, 150] });
+         * model = await bitbybit.ifc.elements.addShape({ model, storey: "ground", shape: bracket, type: "IfcFurniture", name: "Bracket" });
+         * ```
+         */
+        addShape(inputs: Inputs.IFC.AddShapeElementDto<Inputs.IFC.IfcModelPointer, Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.IFC.IfcModelPointer>;
+    }
+    /**
      * A model's geometry: everything `geometry` offers in the IFC worker, plus `toShapes`, `toDocument`
      * and `toStep`, which hand the model's recipe to OpenCascade, so circles stay circles and the
      * results measure, cut and export like any other shape. They need both the IFC and the OCCT workers.
@@ -63786,8 +72752,8 @@ declare namespace Bit {
         toShapes(inputs: Inputs.IFC.GeometryToShapesDto<Inputs.IFC.IfcModelPointer>): Promise<Inputs.OCCT.TopoDSShapePointer[]>;
         /**
          * Builds a model's elements into an OpenCascade assembly document for STEP or glTF: a product
-         * per element with its GlobalId and IFC type as properties, nested in its site, building and
-         * storey, by IFC class unless `groupByClass` is false, one part per type placed many times.
+         * per element, its GlobalId, IFC type and property sets as properties, nested by site, building,
+         * storey and IFC class, one part per type placed many times.
          *
          * Millimetres unless STEP can state the model's unit; delete it with
          * `occt.assembly.manager.deleteDocument`.
@@ -63827,15 +72793,18 @@ declare namespace Bit {
     /**
      * IFC building models as reached from a script: every method of the `ifc` worker, asynchronous,
      * with models living in the worker and passed around as references, plus `geometry.toShapes`,
-     * `geometry.toDocument` and `geometry.toStep`, which build a model's elements with OpenCascade.
+     * `geometry.toDocument` and `geometry.toStep`, which build a model's elements with OpenCascade, and
+     * `elements.addShape`, which adds an OpenCascade shape as an element.
      * In Node, or anywhere without workers, the IFC package's `IFCService` has the same methods,
      * synchronous and with models as values; there those three are `geometry.recipe` handed to the
-     * OpenCascade kernel's `recipes.build` or `recipes.buildDocument`.
+     * Bitbybit OCCT Kernel's `recipes.build` or `recipes.buildDocument`, and `addShape` is its
+     * `recipes.describe` with `ifcSurfaces` handed to `elements.add`.
      * Experimental, as the IFC library is.
      * @beta
      */
     declare class IFCW extends IFCBitByBit {
         readonly geometry: IFCWGeometry;
+        readonly elements: IFCWElements;
     }
     /**
      * Reading and changing values inside JSON data. A path such as `$.parts[0].name` follows the
@@ -64034,8 +73003,9 @@ declare namespace Bit {
          * Reads a STEP or IGES file, given as a File, into one shape.
          *
          * The file's extension decides the kind: `.step`, `.stp` are STEP, `.iges`, `.igs` are IGES.
-         * `adjustZtoY` turns the file's Z-up into Y-up. A file that cannot be read gives undefined.
-         * @param inputs - The file and the axis adjustment
+         * `adjustZtoY` turns the file's Z-up into Y-up, and the shape comes back in `unit`, scaled from
+         * the file's own. A file that cannot be read gives undefined.
+         * @param inputs - The file, the axis adjustment and the unit
          * @returns The loaded shape
          * @group io
          * @shortname load step | iges
@@ -64051,8 +73021,9 @@ declare namespace Bit {
          * Reads a STEP or IGES file, given as its text, into one shape; `fileType` says which of the
          * two formats the text is in.
          *
-         * `adjustZtoY` turns the file's Z-up into Y-up. Text that cannot be read gives undefined.
-         * @param inputs - The file text, its format and the axis adjustment
+         * `adjustZtoY` turns the file's Z-up into Y-up, and the shape comes back in `unit`, scaled from
+         * the file's own. Text that cannot be read gives undefined.
+         * @param inputs - The file text, its format, the axis adjustment and the unit
          * @returns The loaded shape
          * @group io
          * @shortname load text step | iges
@@ -65642,6 +74613,8 @@ declare namespace Bit {
         readonly vector: Vector;
         readonly point: Point;
         readonly frame: Frame;
+        readonly engineering: Engineering;
+        readonly recipes: Recipes;
         readonly line: Line;
         readonly polyline: Polyline;
         readonly occt: OCCTW & OCCT;
