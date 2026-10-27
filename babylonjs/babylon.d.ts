@@ -513,6 +513,14 @@ declare namespace BABYLON {
         /** @internal */
         _blockEntityCollection: boolean;
         /**
+         * Executes a synchronous action without allowing it to weaken an existing entity-collection block.
+         * @param blockEntityCollection whether the action requires entity collection to be blocked
+         * @param action the action to execute
+         * @returns the action result
+         * @internal
+         */
+        _executeWithBlockedEntityCollection<T>(blockEntityCollection: boolean, action: () => T): T;
+        /**
          * Gets or sets a boolean that indicates if the scene must clear the render buffer before rendering a frame
          */
         autoClear: boolean;
@@ -1279,10 +1287,21 @@ declare namespace BABYLON {
          * Flag indicating that the frame buffer binding is handled by another component
          */
         get prePass(): boolean;
+        private _needsPreviousWorldMatrices;
+        private _manualPreviousWorldMatrices;
+        private readonly _previousWorldMatricesOwners;
         /**
-         * Flag indicating if we need to store previous matrices when rendering
+         * Flag indicating if we need to store previous matrices when rendering.
+         * Setting it directly controls the manual requirement; renderers can independently request previous matrices.
          */
-        needsPreviousWorldMatrices: boolean;
+        get needsPreviousWorldMatrices(): boolean;
+        set needsPreviousWorldMatrices(value: boolean);
+        /**
+         * @internal
+         * @param owner The renderer or frame graph requesting previous world matrices
+         * @param required Whether that owner still needs previous world matrices
+         */
+        _setPreviousWorldMatricesRequired(owner: object, required: boolean): void;
         private _shadowsEnabled;
         /**
          * Gets or sets a boolean indicating if shadows are enabled on this scene
@@ -1481,6 +1500,20 @@ declare namespace BABYLON {
         get renderingManager(): RenderingManager;
         /** @internal */
         _activeAnimatables: Animatable[];
+        /**
+         * @internal
+         * The writes of the runtime animations since the last animation step's bindings were processed - between steps
+         * and in the current or last step - in the order they were made: the first _animationWriteCount entries, the rest
+         * being reused. What the animations wrote, kept whatever became of them since, for as long as the bindings they
+         * registered are pending or just processed.
+         */
+        _animationWrites: IRuntimeAnimationWrite[];
+        /** @internal How many of _animationWrites are in use. */
+        _animationWriteCount: number;
+        /** @internal How many of them, at the front, the last animation step's bindings processed; the next step lets them go. */
+        _animationStepWriteCount: number;
+        /** @internal Whether the current or last animation step evaluated the active animatables, which none does while animations are disabled. */
+        _animationStepEvaluated: boolean;
         private _transformMatrix;
         private _sceneUbo;
         /** @internal */
@@ -3710,6 +3743,7 @@ declare namespace BABYLON {
     export class AssetContainer extends AbstractAssetContainer {
         private _wasAddedToScene;
         private _onContextRestoredObserver;
+        private _onSceneDisposedObserver;
         /**
          * The scene the AssetContainer belongs to.
          */
@@ -5657,7 +5691,8 @@ declare namespace BABYLON {
          */
         ignoreSessionGrantedEvent?: boolean;
         /**
-         * If defined, this function will be executed if the UI encounters an error when entering XR
+         * Called with the error from `enterXRAsync` when entering XR through the UI fails.
+         * The button still displays ERROR; the application decides whether to show a message or rebuild with WebGL.
          */
         onError?: (error: any) => void;
     }
@@ -5781,7 +5816,11 @@ declare namespace BABYLON {
          */
         outputCanvasOptions?: WebXRManagedOutputCanvasOptions;
         /**
-         * optional UI options. This can be used among other to change session mode and reference space type
+         * Options for the default enter/exit UI, including session mode and reference space type.
+         * Set `onError` here to receive XR entry failures (including WebGPU session negotiation failures)
+         * when the default button is used. The application can then notify the user or create a new
+         * WebGL engine and scene; Babylon.js cannot switch an existing scene's rendering backend.
+         * When `disableDefaultUI` is true, handle rejections from `baseExperience.enterXRAsync()` instead.
          */
         uiOptions?: Partial<WebXREnterExitUIOptions>;
         /**
@@ -12532,6 +12571,8 @@ declare namespace BABYLON {
         private _isAlphaBlendDirty;
         private _isBlendFunctionParametersDirty;
         private _isBlendEquationParametersDirty;
+        private _blendDisabledTargetsMask;
+        private _numTargets;
         /**
          * Initializes the state.
          * @param _supportBlendParametersPerTarget - Whether blend parameters per target is supported
@@ -12545,7 +12586,7 @@ declare namespace BABYLON {
         setAlphaBlendFunctionParameters(srcRGBFactor: number, dstRGBFactor: number, srcAlphaFactor: number, dstAlphaFactor: number, targetIndex?: number): void;
         setAlphaEquationParameters(rgbEquation: number, alphaEquation: number, targetIndex?: number): void;
         reset(): void;
-        apply(gl: WebGLRenderingContext, numTargets?: number): void;
+        apply(gl: WebGLRenderingContext, numTargets?: number, blendDisabledTargetsMask?: number): void;
         setAlphaMode(mode: number, targetIndex: number): void;
     }
 
@@ -12660,6 +12701,10 @@ declare namespace BABYLON {
         _xSize: number;
         /** @internal */
         _ySize: number;
+        /** @internal */
+        _animationFrameId: number;
+        /** @internal */
+        _animationSceneId: number;
         private _animationStarted;
         protected _loopAnimation: boolean;
         protected _fromIndex: number;
@@ -12919,14 +12964,19 @@ declare namespace BABYLON {
         private _vertexData;
         private _buffer;
         private _vertexBuffers;
+        private _previousVertexData;
+        private _previousBuffer;
+        private _vertexBuffersWithPrevious;
         private _spriteBuffer;
         private _indexBuffer;
         /** @internal */
         _drawWrapperBase: DrawWrapper;
         /** @internal */
         _drawWrapperDepth: DrawWrapper;
-        private _vertexArrayObject;
+        private _drawCaches;
+        private _inverseViewMatrix;
         private _isDisposed;
+        private _renderPassObserver;
         /**
          * Creates a new sprite renderer
          * @param engine defines the engine the renderer works with
@@ -12938,7 +12988,25 @@ declare namespace BABYLON {
         constructor(engine: AbstractEngine, capacity: number, epsilon?: number, scene?: Nullable<Scene>, rendererOptions?: SpriteRendererOptions);
         private _shadersLoaded;
         private _initShaderSourceAsync;
+        /**
+         * Checks whether the texture and shader variant for the current render pass are ready.
+         * This prepares the effect without updating or drawing any sprites.
+         * @returns true when the renderer can draw sprites
+         * @see https://playground.babylonjs.com/#PVK3RV#2
+         */
+        isReady(): boolean;
         private _createEffects;
+        private _getDrawCache;
+        private _ensurePreviousVertexBuffer;
+        private _disposeDrawCache;
+        private _disposeDrawCaches;
+        private _disposePreviousVertexBufferIfUnused;
+        private _disposePreviousVertexBuffer;
+        private _bindVertexBuffers;
+        private _getCameraHistory;
+        private _prepareSpriteHistory;
+        private _updateSpriteHistory;
+        private _animateSprite;
         /**
          * Render all child sprites
          * @param sprites defines the list of sprites to render
@@ -13259,6 +13327,12 @@ declare namespace BABYLON {
          */
         multiIntersects(ray: Ray, camera: Camera, predicate?: (sprite: Sprite) => boolean): Nullable<PickingInfo[]>;
         /**
+         * Checks whether this manager can render its sprites in the current render pass.
+         * Optional for custom sprite manager implementations.
+         * @returns true when the manager is ready to render
+         */
+        isReady?(): boolean;
+        /**
          * Renders the list of sprites on screen.
          */
         render(): void;
@@ -13427,6 +13501,13 @@ declare namespace BABYLON {
          * @returns null if no hit or a PickingInfo array
          */
         multiIntersects(ray: Ray, camera: Camera, predicate?: (sprite: Sprite) => boolean): Nullable<PickingInfo[]>;
+        /**
+         * Checks whether the sprite data, texture and current render-pass shader are ready.
+         * An empty sprite manager is ready without preparing rendering resources.
+         * @returns true when all required resources are ready
+         * @see https://playground.babylonjs.com/#PVK3RV#2
+         */
+        isReady(): boolean;
         /**
          * Render all child sprites
          */
@@ -14270,6 +14351,13 @@ declare namespace BABYLON {
 
 
     /** @internal */
+    export var meshBlendingPixelShaderWGSL: {
+        name: string;
+        shader: string;
+    };
+
+
+    /** @internal */
     export var lodCubePixelShaderWGSL: {
         name: string;
         shader: string;
@@ -14578,6 +14666,62 @@ declare namespace BABYLON {
 
 
     /** @internal */
+    export var gpsSplatComputeShaderWGSL: {
+        name: string;
+        shader: string;
+    };
+
+
+    /** @internal */
+    export var gpsScanSumsComputeShaderWGSL: {
+        name: string;
+        shader: string;
+    };
+
+
+    /** @internal */
+    export var gpsScanBlocksComputeShaderWGSL: {
+        name: string;
+        shader: string;
+    };
+
+
+    /** @internal */
+    export var gpsScanAddComputeShaderWGSL: {
+        name: string;
+        shader: string;
+    };
+
+
+    /** @internal */
+    export var gpsResolveComputeShaderWGSL: {
+        name: string;
+        shader: string;
+    };
+
+
+    /** @internal */
+    export var gpsPreprocessComputeShaderWGSL: {
+        name: string;
+        shader: string;
+    };
+
+
+    /** @internal */
+    export var gpsPartitionComputeShaderWGSL: {
+        name: string;
+        shader: string;
+    };
+
+
+    /** @internal */
+    export var gpsHiZBuildComputeShaderWGSL: {
+        name: string;
+        shader: string;
+    };
+
+
+    /** @internal */
     export var glowMapMergeVertexShaderWGSL: {
         name: string;
         shader: string;
@@ -14663,6 +14807,27 @@ declare namespace BABYLON {
 
     /** @internal */
     export var gaussianSplattingPixelShaderWGSL: {
+        name: string;
+        shader: string;
+    };
+
+
+    /** @internal */
+    export var gaussianPointSplattingDepthBlitPixelShaderWGSL: {
+        name: string;
+        shader: string;
+    };
+
+
+    /** @internal */
+    export var gaussianPointSplattingBlitVertexShaderWGSL: {
+        name: string;
+        shader: string;
+    };
+
+
+    /** @internal */
+    export var gaussianPointSplattingBlitPixelShaderWGSL: {
         name: string;
         shader: string;
     };
@@ -15642,6 +15807,13 @@ declare namespace BABYLON {
 
 
     /** @internal */
+    export var meshBlendTagFragmentOutputWGSL: {
+        name: string;
+        shader: string;
+    };
+
+
+    /** @internal */
     export var mainUVVaryingDeclarationWGSL: {
         name: string;
         shader: string;
@@ -15817,6 +15989,13 @@ declare namespace BABYLON {
 
 
     /** @internal */
+    export var geometryRenderingFragmentWGSL: {
+        name: string;
+        shader: string;
+    };
+
+
+    /** @internal */
     export var gaussianSplattingVertexDeclarationWGSL: {
         name: string;
         shader: string;
@@ -15831,6 +16010,13 @@ declare namespace BABYLON {
 
 
     /** @internal */
+    export var gaussianSplattingSharedWGSL: {
+        name: string;
+        shader: string;
+    };
+
+
+    /** @internal */
     export var gaussianSplattingFragmentDeclarationWGSL: {
         name: string;
         shader: string;
@@ -15839,6 +16025,20 @@ declare namespace BABYLON {
 
     /** @internal */
     export var gaussianSplattingWGSL: {
+        name: string;
+        shader: string;
+    };
+
+
+    /** @internal */
+    export var gaussianPointSplattingScanWGSL: {
+        name: string;
+        shader: string;
+    };
+
+
+    /** @internal */
+    export var gaussianPointSplattingWGSL: {
         name: string;
         shader: string;
     };
@@ -15909,6 +16109,13 @@ declare namespace BABYLON {
 
     /** @internal */
     export var defaultUboDeclarationWGSL: {
+        name: string;
+        shader: string;
+    };
+
+
+    /** @internal */
+    export var defaultFragmentAlphaWGSL: {
         name: string;
         shader: string;
     };
@@ -16511,6 +16718,13 @@ declare namespace BABYLON {
 
     /** @internal */
     export var meshUVSpaceRendererPixelShader: {
+        name: string;
+        shader: string;
+    };
+
+
+    /** @internal */
+    export var meshBlendingPixelShader: {
         name: string;
         shader: string;
     };
@@ -18169,6 +18383,13 @@ declare namespace BABYLON {
 
 
     /** @internal */
+    export var geometryRenderingFragment: {
+        name: string;
+        shader: string;
+    };
+
+
+    /** @internal */
     export var gaussianSplattingVertexDeclaration: {
         name: string;
         shader: string;
@@ -18275,6 +18496,13 @@ declare namespace BABYLON {
 
     /** @internal */
     export var defaultFragmentDeclaration: {
+        name: string;
+        shader: string;
+    };
+
+
+    /** @internal */
+    export var defaultFragmentAlpha: {
         name: string;
         shader: string;
     };
@@ -19043,7 +19271,7 @@ declare namespace BABYLON {
          * Renders the entire managed groups. This is used by the scene or the different render targets.
          * @internal
          */
-        render(customRenderFunction: Nullable<(opaqueSubMeshes: SmartArray<SubMesh>, transparentSubMeshes: SmartArray<SubMesh>, alphaTestSubMeshes: SmartArray<SubMesh>, depthOnlySubMeshes: SmartArray<SubMesh>) => void>, activeMeshes: Nullable<AbstractMesh[]>, renderParticles: boolean, renderSprites: boolean, renderDepthOnlyMeshes?: boolean, renderOpaqueMeshes?: boolean, renderAlphaTestMeshes?: boolean, renderTransparentMeshes?: boolean, customRenderTransparentSubMeshes?: (transparentSubMeshes: SmartArray<SubMesh>, renderingGroup?: RenderingGroup) => void): void;
+        render(customRenderFunction: Nullable<(opaqueSubMeshes: SmartArray<SubMesh>, transparentSubMeshes: SmartArray<SubMesh>, alphaTestSubMeshes: SmartArray<SubMesh>, depthOnlySubMeshes: SmartArray<SubMesh>) => void>, activeMeshes: Nullable<AbstractMesh[]>, renderParticles: boolean, renderSprites: boolean, renderDepthOnlyMeshes?: boolean, renderOpaqueMeshes?: boolean, renderAlphaTestMeshes?: boolean, renderTransparentMeshes?: boolean, customRenderTransparentSubMeshes?: (transparentSubMeshes: SmartArray<SubMesh>, renderingGroup?: RenderingGroup) => void, spriteManagers?: Nullable<ISpriteManager[]>): void;
         /**
          * Resets the different information of the group to prepare a new frame
          * @internal
@@ -19972,6 +20200,12 @@ declare namespace BABYLON {
          */
         particleSystemList: Nullable<Array<IParticleSystem>>;
         /**
+         * Define the list of sprite managers to render. If not provided, will render all the sprite managers of the scene.
+         * An empty array will render no sprite managers.
+         * Note that the sprite managers are rendered only if renderSprites is set to true.
+         */
+        spriteManagerList: Nullable<Array<ISpriteManager>>;
+        /**
          * Use this function to overload the renderList array at rendering time.
          * Return null to render with the current renderList, else return the list of meshes to use for rendering.
          * For 2DArray, layerOrFace is the index of the layer that is going to be rendered, else it is the faceIndex of
@@ -20612,6 +20846,10 @@ declare namespace BABYLON {
          */
         static readonly OBJECT_ID_TEXTURE_TYPE = 8;
         /**
+         * Constant used to retrieve the packed mesh-blending tag texture index in the G-Buffer textures array.
+         */
+        static readonly MESH_BLEND_TAG_TEXTURE_TYPE = 9;
+        /**
          * Dictionary used to store the previous transformation matrices of each rendered mesh
          * in order to compute objects velocities when enableVelocity is set to "true"
          * @internal
@@ -20632,8 +20870,10 @@ declare namespace BABYLON {
          * Avoids computing bones velocities and computes only mesh's velocity itself (position, rotation, scaling).
          */
         excludedSkinnedMeshesFromVelocity: AbstractMesh[];
+        private _renderTransparentMeshes;
         /** Gets or sets a boolean indicating if transparent meshes should be rendered */
-        renderTransparentMeshes: boolean;
+        get renderTransparentMeshes(): boolean;
+        set renderTransparentMeshes(value: boolean);
         /**
          * Provides the object ID written for each rendered mesh.
          *
@@ -20641,9 +20881,18 @@ declare namespace BABYLON {
          * Instances use the ID of their source mesh. The default is the mesh unique ID.
          * Default IDs are only stable for the lifetime of the current scene and should not be persisted.
          * The provider runs in the render hot path and may be called multiple times for the same mesh in a frame.
-         * @see https://playground.babylonjs.com/#REC26C#0
+         * @see https://playground.babylonjs.com/?version=preview#SQXZ3X#1
          */
         objectIdProvider?: GeometryRenderingObjectIdProvider;
+        /**
+         * Provides the packed mesh-blending tag written for each rendered mesh.
+         *
+         * Tags must be 0 or contain a group ID between 1 and 63 in their low six bits. Tag 0 disables mesh blending.
+         * By default, meshes use their `meshBlendingTag` property. Instances and thin instances use the source mesh tag.
+         * The provider runs in the render hot path and receives the source mesh for instanced draws.
+         * It should avoid allocations and return a consistent value for a mesh during a render.
+         */
+        meshBlendTagProvider?: GeometryRenderingMeshBlendTagProvider;
         /**
          * Gets or sets a boolean indicating if normals should be generated in world space (default: false, meaning normals are generated in view space)
          */
@@ -20667,6 +20916,7 @@ declare namespace BABYLON {
         private _enableScreenspaceDepth;
         private _enableIrradiance;
         private _enableObjectId;
+        private _enableMeshBlendTag;
         private _depthFormat;
         private _clearColor;
         private _clearDepthColor;
@@ -20679,6 +20929,7 @@ declare namespace BABYLON {
         private _screenspaceDepthIndex;
         private _irradianceIndex;
         private _objectIdIndex;
+        private _meshBlendTagIndex;
         private _linkedWithPrePass;
         private _prePassRenderer;
         private _attachmentsFromPrePass;
@@ -20812,9 +21063,25 @@ declare namespace BABYLON {
          *
          * Object ID rendering currently requires a single-sample G buffer.
          * Object ID rendering is not supported when the G buffer is linked to the PrePassRenderer.
-         * @see https://playground.babylonjs.com/#REC26C#0
+         * @see https://playground.babylonjs.com/?version=preview#SQXZ3X#1
          */
         set enableObjectId(enable: boolean);
+        /**
+         * Gets whether packed mesh-blending tags are enabled for the G buffer.
+         */
+        get enableMeshBlendingTag(): boolean;
+        /**
+         * Sets whether packed mesh-blending tags are enabled for the G buffer.
+         *
+         * Mesh-blending tags use a single-sample R8UI color attachment and are supported on WebGL2 and WebGPU.
+         * Transparent rendering remains controlled by renderTransparentMeshes. Applications are responsible for
+         * ensuring that transparent draws do not invalidate the SceneColor and geometry-input correspondence required
+         * by the mesh-blending pass. On WebGL2, transparent rendering with this output requires per-target blend parameters.
+         *
+         * Enabling or disabling this output rebuilds the renderer's targets. The application retains ownership
+         * of the GeometryBufferRenderer and of every post process that consumes the output.
+         */
+        set enableMeshBlendingTag(enable: boolean);
         /**
          * This will store a mask in the alpha channel of the irradiance texture to indicate which pixels have
          * scattering and should be taken into account when applying image-based lighting.
@@ -20886,6 +21153,7 @@ declare namespace BABYLON {
         dispose(): void;
         private _assignRenderTargetIndices;
         protected _createRenderTargets(): void;
+        private _getRenderTargetDimensions;
         private _copyBonesTransformationMatrices;
     }
     /**
@@ -20950,9 +21218,10 @@ declare namespace BABYLON {
         render(): void;
         /**
          * Checks whether or not the edges renderer is ready to render.
+         * @param useInstances Defines whether the instanced shader variant should be checked. If omitted, the current rendering state is used.
          * @returns true if ready, otherwise false.
          */
-        isReady(): boolean;
+        isReady(useInstances?: boolean): boolean;
         /**
          * List of instances to render in case the source mesh has instances
          */
@@ -21106,9 +21375,10 @@ declare namespace BABYLON {
         _generateEdgesLines(): void;
         /**
          * Checks whether or not the edges renderer is ready to render.
+         * @param useInstances Defines whether the instanced shader variant should be checked. If omitted, the current rendering state is used.
          * @returns true if ready, otherwise false.
          */
-        isReady(): boolean;
+        isReady(useInstances?: boolean): boolean;
         /**
          * Renders the edges of the attached mesh,
          */
@@ -21249,6 +21519,7 @@ declare namespace BABYLON {
         forceDepthWriteTransparentMeshes: boolean;
         private _alphaBlendedDepth;
         private _alphaBlendedDepthMaterialCache;
+        private _gaussianSplattingDepthMaterials;
         /**
          * Enable or disable the alpha blending for depth rendering. When enabled,
          * the depth renderer will blend the depth values with the alpha values of
@@ -21284,6 +21555,14 @@ declare namespace BABYLON {
          * @returns the current depth rendering material, or null if the mesh has no GS material
          */
         private _ensureGaussianSplattingDepthMaterial;
+        /**
+         * Whether the material is a GaussianSplatting depth material created by this renderer, as opposed to
+         * a user override set through {@link setMaterialForRendering}.
+         * @param material the material to test
+         * @returns true when this renderer created the material
+         * @internal
+         */
+        _isGaussianSplattingDepthMaterial(material: Material): boolean;
         /**
          * Instantiates a depth renderer
          * @param scene The scene the renderer belongs to
@@ -21964,10 +22243,16 @@ declare namespace BABYLON {
          */
         constructor(scene: Scene, ps: IParticleSystem, shaderLanguage?: ShaderLanguage);
         /**
-         * GPUParticleSystem's "size" buffer layout (baseSize, scaleX, scaleY) is incompatible with this feature.
-         * @returns true if the per-particle size attribute is supported
+         * GPUParticleSystem stores "size" as (baseSize, scaleX, scaleY); ParticleSystem as (width, height).
+         * @returns the number of components of the "size" attribute
          */
-        protected _supportsPerParticleSizeAttribute(): boolean;
+        protected _getPerParticleSizeAttributeSize(): number;
+        /**
+         * GPUParticleSystem's "offset" quad is centered ([-0.5, 0.5]); ParticleSystem's is in [0, 1].
+         * @returns true if the "offset" attribute is centered
+         */
+        protected _usesCenteredOffsetAttribute(): boolean;
+        private get _isGPUParticleSystem();
         /**
          * Indicates if the object is ready to be rendered
          * @returns True if everything is ready for the object to be rendered, otherwise false
@@ -21982,6 +22267,10 @@ declare namespace BABYLON {
          * Render the diffuse texture for this object
          */
         renderDiffuseTexture(): void;
+        /**
+         * Updates the state of the particles. GPUParticleSystem does it in render(), which is replaced by a no-op while the system is rendered as a fluid
+         */
+        updateSimulation(): void;
         /**
          * Releases the resources used by the class
          */
@@ -22120,6 +22409,16 @@ declare namespace BABYLON {
          * @returns true if the per-particle size attribute is supported
          */
         protected _supportsPerParticleSizeAttribute(): boolean;
+        /**
+         * Override to return 3 if the "size" attribute is laid out as (baseSize, scaleX, scaleY) instead of (width, height).
+         * @returns the number of components of the "size" attribute
+         */
+        protected _getPerParticleSizeAttributeSize(): number;
+        /**
+         * Override to return true if the "offset" attribute is centered ([-0.5, 0.5]) instead of laid out in [0, 1].
+         * @returns true if the "offset" attribute is centered
+         */
+        protected _usesCenteredOffsetAttribute(): boolean;
         protected _createEffects(): void;
         /**
          * Indicates if the object is ready to be rendered
@@ -22143,6 +22442,10 @@ declare namespace BABYLON {
          * Render the diffuse texture for this object
          */
         renderDiffuseTexture(): void;
+        /**
+         * Updates the state of the particles when this update is not performed by the diffuse texture rendering. Called after the depth and thickness passes
+         */
+        updateSimulation(): void;
         /**
          * Releases the resources used by the class
          */
@@ -22617,6 +22920,17 @@ declare namespace BABYLON {
          * into the r8 voxel grid (mip 0). Runs after all voxelization passes and before mip generation.
          */
         private _copyVoxelOpacityBufferToGrid;
+        /**
+         * Builds the options of one voxelization slab MRT. Every attachment renders into a Z-slice of the shared voxel
+         * grid, which is attached afterwards through setInternalTexture, so the attachment slots are deferred
+         * (target type -1) instead of allocating a throw-away volume per draw buffer.
+         * @param maxDrawBuffers number of draw buffers (attachments) of the MRT
+         * @param voxelResolution resolution of the voxel grid
+         * @param mrtIndex index of the slab
+         * @returns the MRT creation options
+         * @internal
+         */
+        static _CreateVoxelSlabMRTOptions(maxDrawBuffers: number, voxelResolution: number, mrtIndex: number): IMultiRenderTargetOptions;
         private _createVoxelMRTs;
         private _disposeVoxelTextures;
         private _createVoxelMaterials;
@@ -24604,6 +24918,341 @@ declare namespace BABYLON {
         bind(noDefaultBindings?: boolean): void;
         private _updateEffect;
         private _applyMode;
+    }
+
+
+    /**
+     * Quality level used by mesh blending.
+     *
+     * Each value selects a separate compile-time shader variant. Medium is the default.
+     */
+    export enum MeshBlendQuality {
+        /** Three search directions with the lowest refinement and exact-boundary sample counts, using sRGB color interpolation. */
+        Low = 0,
+        /** Three search directions with balanced refinement and exact-boundary sample counts, using OKLab color interpolation. */
+        Medium = 1,
+        /** Three search directions with OKLab interpolation, full rotation, close-neighbor fallback, tiny-object protection, and multi-target blending. */
+        High = 2,
+        /** Eight search directions with OKLab interpolation and the largest radial and exact-boundary sample counts. */
+        Cinematic = 3
+    }
+    /**
+     * Debug visualization produced by mesh blending.
+     */
+    export enum MeshBlendDebugMode {
+        /** Render the blended scene color. */
+        Off = 0,
+        /** Visualize the packed group and radius-class tag. */
+        PackedTag = 1,
+        /** Visualize the refined candidate direction and normalized boundary distance. */
+        CandidateDirectionDistance = 2,
+        /** Visualize the selected radius class and the resulting seam fade. */
+        SeamFade = 3,
+        /** Visualize why a candidate was accepted or rejected by contact validation. */
+        RejectionReason = 4,
+        /** Visualize the approximate amount of shader work performed by each pixel. */
+        StageWork = 5,
+        /** Visualize target continuation success, fallback use, and rejection. */
+        Continuation = 6,
+        /** Visualize the effective-radius reduction applied to thin projected objects. */
+        TinyObject = 7,
+        /** Visualize primary-only and secondary-target selections at multi-mesh junctions. */
+        MultiTarget = 8,
+        /** Visualize the farther, boundary-plus-one, boundary-plus-two, and constructed target-color samples. */
+        TargetColor = 9,
+        /** Visualize the fade attenuation applied by the base-color shadow-transfer heuristic. Neutral when no base-color texture is provided. */
+        ShadowAttenuation = 10,
+        /** Visualize the active color-interpolation mode after target-color construction. */
+        ColorInterpolation = 11,
+        /** Visualize the reconstructed world position. */
+        WorldPosition = 12
+    }
+    /**
+     * Depth representation consumed by mesh blending.
+     */
+    export enum MeshBlendDepthType {
+        /** Signed camera-space Z written by the geometry renderer's view-depth output. */
+        View = 0,
+        /** Hardware depth in the normalized screen-depth range. */
+        Screen = 1
+    }
+    /**
+     * Radius values associated with one mesh-blending radius class.
+     */
+    export interface IMeshBlendRadiusDefinition {
+        /** Authored blend radius in Babylon world units. */
+        worldRadius: number;
+        /** Minimum search radius in physical render-target pixels. */
+        minimumProjectedRadius: number;
+    }
+    /**
+     * The four radius definitions indexed by the packed mesh-blending radius class.
+     */
+    export type MeshBlendRadiusDefinitions = readonly [IMeshBlendRadiusDefinition, IMeshBlendRadiusDefinition, IMeshBlendRadiusDefinition, IMeshBlendRadiusDefinition];
+    /**
+     * Checks whether a thin mesh-blending wrapper is already exclusively owned.
+     * @param wrapper Wrapper to check.
+     * @returns Whether the wrapper already has an owner.
+     * @internal
+     */
+    export function _IsMeshBlendingEffectWrapperOwned(wrapper: ThinMeshBlendingPostProcess): boolean;
+    /**
+     * Claims exclusive ownership of a thin mesh-blending wrapper.
+     * @param wrapper Wrapper to claim.
+     * @param owner Owner claiming the wrapper.
+     * @internal
+     */
+    export function _ClaimMeshBlendingEffectWrapper(wrapper: ThinMeshBlendingPostProcess, owner: object): void;
+    /**
+     * Releases exclusive ownership of a thin mesh-blending wrapper.
+     * @param wrapper Wrapper to release.
+     * @param owner Owner releasing the wrapper.
+     * @internal
+     */
+    export function _ReleaseMeshBlendingEffectWrapper(wrapper: ThinMeshBlendingPostProcess, owner: object): void;
+    /**
+     * Configurable mesh-blending values shared by the classic and frame-graph wrappers.
+     */
+    export interface IMeshBlendConfiguration {
+        /** Compile-time quality variant. */
+        quality?: MeshBlendQuality;
+        /** Radius definitions indexed by packed radius class. Exactly four definitions are required. */
+        radiusClasses?: readonly [IMeshBlendRadiusDefinition, IMeshBlendRadiusDefinition, IMeshBlendRadiusDefinition, IMeshBlendRadiusDefinition];
+        /** Contact-slope narrowing factor. A value of 1 disables narrowing. */
+        slopeFactor?: number;
+        /** Representation stored in the depth texture. */
+        depthType?: MeshBlendDepthType;
+        /** Debug visualization to compile into the shader. Off renders the final blended result. */
+        debugMode?: MeshBlendDebugMode;
+    }
+    /**
+     * Options used to create a thin mesh-blending post process.
+     */
+    export interface IThinMeshBlendingPostProcessOptions extends EffectWrapperCreationOptions, IMeshBlendConfiguration {
+    }
+    /**
+     * Creates a new set of default mesh-blending radius definitions.
+     * @returns Four independently mutable radius definitions ordered from small to extra large.
+     */
+    export function CreateDefaultMeshBlendRadiusDefinitions(): MeshBlendRadiusDefinitions;
+    interface IMeshBlendQualitySettings {
+        directionCount: number;
+        radialSampleCount: number;
+        directionRefinementSampleCount: number;
+        directionRefinementStepCount: number;
+        exactEdgeSampleCount: number;
+        radiusScale: number;
+        fullRandomRotation: boolean;
+        searchJitterFactor: number;
+        immediateFourNeighborFallback: boolean;
+        tinyObjectSafeguard: boolean;
+        multiTargetSecondaryBlend: boolean;
+        colorInterpolation: "sRGB" | "OKLab";
+    }
+    type MeshBlendColorTuple = readonly [number, number, number];
+    /**
+     * Converts linear sRGB to Babylon mesh-blending OKLab coordinates.
+     * @param color Linear sRGB color. HDR components are preserved.
+     * @returns OKLab coordinates.
+     * @see https://bottosson.github.io/posts/oklab/
+     * @internal
+     */
+    export function _LinearSrgbToMeshBlendOklab(color: MeshBlendColorTuple): [number, number, number];
+    /**
+     * Converts Babylon mesh-blending OKLab coordinates to linear sRGB.
+     * @param color OKLab coordinates.
+     * @returns Linear sRGB color without gamut or HDR clamping.
+     * @see https://bottosson.github.io/posts/oklab/
+     * @internal
+     */
+    export function _MeshBlendOklabToLinearSrgb(color: MeshBlendColorTuple): [number, number, number];
+    /**
+     * Interpolates two linear SceneColor values using the selected mesh-blending quality policy.
+     * @param current Current linear SceneColor.
+     * @param target Target linear SceneColor.
+     * @param amount Interpolation amount.
+     * @param quality Mesh-blending quality that selects sRGB or OKLab interpolation.
+     * @returns Interpolated linear SceneColor without HDR clamping.
+     * @internal
+     */
+    export function _InterpolateMeshBlendColor(current: MeshBlendColorTuple, target: MeshBlendColorTuple, amount: number, quality: MeshBlendQuality): [number, number, number];
+    /**
+     * Gets the complete quality settings used to compile a mesh-blending shader variant.
+     * @param quality Quality to inspect.
+     * @returns The immutable settings for the quality.
+     * @internal
+     */
+    export function _GetMeshBlendQualitySettings(quality: MeshBlendQuality): Readonly<IMeshBlendQualitySettings>;
+    /**
+     * Gets the radius scale used by a mesh-blending quality level.
+     * @param quality Quality to convert.
+     * @returns The radius scale applied after projection and the minimum-pixel floor.
+     * @internal
+     */
+    export function _GetMeshBlendQualityRadiusScale(quality: MeshBlendQuality): number;
+    /**
+     * Projects a world-space mesh-blending radius to physical render-target pixels.
+     * @param worldRadius Radius in Babylon world units.
+     * @param viewDepth Positive distance from the camera.
+     * @param renderTargetHeight Physical render-target height.
+     * @param projectionYScale Absolute Y scale from the projection matrix.
+     * @param isOrthographic Whether the projection is orthographic.
+     * @returns The projected radius in physical pixels.
+     * @internal
+     */
+    export function _ProjectMeshBlendWorldRadiusToPixels(worldRadius: number, viewDepth: number, renderTargetHeight: number, projectionYScale: number, isOrthographic: boolean): number;
+    /**
+     * Calculates the final mesh-blending search radius.
+     * @param definition Radius-class definition.
+     * @param viewDepth Positive distance from the camera.
+     * @param renderTargetHeight Physical render-target height.
+     * @param projectionYScale Absolute Y scale from the projection matrix.
+     * @param isOrthographic Whether the projection is orthographic.
+     * @param quality Quality whose radius scale is applied.
+     * @returns The final radius in physical pixels.
+     * @internal
+     */
+    export function _CalculateMeshBlendSearchRadius(definition: IMeshBlendRadiusDefinition, viewDepth: number, renderTargetHeight: number, projectionYScale: number, isOrthographic: boolean, quality: MeshBlendQuality): number;
+    /**
+     * Calculates the mesh-blending fade for a candidate boundary.
+     * @param distancePixels Distance from the current pixel center to the target pixel center.
+     * @param searchRadiusPixels Effective search radius in physical pixels.
+     * @returns Blend weight in the range 0 through 0.5.
+     * @internal
+     */
+    export function _CalculateMeshBlendFade(distancePixels: number, searchRadiusPixels: number): number;
+    /**
+     * Converts a physical-pixel radius back to the represented world-space radius.
+     * @param radiusPixels Radius in physical render-target pixels.
+     * @param viewDepth Positive distance from the camera.
+     * @param renderTargetHeight Physical render-target height.
+     * @param projectionYScale Absolute Y scale from the projection matrix.
+     * @param isOrthographic Whether the projection is orthographic.
+     * @returns The represented radius in Babylon world units.
+     * @internal
+     */
+    export function _CalculateMeshBlendEffectiveWorldRadius(radiusPixels: number, viewDepth: number, renderTargetHeight: number, projectionYScale: number, isOrthographic: boolean): number;
+    /**
+     * Calculates the contact-slope radius multiplier.
+     * @param oppositeFacing Cosine-domain alignment of the two surface spans.
+     * @param slopeFactor User-configurable narrowing factor.
+     * @returns A multiplier in the range [0.25, 1].
+     * @internal
+     */
+    export function _CalculateMeshBlendSlopeScale(oppositeFacing: number, slopeFactor: number): number;
+    /**
+     * Gets the compile-time shader define for a mesh-blending quality.
+     * @param quality Quality to convert.
+     * @returns The quality define.
+     * @internal
+     */
+    export function _GetMeshBlendQualityDefine(quality: MeshBlendQuality): string;
+    /**
+     * Gets all compile-time defines for a mesh-blending quality variant.
+     * @param quality Quality to convert.
+     * @returns Newline-separated shader defines containing all quality-specific constants and feature switches.
+     * @internal
+     */
+    export function _GetMeshBlendQualityDefines(quality: MeshBlendQuality): string;
+    /**
+     * Validates mesh-blending configuration without mutating an effect.
+     * @param options Configuration to validate.
+     * @internal
+     */
+    export function _ValidateMeshBlendConfiguration(options?: IMeshBlendConfiguration): void;
+    /**
+     * Shared WebGL2 and WebGPU effect wrapper used to visually blend SceneColor across validated contacts between opaque or alpha-tested meshes.
+     *
+     * The effect does not modify geometry, depth, normals, collisions, or shadows. Transparent rendering is caller-controlled;
+     * overlapping transparent surfaces can make SceneColor inconsistent with the single-layer geometry inputs. Meshes opt in
+     * with a packed tag whose group is in the range 1..63; group 0 disables blending. Surfaces in the same nonzero group are
+     * treated as one logical object and do not blend with one another. The four radius classes combine an authored world-space
+     * radius with a minimum radius measured in physical render-target pixels.
+     *
+     * Perspective and orthographic cameras are supported. Search noise is spatially stable and never varies by frame.
+     * Optional base-color input enables shadow estimation; without it, the related sampler and shader work are compiled out.
+     * The effect does not require or implement TAA.
+     */
+    export class ThinMeshBlendingPostProcess extends EffectWrapper {
+        /**
+         * The fragment shader URL.
+         */
+        static readonly FragmentUrl = "meshBlending";
+        /**
+         * The list of uniforms used by the effect.
+         */
+        static readonly Uniforms: string[];
+        /**
+         * The list of samplers used by the effect.
+         */
+        static readonly Samplers: string[];
+        protected _gatherImports(useWebGPU: boolean, list: Promise<any>[]): void;
+        /**
+         * The four configurable radius definitions indexed by packed radius class.
+         *
+         * Both values are projected against the active camera and the physical depth-texture height.
+         */
+        readonly radiusClasses: MeshBlendRadiusDefinitions;
+        /**
+         * Camera used to project radii and reconstruct view-space positions.
+         */
+        camera: Nullable<Camera>;
+        private _slopeFactor;
+        /**
+         * Contact-slope narrowing factor. A value of 1 disables narrowing.
+         */
+        get slopeFactor(): number;
+        set slopeFactor(value: number);
+        private readonly _stableBlueNoiseTexture;
+        private readonly _customDefines;
+        private _quality;
+        private _debugMode;
+        private _depthType;
+        private _hasBaseColorTexture;
+        private readonly _inverseProjection;
+        private readonly _inverseView;
+        private _cachedProjection;
+        private _cachedView;
+        private _projectionUpdateFlag;
+        private _viewUpdateFlag;
+        /**
+         * Gets the compile-time quality variant.
+         */
+        get quality(): MeshBlendQuality;
+        set quality(value: MeshBlendQuality);
+        /**
+         * Gets the compiled debug visualization.
+         */
+        get debugMode(): MeshBlendDebugMode;
+        set debugMode(value: MeshBlendDebugMode);
+        /**
+         * Gets the representation stored in the bound depth texture.
+         */
+        get depthType(): MeshBlendDepthType;
+        set depthType(value: MeshBlendDepthType);
+        /**
+         * Whether a base-color texture is bound and shadow estimation should be compiled.
+         * @internal
+         */
+        get hasBaseColorTexture(): boolean;
+        set hasBaseColorTexture(value: boolean);
+        /**
+         * Constructs a mesh-blending post process.
+         * @param name Name of the effect.
+         * @param engine Engine used to render the effect.
+         * @param options Options used to configure the effect.
+         */
+        constructor(name: string, engine?: Nullable<AbstractEngine>, options?: IThinMeshBlendingPostProcessOptions);
+        /**
+         * Applies shared mesh-blending configuration.
+         * @param options Values to apply. Omitted values retain their current settings.
+         */
+        configure(options?: IMeshBlendConfiguration): void;
+        private _applyConfiguration;
+        bind(noDefaultBindings?: boolean): void;
+        private _updateInverseProjection;
+        dispose(): void;
+        private _updateEffectDefines;
     }
 
 
@@ -26698,6 +27347,148 @@ declare namespace BABYLON {
      * Re-exports pure implementation and applies runtime side effects.
      * Import motionBlurPostProcess.pure for tree-shakeable, side-effect-free usage.
      */
+
+
+    /**
+     * Options used to create a mesh-blending post process.
+     */
+    export interface IMeshBlendingPostProcessOptions extends PostProcessOptions, IMeshBlendConfiguration {
+        /** Optional caller-owned thin mesh-blending effect wrapper. A wrapper can be attached to only one classic post process at a time. */
+        effectWrapper?: ThinMeshBlendingPostProcess;
+        /**
+         * The packed R8UI mesh-blending tag texture.
+         */
+        meshBlendTagTexture: BaseTexture;
+        /**
+         * The view-depth or screen-depth texture aligned with the packed tag texture.
+         */
+        depthTexture: BaseTexture;
+        /**
+         * Optional linear base-color/albedo geometry texture aligned with SceneColor.
+         *
+         * When omitted, shadow estimation is compiled out.
+         */
+        baseColorTexture?: BaseTexture;
+    }
+    /**
+     * Visually blends SceneColor across validated contacts between opaque or alpha-tested meshes.
+     *
+     * This WebGL2 and WebGPU effect does not change geometry, collision queries, depth, normals, or shadow geometry.
+     * Transparent rendering is caller-controlled. Applications assign explicit group IDs from 1 through 63;
+     * group 0 disables blending, and surfaces with the same nonzero group are treated as one logical object.
+     *
+     * The classic wrapper consumes caller-owned geometry textures and does not enable, configure, or dispose
+     * a GeometryBufferRenderer. The tag, depth, and SceneColor inputs are required; optional base color enables
+     * shadow estimation. All provided geometry inputs must have the same physical dimensions and sample count and
+     * are single-sampled. Overlapping transparent surfaces can make SceneColor inconsistent with the single-layer
+     * geometry inputs; compositing transparent content after this effect remains the recommended configuration.
+     *
+     * Four configurable radius classes combine world-space radii with physical-pixel minimums, for both
+     * perspective and orthographic cameras. Quality variants trade search work for seam quality. Stable search
+     * noise is internal and frame invariant. This implementation does not use temporal accumulation or require TAA.
+     *
+     * The classic wrapper is runtime-only because its geometry textures are caller-owned resources. It cannot
+     * be serialized, parsed, or cloned; use the FrameGraph/NRGE path when a serializable graph is required.
+     * @see https://meshblend.lervik.com/
+     * @see https://www.jacktollenaar.top/articles/meshblending.html
+     * @see https://www.jacktollenaar.top/articles/meshblending2.html
+     * @see https://bottosson.github.io/posts/oklab/
+     * @see https://playground.babylonjs.com/?version=preview#XVZTSI#3
+     * @see https://playground.babylonjs.com/?version=preview#O05LI8#6
+     */
+    export class MeshBlendingPostProcess extends PostProcess {
+        protected _effectWrapper: ThinMeshBlendingPostProcess;
+        private _meshBlendTagTexture;
+        private _depthTexture;
+        private _baseColorTexture;
+        private readonly _ownsEffectWrapper;
+        /**
+         * Gets the compile-time quality variant.
+         */
+        get quality(): MeshBlendQuality;
+        set quality(value: MeshBlendQuality);
+        /**
+         * The packed R8UI mesh-blending tag texture used by the effect.
+         */
+        get meshBlendTagTexture(): BaseTexture;
+        set meshBlendTagTexture(value: BaseTexture);
+        /**
+         * The depth texture used for position reconstruction and contact validation.
+         */
+        get depthTexture(): BaseTexture;
+        set depthTexture(value: BaseTexture);
+        /**
+         * The optional linear base-color/albedo geometry texture used by the shadow-transfer heuristic.
+         *
+         * Setting null compiles shadow estimation out.
+         */
+        get baseColorTexture(): Nullable<BaseTexture>;
+        set baseColorTexture(value: Nullable<BaseTexture>);
+        /**
+         * Gets the representation stored in the depth texture.
+         */
+        get depthType(): MeshBlendDepthType;
+        set depthType(value: MeshBlendDepthType);
+        /**
+         * Gets the four configurable radius definitions indexed by packed radius class.
+         */
+        get radiusClasses(): MeshBlendRadiusDefinitions;
+        /**
+         * Gets the compiled debug visualization.
+         */
+        get debugMode(): MeshBlendDebugMode;
+        set debugMode(value: MeshBlendDebugMode);
+        /** Contact-slope narrowing factor. A value of 1 disables narrowing. */
+        get slopeFactor(): number;
+        set slopeFactor(value: number);
+        /**
+         * Applies shared mesh-blending configuration.
+         * @param options Values to apply. Omitted values retain their current settings.
+         */
+        configure(options?: IMeshBlendConfiguration): void;
+        /**
+         * Creates a mesh-blending post process.
+         * @param name The name of the post process.
+         * @param scene The scene containing the camera.
+         * @param camera The camera to attach the post process to.
+         * @param options The post-process and input-texture options.
+         */
+        constructor(name: string, scene: Scene, camera: Camera, options: IMeshBlendingPostProcessOptions);
+        getClassName(): string;
+        dispose(camera?: Camera): void;
+        /**
+         * Classic mesh blending cannot be serialized because its geometry inputs are caller-owned runtime textures.
+         * @throws Always throws because the classic wrapper is runtime-only.
+         */
+        serialize(): never;
+        /**
+         * Classic mesh blending cannot be cloned because its geometry inputs are caller-owned runtime textures.
+         * @returns Null.
+         */
+        clone(): null;
+        private static _ValidateInputs;
+        private static _ValidateInputTextureDimensions;
+        private static _ValidateMeshBlendTagTexture;
+        private static _ValidateDepthTexture;
+        private static _ValidateBaseColorTexture;
+        private static _Validate2DTexture;
+        private _validateInputDimensions;
+    }
+
+
+    /**
+     * Gets the deterministic RG8 blue-noise data used by mesh blending.
+     * @returns The shared blue-noise byte data.
+     * @internal
+     */
+    export function _GetMeshBlendBlueNoiseData(): Uint8Array;
+    /**
+     * Creates the deterministic, spatially stable RG8 blue-noise texture used by mesh blending.
+     * @param engine Engine that owns the texture.
+     * @returns The blue-noise texture.
+     * @internal
+     */
+    export function _CreateMeshBlendBlueNoiseTexture(engine: AbstractEngine): RawTexture;
 
 
 
@@ -31248,11 +32039,11 @@ declare namespace BABYLON {
          */
         rotationAxis?: Vector3;
         /**
-         * Minimum rotation angle value
+         * Minimum rotation angle around `rotationAxis`, in radians. Used by hinge and ball and socket joints.
          */
         min?: number;
         /**
-         * Maximum rotation angle value
+         * Maximum rotation angle around `rotationAxis`, in radians. Used by hinge and ball and socket joints.
          */
         max?: number;
         /**
@@ -31293,8 +32084,6 @@ declare namespace BABYLON {
         pauseSync: boolean;
         private _putBoxesInBoneCenter;
         private _defaultJoint;
-        private _defaultJointMin;
-        private _defaultJointMax;
         /**
          * Construct a new Ragdoll object. Once ready, it can be made dynamic by calling `Ragdoll` method
          * @param skeleton The skeleton containing bones to be physicalized
@@ -36486,6 +37275,7 @@ declare namespace BABYLON {
         private _updateEffect;
         private _updateEffectOptions;
         private _renderVAO;
+        private _renderVAOEffects;
         private _updateVAO;
         private _renderVertexBuffers;
         private _baseUniformsNamesLength;
@@ -36554,6 +37344,8 @@ declare namespace BABYLON {
         updateFunction: (particles: Particle[]) => void;
         /** @internal */
         _emitterWorldMatrix: Matrix;
+        /** Owned translation matrix for the vector-emitter path, so a live mesh world matrix is never overwritten in place */
+        private _emitterTranslationMatrix;
         /** @internal */
         _emitterInverseWorldMatrix: Matrix;
         private _startDirectionFunction;
@@ -36595,6 +37387,10 @@ declare namespace BABYLON {
         _noiseTextureSize: Nullable<ISize>;
         /** @internal */
         _noiseTextureData: Nullable<Uint8Array>;
+        private _noiseTextureFetchInFlight;
+        private _noiseTextureFetchInternalTexture;
+        private _noiseTextureFetchToken;
+        private _noiseTextureReadbackFailureLogged;
         private _particles;
         private _epsilon;
         private _capacity;
@@ -36608,6 +37404,7 @@ declare namespace BABYLON {
         private _linesIndexBuffer;
         private _linesIndexBufferUseInstancing;
         private _drawWrappers;
+        private _renderPassObserver;
         /** @internal */
         _customWrappers: {
             [blendMode: number]: Nullable<DrawWrapper>;
@@ -37061,6 +37858,7 @@ declare namespace BABYLON {
          * @internal
          */
         private _getWrapper;
+        private _bindGeometryRendering;
         /**
          * Gets or sets a boolean indicating that the particle system is paused (no animation will be done).
          */
@@ -37110,6 +37908,11 @@ declare namespace BABYLON {
     }
 
 
+    /**
+     * Callback-free equivalent of GradientHelper.GetCurrentGradient; stores the result in _GradCurrent/_GradNext/_GradScale.
+     * @internal
+     */
+    export function _GetCurrentGradientToRef(ratio: number, gradients: IValueGradient[]): void;
     /** Color */
     /** @internal */
     export function _CreateColorData(particle: Particle, system: ThinParticleSystem): void;
@@ -39103,6 +39906,7 @@ declare namespace BABYLON {
         private _randomTextureSize;
         private _actualFrame;
         private _drawWrappers;
+        private _renderPassObserver;
         private _customWrappers;
         private _renderShadersLoaded;
         private readonly _rawTextureWidth;
@@ -39192,6 +39996,8 @@ declare namespace BABYLON {
          * Limited by the fixed-size uniform arrays in the update shaders.
          */
         readonly maxAttractors: number;
+        /** Precomputed per-slot uniform names, avoiding per-attractor string concatenation every frame. */
+        private readonly _attractorUniformNames;
         /**
          * Add an attractor to the particle system. Attractors are used to change the direction of the particles in the system.
          * @param attractor - The attractor to add to the particle system
@@ -39549,6 +40355,7 @@ declare namespace BABYLON {
          * @internal
          */
         _getWrapper(blendMode: number): DrawWrapper;
+        private _bindGeometryRendering;
         /**
          * @internal
          */
@@ -49130,6 +49937,7 @@ declare namespace BABYLON {
         protected _gatherImports(useWebGPU: boolean, list: Promise<any>[]): void;
         textureWidth: number;
         textureHeight: number;
+        useIntegerTextureSize: boolean;
         constructor(name: string, engine?: Nullable<AbstractEngine>, defines?: string, options?: EffectWrapperCreationOptions);
         bind(noDefaultBindings?: boolean): void;
     }
@@ -49142,8 +49950,22 @@ declare namespace BABYLON {
             max: number;
         }>;
         readonly reductionSteps: Array<ThinMinMaxReducerPostProcess>;
+        /**
+         * Wait for WebGPU readback before notifying observers (default: false).
+         * Notifications are asynchronous in this mode; WebGL readback remains synchronous.
+         */
+        waitForReadback: boolean;
         private _depthRedux;
         private _depthTextureType;
+        private _sourceIsDepthTexture;
+        private _waitBufferFloat?;
+        private _waitBufferUint8?;
+        private _waitMinMax?;
+        private _defaultBufferFloat?;
+        private _defaultBufferUint8?;
+        private _defaultMinMax?;
+        private _readbackPending;
+        private _readbackGeneration;
         get depthRedux(): boolean;
         set depthRedux(value: boolean);
         protected readonly _scene: Scene;
@@ -49152,8 +49974,10 @@ declare namespace BABYLON {
         get textureWidth(): number;
         get textureHeight(): number;
         constructor(scene: Scene, depthRedux?: boolean);
-        setTextureDimensions(width: number, height: number, depthTextureType?: DepthTextureType): boolean;
-        readMinMax(texture: InternalTexture): void;
+        setTextureDimensions(width: number, height: number, depthTextureType?: DepthTextureType, sourceIsDepthTexture?: boolean): boolean;
+        readMinMax(texture: InternalTexture, fallbackToFullRange?: boolean): void;
+        private _completeReadbackAsync;
+        private _notifyMinMax;
         dispose(disposeAll?: boolean): void;
         private _recreatePostProcesses;
     }
@@ -51298,6 +52122,12 @@ declare namespace BABYLON {
             min: number;
             max: number;
         }>;
+        /**
+         * Wait for WebGPU texture readback before notifying observers (default: false).
+         * This delays the notification; it does not block the render loop.
+         */
+        get waitForReadback(): boolean;
+        set waitForReadback(value: boolean);
         protected readonly _camera: Camera;
         protected readonly _thinMinMaxReducer: ThinMinMaxReducer;
         protected _sourceTexture: Nullable<RenderTargetTexture>;
@@ -57009,7 +57839,7 @@ declare namespace BABYLON {
         _distanceToCamera: number;
         /** @internal */
         _id: number;
-        private _currentMaterial;
+        private _currentMaterials;
         /**
          * Add a new submesh to a mesh
          * @param materialIndex defines the material index to use
@@ -57085,9 +57915,18 @@ declare namespace BABYLON {
         /**
          * Returns the submesh material
          * @param getDefaultMaterial Defines whether or not to get the default material if nothing has been defined.
+         * @param passId Optional render pass id to get the material with. If undefined, the engine's current render pass id is used.
          * @returns null or the current material
          */
-        getMaterial(getDefaultMaterial?: boolean): Nullable<Material>;
+        getMaterial(getDefaultMaterial?: boolean, passId?: number): Nullable<Material>;
+        /**
+         * Checks whether this submesh can resolve to the given material in a render pass it has a draw wrapper for, without resolving
+         * each pass. A submesh that customizes getMaterial is always a candidate; otherwise its rendering mesh decides.
+         * @param material defines the material to check
+         * @returns false when no render pass with a draw wrapper can resolve to the material
+         * @internal
+         */
+        _mayRenderWithMaterial(material: Material): boolean;
         private _isMultiMaterial;
         /**
          * Sets a new updated BoundingInfo object to the submesh
@@ -57769,6 +58608,54 @@ declare namespace BABYLON {
     };
 
 
+
+
+    /**
+     * Checks whether an engine supports the render-target and shader features required by mesh blending.
+     * @param engine Engine to check.
+     * @returns True for WebGL2 and WebGPU engines, and false for Native and WebGL1 engines.
+     * @internal
+     */
+    export function _IsMeshBlendingSupported(engine: AbstractEngine): boolean;
+    /**
+     * Radius class stored in a packed mesh-blending tag.
+     *
+     * The selected class combines an authored world radius with a minimum projected radius. At a seam,
+     * the smaller class from the two participating surfaces is used.
+     */
+    export enum MeshBlendingRadiusClass {
+        /** Small blend radius. */
+        Small = 0,
+        /** Medium blend radius. */
+        Medium = 1,
+        /** Large blend radius. */
+        Large = 2,
+        /** Extra-large blend radius. */
+        ExtraLarge = 3
+    }
+    /**
+     * Decoded values stored in a packed mesh-blending tag.
+     */
+    export interface IMeshBlendingTag {
+        /** Logical blend group. Group 0 disables mesh blending. */
+        groupId: number;
+        /** Radius class used to select the blend radius. */
+        radiusClass: MeshBlendingRadiusClass;
+    }
+    /**
+     * Packs a mesh-blending group and radius class into one byte.
+     * @param groupId Logical blend group. Use 0 to disable mesh blending, otherwise use a value from 1 to 63.
+     * @param radiusClass Radius class from 0 to 3.
+     * @returns The packed mesh-blending tag.
+     * @see https://playground.babylonjs.com/?version=preview#XVZTSI#3
+     */
+    export function PackMeshBlendingTag(groupId: number, radiusClass: MeshBlendingRadiusClass): number;
+    /**
+     * Decodes a packed mesh-blending tag.
+     * @param tag Packed mesh-blending tag.
+     * @returns The decoded group and radius class.
+     */
+    export function UnpackMeshBlendingTag(tag: number): IMeshBlendingTag;
 
 
     /**
@@ -60697,6 +61584,11 @@ declare namespace BABYLON {
         get renderingGroupId(): number;
         set renderingGroupId(value: number);
         /**
+         * The packed mesh-blending tag of the source mesh.
+         */
+        get meshBlendingTag(): number;
+        set meshBlendingTag(value: number);
+        /**
          * @returns the total number of vertices (integer).
          */
         getTotalVertices(): number;
@@ -62186,6 +63078,7 @@ declare namespace BABYLON {
         _collisionRetryCount: number;
         _morphTargetManager: Nullable<MorphTargetManager>;
         _renderingGroupId: number;
+        _meshBlendingTag: number;
         _bakedVertexAnimationManager: Nullable<IBakedVertexAnimationManager>;
         _material: Nullable<Material>;
         _materialForRenderPass: Array<Material | undefined>;
@@ -62401,6 +63294,11 @@ declare namespace BABYLON {
          */
         isPickable: boolean;
         /**
+         * Whether this mesh participates in pointer-move ray picking.
+         * @internal
+         */
+        _isPointerMovePickable: boolean | undefined;
+        /**
          * Gets or sets a boolean indicating if the mesh can be near picked (touched by the XR controller or hands). Default is false
          */
         isNearPickable: boolean;
@@ -62434,6 +63332,16 @@ declare namespace BABYLON {
          */
         get renderingGroupId(): number;
         set renderingGroupId(value: number);
+        /**
+         * Gets or sets the packed mesh-blending tag for this mesh.
+         *
+         * Group ID occupies bits 0..5 and radius class occupies bits 6..7. Use PackMeshBlendingTag
+         * to construct the value. Group 0 disables blending; valid participating groups are 1..63.
+         * Meshes in the same nonzero group are treated as one logical surface and do not blend together.
+         * This visual-only property does not alter geometry, collision queries, depth, normals, or shadows.
+         */
+        get meshBlendingTag(): number;
+        set meshBlendingTag(value: number);
         /** Gets or sets current material */
         get material(): Nullable<Material>;
         set material(value: Nullable<Material>);
@@ -62451,6 +63359,17 @@ declare namespace BABYLON {
          * @param material material to use for this render pass. If undefined is passed, no specific material will be used for this render pass but the regular material will be used instead (mesh.material)
          */
         setMaterialForRenderPass(renderPassId: number, material?: Material): void;
+        /**
+         * Checks whether a submesh rendered by this mesh can resolve to the given material in a render pass it has a draw wrapper for.
+         * SubMesh.getMaterial resolves a pass to the mesh's material for that pass (or its material), the scene's default material when
+         * there is none, or a sub-material of a multi-material: any other material can never resolve to the given one. A mesh that
+         * customizes getMaterialForRenderPass is always a candidate.
+         * @param material defines the material to check
+         * @param drawWrappers defines the draw wrappers of the submesh, indexed by render pass id
+         * @returns false when no render pass with a draw wrapper can resolve to the material
+         * @internal
+         */
+        _mayRenderWithMaterial(material: Material, drawWrappers: Array<DrawWrapper>): boolean;
         /**
          * Gets or sets a boolean indicating that this mesh can receive realtime shadows
          * @see https://doc.babylonjs.com/features/featuresDeepDive/lights/shadows
@@ -62630,6 +63549,8 @@ declare namespace BABYLON {
          * @returns the uniform buffer of the mesh.
          */
         getMeshUniformBuffer(): UniformBuffer;
+        /** @internal */
+        get _isGaussianSplatting(): boolean;
         /**
          * Returns the string "AbstractMesh"
          * @returns "AbstractMesh"
@@ -70383,7 +71304,8 @@ declare namespace BABYLON {
         private _splatSizeMin;
         private _splatSizeMax;
         private _sortIsDirty;
-        private _activeSplatRanges;
+        private _forcedSortPending;
+        protected _activeSplatRanges: Nullable<Uint32Array>;
         private _activeSplatRangeKey;
         private _activeSplatRenderCount;
         protected _cachedBoundingMin: Nullable<Vector3>;
@@ -70394,6 +71316,10 @@ declare namespace BABYLON {
         private static _PlyConversionBatchSize;
         /** @internal */
         _shDegree: number;
+        /** Incremented whenever `_updateData` replaces the splat data, even when it reuses the same buffer. @internal */
+        _splatDataRevision: number;
+        /** True while `_updateData` is filling the atlas, so consumers keep the last complete data. @internal */
+        _splatDataPending: boolean;
         protected _maxShDegree: number;
         private static readonly _BatchSize;
         private _cameraViewInfos;
@@ -70438,6 +71364,7 @@ declare namespace BABYLON {
         protected _disableDepthSort: boolean;
         /**
          * If true, disables depth sorting of the splats (default: false)
+         * Disabling sorting also discards deferred forced-sort requests.
          */
         get disableDepthSort(): boolean;
         set disableDepthSort(value: boolean);
@@ -70474,7 +71401,8 @@ declare namespace BABYLON {
         private _setSplatIndexRanges;
         /**
          * Whether the depth sort is settled: a sort computed for the current active ranges and camera has been
-         * applied to the rendered index buffer, and no further sort is pending or in flight. For a static camera
+         * applied to the rendered index buffer, and no further sort is pending or in flight (including a forced sort
+         * deferred until a classic pass needs it). For a static camera
          * and a fixed active set this becomes true once the final sort completes. Used by streaming subclasses to
          * detect when rendering is fully up to date (e.g. for deterministic screenshots) and by IBL shadows to
          * avoid voxelizing against an index buffer the worker has not finished (re)building yet.
@@ -70604,9 +71532,9 @@ declare namespace BABYLON {
         set minPixelSize(value: number);
         private _loadingPromise;
         /**
-         * set rendering material
+         * Sets the rendering material and updates camera views. Notifies material-change observers when the material changes.
          */
-        set material(value: Material);
+        set material(value: Nullable<Material>);
         /**
          * get rendering material
          */
@@ -70625,6 +71553,8 @@ declare namespace BABYLON {
          * @returns constructor loading promise or null if no URL was provided
          */
         getLoadingPromise(): Promise<void> | null;
+        /** @internal */
+        get _isGaussianSplatting(): boolean;
         /**
          * Returns the class name
          * @returns "GaussianSplattingMeshBase"
@@ -70653,6 +71583,26 @@ declare namespace BABYLON {
          * @returns the current mesh
          */
         render(subMesh: SubMesh, enableAlphaMode: boolean, effectiveMeshReplacement?: AbstractMesh): Mesh;
+        /**
+         * Draws the inner per-camera mesh for one render pass. Subclasses may replace selected passes.
+         * @param mesh inner per-camera mesh carrying the sorted splat geometry
+         * @param subMesh the submesh to draw
+         * @param enableAlphaMode whether alpha mode can be changed
+         * @param effectiveMeshReplacement optional mesh providing render info
+         * @returns the drawn mesh
+         */
+        protected _drawColorPass(mesh: Mesh, subMesh: SubMesh, enableAlphaMode: boolean, effectiveMeshReplacement?: AbstractMesh): Mesh;
+        /**
+         * Whether the current pass needs classic sorted splat geometry.
+         * @returns whether classic sorting is required
+         */
+        protected _isSortRequired(): boolean;
+        /**
+         * Handles a compute-owned pass before allocating or waiting for sorted geometry.
+         * @param _enableAlphaMode whether alpha mode can be changed
+         * @returns whether the pass was handled
+         */
+        protected _drawPointPass(_enableAlphaMode: boolean): boolean;
         private static _TypeNameToEnum;
         private static _ValueNameToEnum;
         /**
@@ -70771,6 +71721,7 @@ declare namespace BABYLON {
          */
         get isCompound(): boolean;
         protected _setDelayedTextureUpdate(covA: Uint16Array, covB: Uint16Array, colorArray: Uint8Array, sh?: Uint8Array[]): void;
+        private _commitDelayedTextureUpdate;
         /**
          * Creates (or recreates) the MRT-backed data atlas at the given size and points the four core data
          * textures at its attachments. The attachments use the same decoded GS layout as {@link GaussianSplattingWorkBuffer}
@@ -70929,6 +71880,61 @@ declare namespace BABYLON {
 
 
     /** This file must only contain pure code and pure imports */
+    /**
+     * Progress counters of the optional point-splatting compute renderer, as reported by
+     * {@link GaussianSplattingMesh.pointSplattingProgress}.
+     */
+    export interface IGaussianPointSplattingProgress {
+        /** Lifetime count of successfully dispatched compute frames; never reset by an accumulation restart. */
+        renderedFrameCount: number;
+        /** Identifier of the current accumulation generation; changes whenever accumulated samples are invalidated. */
+        accumulationVersion: number;
+        /** Number of frames needed to visit every output pixel once; fixed for the lifetime of a generation. */
+        pixelCycleLength: number;
+    }
+    /**
+     * Contract between {@link GaussianSplattingMesh} and the optional WebGPU compute point-splatting
+     * implementation, so the mesh can drive it without importing it.
+     * @internal
+     */
+    export interface IGaussianPointSplattingController {
+        /** Whether the main color pass is rendered by the compute path instead of the classic sorted quads. */
+        colorRenderMode: boolean;
+        /** Whether the active camera's DepthRenderer pass is fed by the compute path. */
+        depthRenderMode: boolean;
+        /** Density multiplier (higher = denser and slower). */
+        pointScale: number;
+        /** Internal render-resolution scale, or `"auto"` for the device-tiered point budget. */
+        renderScale: number | "auto";
+        /** Whether the point renderer culls splats against previous-frame depth. */
+        occlusionCulling: boolean;
+        /** Counters of the most recent successful compute frame, or null when no frame is available. */
+        readonly progress: Nullable<IGaussianPointSplattingProgress>;
+        /** Whether compute owns the current pass, including pending shader compilation. */
+        readonly handlesCurrentPass: boolean;
+        /** Drops the decoded compute buffers so the next frame re-decodes them, and restarts accumulation. */
+        invalidateDecodedSplats(): void;
+        /**
+         * Handles the point result for the current pass, including waiting for shader readiness without classic rendering.
+         * @param enableAlphaMode whether the caller wants alpha mode applied
+         * @returns true when the point path handled this pass and the classic geometry must be skipped
+         */
+        drawColorPass(enableAlphaMode: boolean): boolean;
+        /** Releases every GPU resource owned by the controller. */
+        dispose(): void;
+    }
+    /**
+     * Factory installed by the optional point-splatting module.
+     * @internal
+     */
+    export type GaussianPointSplattingControllerFactory = (mesh: GaussianSplattingMesh) => IGaussianPointSplattingController;
+    /**
+     * Installs the point-splatting controller factory. Called by the optional point-splatting module's
+     * registration; until then every point-splatting mode on {@link GaussianSplattingMesh} is a no-op.
+     * @param factory creates a controller for a given mesh
+     * @internal
+     */
+    export function _SetGaussianPointSplattingControllerFactory(factory: GaussianPointSplattingControllerFactory): void;
     interface IGaussianSplattingPartSource {
         name: string;
         _vertexCount: number;
@@ -71081,6 +72087,20 @@ declare namespace BABYLON {
          * Visibility values for each part (0.0 to 1.0), indexed by part index.
          */
         protected _partVisibility: number[];
+        private _pointScale;
+        private _pointRenderScale;
+        private _pointOcclusionCulling;
+        private _pointController;
+        /**
+         * Internal render-resolution scale for point splatting (1 = full). Lower values emit ~scale^2 fewer
+         * points; full resolution is reconstructed over frames. `"auto"` (default) targets a device-tiered point
+         * budget, with the upscale factor capped at 8. Setting it restarts accumulation.
+         */
+        get pointSplattingRenderScale(): number | "auto";
+        set pointSplattingRenderScale(value: number | "auto");
+        /** Enables previous-frame Hi-Z culling in point mode. Off by default because translucent splats can be biased. */
+        get pointSplattingOcclusionCulling(): boolean;
+        set pointSplattingOcclusionCulling(value: boolean);
         /**
          * Per-part active source-splat range overrides, indexed by part index, in GLOBAL source-splat
          * coordinates (offsets into the merged atlas). A part with no entry (undefined) renders its full
@@ -71122,6 +72142,8 @@ declare namespace BABYLON {
         private _tombstonedPartIndices;
         private _partIndicesTexture;
         private _partIndices;
+        private _partWorldData;
+        private readonly _partVisibilityData;
         /** Gets the part indices texture used for compound rendering */
         get partIndicesTexture(): Nullable<BaseTexture>;
         /**
@@ -71195,6 +72217,90 @@ declare namespace BABYLON {
          * @param textureLength - the padded texture length to allocate into
          */
         protected _onIndexDataReceived(partIndices: Uint8Array, textureLength: number): void;
+        /**
+         * Lazily creates this mesh's point-splatting controller, or null when the optional module is absent.
+         * @returns the controller, or null when point splatting has not been registered
+         */
+        private _ensurePointController;
+        /**
+         * Whether the main color pass is rendered with the WebGPU compute point-splatting path instead of the
+         * classic sorted quads. Off by default; other passes (shadows, picking, prepass) are unaffected. Falls
+         * back to the classic path for multiple or rig cameras, floating-origin scenes, clip planes, and streamed parts.
+         * Color rendering also falls back when the camera viewport does not cover the full target or projected-size visualization is enabled.
+         * Wireframe, point-cloud, and other non-triangle fill modes use classic color, including scene-wide and mesh overrides.
+         * Clipping and depth quantization use the supplied projection's planes, including frozen projections.
+         * Tilted and custom projections are supported by the point path. Compute runs immediately
+         * before compositing with the pass's actual view and target dimensions; matching color and depth passes share one result.
+         * While point shaders compile, the pass waits without drawing classic splats. The color pass uses the classic path
+         * while the GaussianSplattingSolidColorMaterialPlugin override is enabled or the source material's
+         * alpha mode is not ALPHA_COMBINE. Point color supports only the built-in GaussianSplattingMaterial;
+         * NodeMaterials, subclasses, and other source materials use classic color to preserve their shader behavior.
+         * Custom material plugins and built-in visualization or picking plugins use classic color unless their
+         * behavior is explicitly reproduced or they are known neutral while disabled. The built-in debug plugin is supported.
+         * The source must require alpha blending without alpha testing; opaque and alpha-test transparency modes use classic color.
+         * Material compatibility is reevaluated each draw, including after material replacement or plugin attachment. WebGPU only.
+         *
+         * Limitation: each pixel's accumulated color is depth-tested as a whole against its latest sample's depth. Where
+         * other geometry intersects the splats, occluded splats can bleed through or visible ones drop out, and the
+         * result can flicker as the latest sample changes. Non-intersecting geometry composites correctly, and mostly
+         * opaque splats show no visible artifacts.
+         *
+         * Requires `@babylonjs/core/Meshes/GaussianSplatting/gaussianPointSplattingController` (included in
+         * `@babylonjs/core`); without it, enabling this logs a warning and does nothing.
+         * @see https://playground.babylonjs.com/#F39YWU#1
+         */
+        get pointSplattingRenderMode(): boolean;
+        set pointSplattingRenderMode(value: boolean);
+        /**
+         * Whether the active camera's DepthRenderer depth for this mesh comes from the point-splatting compute
+         * (an opaque nearest-surface depth) instead of the classic path. Off by default and independent of
+         * {@link pointSplattingRenderMode}, with the same camera, floating-origin, clip-plane, data fallbacks and module requirement.
+         * Color-only material fallbacks do not disable point depth. Scene-wide wireframe or point-cloud overrides
+         * use classic depth. For partial camera viewports, point depth
+         * requires a depth map with ignoreCameraViewport enabled. When point color is supported, depth maps
+         * with different pixel dimensions use classic depth to preserve color accumulation.
+         * Depth passes whose view, material parameters, or part inputs differ from retained point-color history
+         * also use classic depth rather than resetting that history. WebGPU only.
+         */
+        get pointSplattingDepthRenderMode(): boolean;
+        set pointSplattingDepthRenderMode(value: boolean);
+        /**
+         * Counters of the most recent point-splatting compute frame, or null when compute has no available result.
+         * Individual render passes may still use the classic path for unsupported configurations.
+         *
+         * Snapshot `renderedFrameCount` whenever `accumulationVersion` changes: after the first frame of a
+         * generation, each further `pixelCycleLength` frames add one sample to every output pixel.
+         * @returns the latest compute counters, or null when point splatting is not producing frames
+         */
+        get pointSplattingProgress(): Nullable<IGaussianPointSplattingProgress>;
+        /** Density multiplier for point splatting (higher = denser and slower). */
+        get pointSplattingScale(): number;
+        set pointSplattingScale(value: number);
+        /**
+         * True when this mesh hosts a streamed (GPU-decoded) region, which is absent from the CPU `_splatsData`
+         * that point splatting decodes.
+         * @internal
+         */
+        get _pointStreamingUnsupported(): boolean;
+        /**
+         * Force-computes every part proxy's world matrix (a non-forced call skips nodes already computed this frame).
+         * @internal
+         */
+        _syncPartProxyWorldMatrices(): void;
+        /**
+         * Protected state the point-splatting controller needs to decode {@link _splatsData}.
+         * @returns the decoded atlas positions, fallback flip-Y convention, part indices, and active splat-range pairs
+         * @internal
+         */
+        _getPointDecodeInputs(): {
+            positions: Nullable<Float32Array>;
+            flipY: boolean;
+            partIndices: Nullable<Uint8Array>;
+            activeRanges: Nullable<Uint32Array>;
+        };
+        protected _drawColorPass(mesh: Mesh, subMesh: SubMesh, enableAlphaMode: boolean, effectiveMeshReplacement?: AbstractMesh): Mesh;
+        protected _isSortRequired(): boolean;
+        protected _drawPointPass(enableAlphaMode: boolean): boolean;
         /**
          * Returns `true` when at least one part has been added to this compound mesh.
          * Returns `false` before any parts are added, so the mesh renders in normal
@@ -71319,6 +72425,11 @@ declare namespace BABYLON {
          * @param ranges active global source-splat ranges for the part, or `null` to render the whole part
          */
         setPartSplatRanges(partIndex: number, ranges: Nullable<readonly IGaussianSplattingSplatRange[]>): void;
+        /**
+         * Sets the active splat ranges and invalidates decoded point-splatting data when they change.
+         * @param ranges global source-splat ranges to render, or null to render all splats
+         */
+        setSplatIndexRanges(ranges: Nullable<readonly IGaussianSplattingSplatRange[]>): void;
         /**
          * Recomputes the global active-range union across all parts and pushes it to the shared sort/draw
          * via the base {@link setSplatIndexRanges}. When no part carries an override the filter is cleared
@@ -71464,19 +72575,6 @@ declare namespace BABYLON {
          */
         static Parse(parsedMesh: any, scene: Scene): GaussianSplattingMesh;
     }
-    /**
-     * True when `className` (from `AbstractMesh.getClassName()`) identifies a Gaussian Splatting mesh whose
-     * `position.z` vertex attribute encodes a splat index rather than world-space Z: `"GaussianSplattingMesh"`
-     * (also returned by {@link GaussianSplattingCompoundMesh}, which deliberately does not override
-     * `getClassName()`) and `"GaussianSplattingStream"` (which does override it, to remain distinguishable for
-     * other purposes). Rendering-pipeline code that must treat any Gaussian Splatting mesh differently from an
-     * ordinary mesh (geometry buffer, depth pre-pass, GPU picking, IBL voxelization, snapshot rendering, ...)
-     * should use this instead of a literal string comparison, so a future splat mesh subclass only needs to be
-     * added here once.
-     * @param className the mesh class name to test, e.g. from `AbstractMesh.getClassName()`
-     * @returns true if the class name identifies a Gaussian Splatting mesh
-     */
-    export function IsGaussianSplattingClassName(className: string): boolean;
     /**
      * Register side effects for gaussianSplattingMesh.
      * Safe to call multiple times; only the first call has an effect.
@@ -71711,6 +72809,552 @@ declare namespace BABYLON {
     /**
      * Re-exports pure implementation and applies runtime side effects.
      * Import gaussianSplattingCompoundMesh.pure for tree-shakeable, side-effect-free usage.
+     */
+
+
+    /**
+     * True when `className` (from `AbstractMesh.getClassName()`) identifies a Gaussian Splatting mesh whose
+     * `position.z` vertex attribute encodes a splat index rather than world-space Z: `"GaussianSplattingMesh"`
+     * (also returned by `GaussianSplattingCompoundMesh`) or `"GaussianSplattingStream"`.
+     *
+     * This function is retained for backward compatibility. Internal code should prefer
+     * {@link _IsGaussianSplattingMesh}, which also recognizes the inherited Gaussian Splatting capability.
+     * @param className the mesh class name to test, e.g. from `AbstractMesh.getClassName()`
+     * @returns true if the class name identifies a Gaussian Splatting mesh
+     */
+    export function IsGaussianSplattingClassName(className: string): boolean;
+    /**
+     * Tests whether a mesh uses Gaussian Splatting rendering behavior.
+     * @param mesh the mesh to test
+     * @returns true if the mesh is a Gaussian Splatting mesh
+     * @internal
+     */
+    export function _IsGaussianSplattingMesh(mesh: AbstractMesh): boolean;
+
+
+    /** This file must only contain pure code and pure imports */
+    /**
+     * Whether projected depth depends on view-space x/y.
+     * @param projection the camera projection
+     * @returns whether depth must be evaluated separately at each sampled pixel
+     * @internal
+     */
+    export function _HasGaussianPointSplattingProjectedDepth(projection: Matrix): boolean;
+    /**
+     * Bytes per Gaussian of the u32-packed 8-bit SH coefficients for an SH degree.
+     * @param shDegree spherical-harmonics degree (0-4)
+     * @returns packed SH bytes per Gaussian (0 at degree 0)
+     * @internal
+     */
+    export function _GetPackedShBytesPerSplat(shDegree: number): number;
+    /**
+     * Owns the WebGPU compute pipeline and GPU buffers for Gaussian Point Splatting (the stochastic,
+     * sort-free point-splatting technique). Engine-focused: it knows nothing about the scene graph
+     * beyond the camera matrices and viewport size handed to it.
+     *
+     * Per-frame pipeline (dispatched before the render pass):
+     *   preprocess (1 thread/Gaussian: transform, cull, cache screen state, emit a point weight)
+     *   scan (Blelloch prefix sum of the weights into a CDF + GPU-written indirect dispatch args)
+     *   partition (bucketed point-to-Gaussian table that narrows the splat search)
+     *   splat (indirect, 1 thread/point: find its Gaussian in the CDF, atomicMin its sample)
+     *   resolve (accumulate the packed image buffer into the full-float buffer, reset it)
+     *   hi-Z build (max-reduce this frame's depth into next frame's occlusion pyramid)
+     *
+     */
+    export class GaussianPointSplattingRenderer {
+        private readonly _engine;
+        private _preprocessCs;
+        private _preprocessBindings;
+        private _preprocessShDegree;
+        private _scanBlocksCs;
+        private _scanSumsCs;
+        private _scanAddCs;
+        private _partitionCs;
+        private _hiZBuildCs;
+        private _splatCs;
+        private _resolveCs;
+        private _uniforms;
+        private _resolveParams;
+        private _means;
+        private _colorOpacity;
+        private _cov3d;
+        private _sh;
+        private _shDegree;
+        private _weights;
+        private _gsData;
+        private _cdf;
+        private _blockSums;
+        private _gaussianCount;
+        private _numBlocks;
+        /** Sample-density multiplier on the (importance-calibrated) point count. Keep at 1 for exact
+         * coverage = opacity*gaussian; other values trade noise for cost but bias the alpha. */
+        pointScale: number;
+        /** Low-pass antialiasing dilation, in the classic material's `kernelSize` units. */
+        kernelSize: number;
+        /** Classic material's `minPixelSize`: splats whose projected diameter is below this many output pixels are skipped (0 = off). */
+        minPixelSize: number;
+        /** Whether view-space forward is negative (right-handed scenes). */
+        rightHandedSystem: boolean;
+        /** 1 when any per-part debug knob is active (drives the preprocess debug branch); 0 otherwise. */
+        debugActive: number;
+        /** Whether the active camera is orthographic (selects the ortho Jacobian in computeCov2D). */
+        isOrthographic: boolean;
+        /** Whether the source material enables antialiasing opacity compensation (classic COMPENSATION). */
+        compensation: boolean;
+        /**
+         * Hi-Z occlusion culling: skip Gaussians fully behind the previous frame's nearest samples. Off by default
+         * because those stochastic samples may be semi-transparent, so culling biases the converged image.
+         * The depth pyramid is allocated only while enabled.
+         */
+        occlusionCulling: boolean;
+        private _pointCount;
+        private _indirectArgs;
+        private _partition;
+        private _imageBuffer;
+        private _accumBuffer;
+        private _accumDepth;
+        private _accumCount;
+        private _hiZ;
+        private _hiZLevels;
+        private _hiZBuildParams;
+        private _boundHiZParams;
+        private _width;
+        private _height;
+        private _outWidth;
+        private _outHeight;
+        private _upsampleN;
+        private _jitterX;
+        private _jitterY;
+        private _view;
+        private _viewProjection;
+        private _projection;
+        private _inverseProjection;
+        private _projectedDepth;
+        private _reverseDepth;
+        private readonly _projectedDepthSpan;
+        private _near;
+        private _far;
+        private _focalX;
+        private _focalY;
+        private _camX;
+        private _camY;
+        private _camZ;
+        private _viewZMin;
+        private _viewZMax;
+        private _projZ;
+        private _frameIndex;
+        private _parts;
+        private _partBuffers;
+        private _partUseFrames;
+        private _partSlot;
+        private _partCount;
+        private _prevPartData;
+        private _accumGeneration;
+        private _lastRenderedGeneration;
+        private _prevVp;
+        private _hasPrevVp;
+        /** Cap on each output pixel's accumulated sample count (clamped to 1..65535). Past the cap later
+         * samples blend in at 1/(cap+1), so the image keeps refreshing instead of freezing. */
+        maxAccumFrames: number;
+        /**
+         * Largest storage buffer this device can allocate and bind, in bytes. Both the per-Gaussian screen
+         * data and the accumulation buffers scale linearly with the workload and can exceed it.
+         * @returns the effective storage buffer size limit in bytes
+         */
+        private _getMaxStorageBufferSize;
+        /**
+         * True when the storage buffers required by the given workload fit in the device limits. Callers must
+         * fall back to another renderer when it is false, otherwise buffer creation raises a validation error.
+         * @param gaussianCount number of Gaussians to render
+         * @param shDegree spherical-harmonics degree of the data (0-4)
+         * @param outWidth output (full) width in pixels
+         * @param outHeight output (full) height in pixels
+         * @returns whether the workload can be allocated on this device
+         */
+        supportsWorkload(gaussianCount: number, shDegree: number, outWidth: number, outHeight: number): boolean;
+        /**
+         * Creates a new Gaussian Point Splatting renderer.
+         * @param engine the (WebGPU) engine to allocate compute resources on
+         */
+        constructor(engine: AbstractEngine);
+        /**
+         * (Re)creates the preprocess shader so only the asset's SH bands are compiled.
+         * @param shDegree the asset's SH degree
+         */
+        private _createPreprocessCs;
+        /**
+         * The resolved, full-float accumulation buffer (`array<vec4f>`, row-major, y * width + x). Bound
+         * read-only by the blit material's fragment shader. Null until the first render.
+         */
+        get accumBuffer(): Nullable<StorageBuffer>;
+        /**
+         * Per-pixel resolved surface depth (NDC z in the scene's convention), bound read-only by the blit
+         * material to write fragDepth for compositing. Null until the first render.
+         */
+        get accumDepthBuffer(): Nullable<StorageBuffer>;
+        /**
+         * Number of compute frames successfully dispatched since this renderer was created.
+         * This does not reset when accumulated samples are invalidated.
+         * @returns the lifetime successful-dispatch count
+         */
+        get renderedFrameCount(): number;
+        /**
+         * Changes whenever accumulated samples are invalidated (camera, parts, data, density or output size).
+         * A change of the upscale factor alone does not bump it; callers must reset accumulation. Wraps at 65536.
+         * @returns the current accumulation generation
+         */
+        get accumulationVersion(): number;
+        /**
+         * Number of frames required to visit every output pixel once at the current render scale.
+         * @returns the current jitter-cycle length, `N * N`
+         */
+        get pixelCycleLength(): number;
+        /**
+         * Reads back the total emitted point count from the last dispatched frame (async GPU readback). Used by
+         * the budget-driven auto render-scale controller.
+         * @returns the emitted point count (0 if never dispatched)
+         */
+        readPointCountAsync(): Promise<number>;
+        /** Current internal render width, in pixels. */
+        get width(): number;
+        /** Current internal render height, in pixels. */
+        get height(): number;
+        /** Output (full) width the accumulation buffer is sized to (what the blit samples). */
+        get outputWidth(): number;
+        /** Output (full) height the accumulation buffer is sized to. */
+        get outputHeight(): number;
+        /** Number of Gaussians currently loaded. */
+        get gaussianCount(): number;
+        /**
+         * Whether the whole compute pipeline is compiled and ready to dispatch.
+         * @returns true once every compute shader is ready
+         */
+        isReady(): boolean;
+        /**
+         * Uploads decoded splat data into per-Gaussian GPU buffers, replacing any previous data.
+         * @param means packed positions, 4 floats per Gaussian (x, y, z, unused)
+         * @param cov3d packed 3D covariance, 4 u32 per Gaussian (3 f16 pairs of Sigma/factor + f32 factor)
+         * @param colorOpacity packed RGBA8 base color + opacity, 1 u32 per Gaussian
+         * @param sh 8-bit-quantized SH coefficients packed 4 bytes/u32 (GPS_SH_WORDS per Gaussian), or null
+         * @param shDegree spherical-harmonics degree (0 = view-independent color)
+         * @param count number of Gaussians
+         */
+        updateSplats(means: Float32Array, cov3d: Uint32Array, colorOpacity: Uint32Array, sh: Nullable<Uint32Array>, shDegree: number, count: number): void;
+        /** Restarts progressive accumulation; each output pixel is overwritten on its next visit. The cached
+         * view-projection is kept, otherwise the next {@link renderToBuffer} would detect a move and reset again. */
+        resetAccumulation(): void;
+        /**
+         * Sets the camera state used to project Gaussians on the next render.
+         * @param view world-to-view matrix
+         * @param viewProjection world-to-clip matrix
+         * @param near near plane distance
+         * @param far far plane distance
+         * @param focalX horizontal focal length in pixels
+         * @param focalY vertical focal length in pixels
+         * @param camX camera world position x
+         * @param camY camera world position y
+         * @param camZ camera world position z
+         * @param viewZMin the model's minimum view-space depth this frame (depth-key normalization range)
+         * @param viewZMax the model's maximum view-space depth this frame
+         */
+        setCamera(view: Matrix, viewProjection: Matrix, near: number, far: number, focalX: number, focalY: number, camX: number, camY: number, camZ: number, viewZMin: number, viewZMax: number): void;
+        /**
+         * Sets the projection matrix's z-row (column-major m10, m11, m14, m15), used by resolve to map the
+         * view-z depth key back to ndc.z for fragDepth (it encodes the reverse-Z / half-Z convention).
+         * @param m10 projection.m[10]
+         * @param m11 projection.m[11]
+         * @param m14 projection.m[14]
+         * @param m15 projection.m[15]
+         */
+        setProjectionZ(m10: number, m11: number, m14: number, m15: number): void;
+        /**
+         * Sets the full projection for covariance, per-pixel depth and oblique clipping.
+         * @param projection camera projection matrix
+         * @param inverseProjection inverse of the projection matrix
+         * @param reverseDepth whether larger NDC depth values are nearer
+         */
+        setProjectionMatrix(projection: Matrix, inverseProjection: Matrix, reverseDepth?: boolean): void;
+        /** Bounds projected depth over the model's view-z interval and padded jitter grid, reusing the result.
+         * @param maxX maximum NDC x covered by the grid
+         * @param maxY maximum NDC y covered by the grid
+         * @returns the nearest-first projected depth range for quantization
+         */
+        private _getProjectedDepthSpan;
+        /**
+         * Checks part inputs without changing the current accumulation or dispatch buffers.
+         * @param packed packed part records
+         * @param count number of parts
+         * @returns whether these inputs match the current renderer state
+         * @internal
+         */
+        _matchesPartData(packed: Float32Array, count: number): boolean;
+        /**
+         * Uploads the per-part records (see GpsPart) and restarts accumulation when they changed.
+         * @param packed part records, `count * 40` floats (world matrix + visibility + 5 debug rows per part)
+         * @param count number of parts (at least 1)
+         */
+        setPartData(packed: Float32Array, count: number): void;
+        private _disposePartBuffers;
+        private _ensurePixelBuffers;
+        /**
+         * Runs the per-frame GPS compute pipeline for the given viewport, leaving the result in
+         * {@link accumBuffer}. Allocates/resizes buffers on demand.
+         * @param width internal render (low) width in pixels; must be `ceil(outWidth / upsampleN)`
+         * @param height internal render (low) height in pixels; must be `ceil(outHeight / upsampleN)`
+         * @param outWidth output (full) width the accumulation is reconstructed at
+         * @param outHeight output (full) height
+         * @param upsampleN integer upscale factor; 1 = no upsampling
+         * @param jitterX this frame's sub-cell offset x in [0, N)
+         * @param jitterY this frame's sub-cell offset y in [0, N)
+         * @returns true if the pipeline dispatched, false if it was not ready / had nothing to draw
+         */
+        renderToBuffer(width: number, height: number, outWidth?: number, outHeight?: number, upsampleN?: number, jitterX?: number, jitterY?: number): boolean;
+        private _disposeGaussianBuffers;
+        /** Releases all GPU resources owned by the renderer. */
+        dispose(): void;
+    }
+
+
+    /**
+     * Re-exports the pure implementation and imports required shaders/features for their runtime registration.
+     * Import gaussianPointSplattingRenderer.pure for tree-shakeable, side-effect-free usage.
+     */
+
+
+    /** This file must only contain pure code and pure imports */
+    /**
+     * Owns the WebGPU compute point-splatting path of one {@link GaussianSplattingMesh}: decode, dispatch,
+     * auto render scale, and the compositors that blit the result into the scene.
+     *
+     * The mesh never imports this module, so bundles without point splatting do not include it. It is enabled
+     * by {@link RegisterGaussianPointSplattingController}, which the side-effect wrapper calls.
+     */
+    export class GaussianPointSplattingController implements IGaussianPointSplattingController {
+        private readonly _mesh;
+        private readonly _scene;
+        /**
+         * Creates a point-splatting controller for a Gaussian Splatting mesh.
+         * @param mesh the mesh whose splat data this controller renders
+         */
+        constructor(mesh: GaussianSplattingMesh);
+        private _colorMode;
+        private _depthMode;
+        private readonly _projectionClipRange;
+        private _scale;
+        private _renderScale;
+        private _occlusionCulling;
+        private _autoN;
+        private _autoMeasuredGeneration;
+        private _lastRenderedGeneration;
+        private _autoRequestId;
+        private _budgetReadPending;
+        private _resultReady;
+        private _colorHistoryReady;
+        private _colorUsesCameraTransform;
+        private _cameraFrameId;
+        private _cameraId;
+        /** Whether the latest compute run succeeded; unlike `_resultReady`, not cleared at frame start. */
+        private _progressReady;
+        private _computedWidth;
+        private _computedHeight;
+        private _progressFrameCount;
+        private _progressGeneration;
+        private _progressCycleLength;
+        private _streamingWarned;
+        private _sourceWarned;
+        private _workloadWarned;
+        private _invalidProjectionWarned;
+        private _renderer;
+        private _blit;
+        private _blitMesh;
+        private _depthBlit;
+        private _depthBlitMesh;
+        private _computeObserver;
+        private _cameraObserver;
+        private _restoreObserver;
+        private _splatCount;
+        private _partCount;
+        private _decodedPartCount;
+        private _decodedRevision;
+        private _decodedShDegree;
+        private _partLocalMin;
+        private _partLocalMax;
+        private _partScratch;
+        private _decodedSplatsData;
+        private readonly _vpMatrix;
+        private readonly _cameraVpMatrix;
+        private readonly _inverseProjection;
+        private readonly _outputSize;
+        private readonly _depthSpan;
+        /** {@inheritDoc IGaussianPointSplattingController.colorRenderMode} */
+        get colorRenderMode(): boolean;
+        set colorRenderMode(value: boolean);
+        /** {@inheritDoc IGaussianPointSplattingController.depthRenderMode} */
+        get depthRenderMode(): boolean;
+        set depthRenderMode(value: boolean);
+        /** {@inheritDoc IGaussianPointSplattingController.progress} */
+        get progress(): Nullable<IGaussianPointSplattingProgress>;
+        /** True while either point-splatting mode is on, i.e. while the shared compute must run. */
+        private get _computeActive();
+        /** GPU-only SOG and standalone streams have no retained splats for the compute decoder. */
+        private get _hasUnsupportedSource();
+        /** {@inheritDoc IGaussianPointSplattingController.pointScale} */
+        get pointScale(): number;
+        set pointScale(value: number);
+        /** {@inheritDoc IGaussianPointSplattingController.occlusionCulling} */
+        get occlusionCulling(): boolean;
+        set occlusionCulling(value: boolean);
+        /** Lazily builds the compute shared by the color and depth modes. Idempotent. */
+        private _ensureCompute;
+        /** Tears down the shared compute once neither point-splatting mode needs it anymore. */
+        private _releaseComputeIfIdle;
+        private _releaseComputeResources;
+        private _releaseBlitResources;
+        /** Builds a fullscreen compositor triangle. It is disabled and drawn manually, so its clip-space
+         * geometry never leaks into other geometry passes.
+         * @param name the compositor mesh name
+         * @param material the blit material to render it with
+         * @returns the created compositor mesh
+         */
+        private _createBlitMesh;
+        /** Lazily builds the color compositor. */
+        private _enableColorBlit;
+        /** Lazily builds the depth compositor. */
+        private _enableDepthBlit;
+        /**
+         * Checks the mesh's current data and output size against the device buffer limits, before anything is
+         * decoded or allocated. Warns once when they do not fit.
+         * @returns whether the workload fits
+         */
+        private _isWorkloadSupported;
+        /** Re-decodes the splat data if it changed since the last decode. */
+        private _syncData;
+        /**
+         * Decodes raw `.splat` bytes into local-space per-Gaussian buffers. Mirrors the classic `_makeSplat`,
+         * including the `* 2` on the scale, which `gpsPreprocess` cancels on the projected covariance.
+         * @param splatsData raw `.splat` bytes for this mesh's splats
+         */
+        private _decode;
+        /**
+         * Packs the loader's 8-bit SH bytes into u32 words per splat.
+         * @param shData packed per-splat SH textures, one per 16 scalar components, or undefined
+         * @param shDegree spherical-harmonics degree (0-4)
+         * @param count number of splats
+         * @returns u32-packed SH bytes, or null when SH is absent
+         */
+        private _packSh;
+        /** Uploads this frame's per-part world matrix, visibility and debug-plugin rows. */
+        private _uploadParts;
+        /**
+         * Packs current part inputs without changing the renderer's accumulation or dispatch buffers.
+         * @returns whether the debug plugin is active
+         */
+        private _packParts;
+        /**
+         * Protects point-color history from pass-specific inputs while allowing shared camera motion.
+         * @returns whether depth can share the current color inputs without a pass-specific accumulation reset
+         */
+        private _depthInputsMatchColorHistory;
+        /**
+         * Uses the scene's main camera matrix before render targets can refresh the camera's projection cache.
+         * @returns the current camera transform, or null if a different camera owns the render target
+         */
+        private _getCameraTransform;
+        /**
+         * Reads the forward clipping interval of a projection whose depth is independent of x/y.
+         * @param projection the supplied projection matrix
+         * @returns the reused near/far interval (zero far means infinite), or null for unsupported intervals
+         */
+        private _getProjectionClipRange;
+        /**
+         * Computes the model's view-depth span from its part AABB corners.
+         * @param viewM column-major view matrix
+         * @param near camera near plane
+         * @param far camera far plane; 0 means infinite
+         * @param clampToCamera whether to clamp the interval to the standard camera near/far planes
+         * @returns the model's [viewZMin, viewZMax] this frame
+         */
+        private _viewZSpan;
+        /**
+         * Returns a stride coprime to `total` near the golden ratio, so `i*stride % total` is a decorrelated permutation.
+         * @param total the cycle length (number of sub-cells, N*N)
+         * @returns a stride coprime to total
+         */
+        private _coprimeStride;
+        /** Per-frame point target for the `"auto"` render scale: desktop 15M, iOS 9M, other mobile 6M.
+         * @returns the target emitted-point count per frame */
+        private _budget;
+        /**
+         * Reads back the point count and derives the auto render factor N from the device budget.
+         * @param currentN the render factor N used for the frame being measured
+         * @param generation the accumulation generation the measured frame belongs to
+         * @param freeze whether the measured frame had occlusion culling active, so N may be fixed for `generation`
+         */
+        private _updateAutoScale;
+        private _convergeAutoScaleAsync;
+        /** Returns the current depth map's size, or the camera's color target size for other passes.
+         * The returned object is reused between calls.
+         * @param colorTarget whether to return color dimensions regardless of the current pass
+         * @returns The current target dimensions in pixels.
+         */
+        private _getOutputSize;
+        /** Refreshes inputs baked into the point result, including changes made by per-pass mesh callbacks. */
+        private _syncRenderInputs;
+        /** Runs compute immediately before a point compositor and binds the result to both blit materials. */
+        private _runCompute;
+        /**
+         * True when the frame renders a view the point path cannot reproduce: several active cameras, rig
+         * cameras (stereo, XR, multiview), floating origin, unsupported projection clipping intervals, or scene/material clip planes.
+         * The classic path renders those instead.
+         * @returns whether point splatting must fall back to the classic path this frame
+         */
+        private _hasUnsupportedView;
+        /**
+         * True only for the camera's main forward color pass.
+         * @returns whether the current render pass is the camera's main forward color pass
+         */
+        private _isMainColorPass;
+        /**
+         * The active camera's scene depth renderer while it is rendering; other depth passes use the classic path.
+         * @returns the depth renderer owning the current render pass, or null
+         */
+        private _getCurrentDepthRenderer;
+        /**
+         * True only while rendering the active camera's scene depth renderer.
+         * @returns whether the current render pass is the active camera's depth renderer pass
+         */
+        private _isDepthPass;
+        /** {@inheritDoc IGaussianPointSplattingController.dispose} */
+        dispose(): void;
+        /** {@inheritDoc IGaussianPointSplattingController.renderScale} */
+        get renderScale(): number | "auto";
+        set renderScale(value: number | "auto");
+        /** {@inheritDoc IGaussianPointSplattingController.invalidateDecodedSplats} */
+        invalidateDecodedSplats(): void;
+        /**
+         * Checks only plugin implementations whose enabled behavior is reproduced, or whose disabled behavior is neutral.
+         * @returns whether the source material's plugins are compatible with point color
+         */
+        private _supportsSourceMaterialPlugins;
+        /** {@inheritDoc IGaussianPointSplattingController.handlesCurrentPass} */
+        get handlesCurrentPass(): boolean;
+        /**
+         * Composites supported camera color or depth passes from the point-splatting result.
+         * The pass waits without drawing classic splats while compute or compositor shaders are compiling.
+         * @param enableAlphaMode whether the color compositor should enable alpha blending
+         * @returns whether the point path handled the current pass, including waiting for shader readiness
+         */
+        drawColorPass(enableAlphaMode: boolean): boolean;
+    }
+    /**
+     * Enables the point-splatting properties of {@link GaussianSplattingMesh}. Idempotent.
+     */
+    export function RegisterGaussianPointSplattingController(): void;
+
+
+    /**
+     * Re-exports the pure implementation and registers point splatting on GaussianSplattingMesh.
+     * Import gaussianPointSplattingController.pure for tree-shakeable, side-effect-free usage.
      */
 
 
@@ -73253,6 +74897,7 @@ declare namespace BABYLON {
      * * The mesh can be set to updatable with the boolean parameter `updatable` (default false) if its internal geometry is supposed to change once created
      * * If you create a double-sided mesh, you can choose what parts of the texture image to crop and stick respectively on the front and the back sides with the parameters `frontUVs` and `backUVs` (Vector4)
      * * Remember you can only change the shape positions, not their number when updating a polygon
+     * * The `smoothingThreshold` option defines the dot product threshold for smoothing the normals of adjacent side faces. The default value of 2 disables smoothing
      * @param name defines the name of the mesh
      * @param options defines the options used to create the mesh
      * @param scene defines the hosting scene
@@ -73275,7 +74920,9 @@ declare namespace BABYLON {
     /**
      * Creates an extruded polygon mesh, with depth in the Y direction.
      * * You can set different colors and different images to the top, bottom and extruded side by using the parameters `faceColors` (an array of 3 Color3 elements) and `faceUV` (an array of 3 Vector4 elements)
+     * * The `smoothingThreshold` option defines the dot product threshold for smoothing the normals of adjacent side faces. The default value of 2 disables smoothing
      * @see https://doc.babylonjs.com/features/featuresDeepDive/materials/using/texturePerBoxFace
+     * @see https://playground.babylonjs.com/#TJLZLN#0
      * @param name defines the name of the mesh
      * @param options defines the options used to create the mesh
      * @param scene defines the hosting scene
@@ -73286,6 +74933,7 @@ declare namespace BABYLON {
         shape: Vector3[];
         holes?: Vector3[][];
         depth?: number;
+        smoothingThreshold?: number;
         faceUV?: Vector4[];
         faceColors?: Color4[];
         updatable?: boolean;
@@ -83367,6 +85015,8 @@ declare namespace BABYLON {
             PREPASS_OBJECT_ID: boolean;
             PREPASS_OBJECT_ID_INDEX: number;
             PREPASS_OBJECT_ID_R8: boolean;
+            PREPASS_MESH_BLEND_TAG: boolean;
+            PREPASS_MESH_BLEND_TAG_INDEX: number;
             SCENE_MRT_COUNT: number;
         };
     } & {
@@ -83485,6 +85135,7 @@ declare namespace BABYLON {
         REFRACTIONMAP_3D: boolean;
         REFLECTIONOVERALPHA: boolean;
         TWOSIDEDLIGHTING: boolean;
+        SKIP_OUT_OF_RANGE_LIGHTING: boolean;
         SHADOWFLOAT: boolean;
         MORPHTARGETS: boolean;
         MORPHTARGETS_POSITION: boolean;
@@ -83784,6 +85435,13 @@ declare namespace BABYLON {
          * Defines the maximum number of lights that can be used in the material
          */
         accessor maxSimultaneousLights: number;
+        private _skipOutOfRangeLighting;
+        /**
+         * If set to true, point and spot lights skip their lighting computations for fragments beyond the light range, where they
+         * contribute nothing. Only lights with a finite range are affected. The extra per-fragment test costs time when most fragments
+         * are within range of most lights, so only enable it for sparse lighting measured on the target devices (default: false).
+         */
+        accessor skipOutOfRangeLighting: boolean;
         private _invertNormalMapX;
         /**
          * If sets to true, x component of normal map value will invert (x = 1.0 - x).
@@ -84674,6 +86332,8 @@ declare namespace BABYLON {
             PREPASS_OBJECT_ID: boolean;
             PREPASS_OBJECT_ID_INDEX: number;
             PREPASS_OBJECT_ID_R8: boolean;
+            PREPASS_MESH_BLEND_TAG: boolean;
+            PREPASS_MESH_BLEND_TAG_INDEX: number;
             SCENE_MRT_COUNT: number;
         };
     } & Tbase;
@@ -85734,12 +87394,23 @@ declare namespace BABYLON {
      *
      * IDs must be unsigned integers supported by the object ID texture format. ID 0 is reserved for background or excluded meshes.
      * RGBA textures support IDs up to 0xFFFFFF, while RED textures support IDs up to 0xFF.
+     * Instances and thin instances use the source mesh ID, and this callback receives the source mesh for instanced draws.
      * This callback runs in the render hot path and may be called multiple times for the same mesh in a frame.
      * It should avoid allocations and return a consistent value for a mesh during a render.
      */
     export type GeometryRenderingObjectIdProvider = (mesh: AbstractMesh) => number;
+    /**
+     * Provides the packed mesh-blending tag written by geometry rendering for a mesh.
+     *
+     * Tags must be 0 or contain a group ID between 1 and 63 in their low six bits. Tag 0 disables mesh blending.
+     * Instances and thin instances use the source mesh tag. This callback receives the source mesh for instanced draws.
+     * It runs in the render hot path and should avoid allocations and return a consistent value during a render.
+     */
+    export type GeometryRenderingMeshBlendTagProvider = (mesh: AbstractMesh) => number;
     /** @internal */
     export function _GetGeometryRenderingObjectId(mesh: AbstractMesh, provider: GeometryRenderingObjectIdProvider, maxObjectId?: number): number;
+    /** @internal */
+    export function _GetGeometryRenderingMeshBlendTag(mesh: AbstractMesh, provider: GeometryRenderingMeshBlendTagProvider): number;
     /**
      * Type of clear operation to perform on a geometry texture.
      */
@@ -85766,6 +87437,22 @@ declare namespace BABYLON {
      * A configuration is created for each rendering pass a geometry rendering is used in.
      */
     export type GeometryRenderingConfiguration = {
+        /** @internal */
+        _attachments?: number[];
+        /** @internal */
+        _colorAttachments?: number[];
+        /** @internal */
+        _mrtCount?: number;
+        /** @internal */
+        _defines?: string;
+        /** @internal */
+        _currentWorldMatrices?: {
+            [index: number]: Matrix;
+        };
+        /** @internal */
+        _worldMatrixFrameIds?: {
+            [index: number]: number;
+        };
         /**
          * Defines used for the geometry rendering.
          */
@@ -85812,6 +87499,10 @@ declare namespace BABYLON {
          * Whether the object ID texture uses the RED format.
          */
         objectIdIsRedFormat: boolean;
+        /**
+         * Provides the packed mesh-blending tag written for each rendered mesh.
+         */
+        meshBlendTagProvider?: GeometryRenderingMeshBlendTagProvider;
     };
     /**
      * Helper class to manage geometry rendering.
@@ -85845,6 +87536,20 @@ declare namespace BABYLON {
          * @returns The configuration.
          */
         static GetConfiguration(renderPassId: number): GeometryRenderingConfiguration;
+        /** @internal */
+        static _PrepareConfiguration(renderPassId: number, attachments: number[], colorAttachments: number[]): void;
+        /** @internal */
+        static _PrepareStringDefines(renderPassId: number, defines: string[]): boolean;
+        /** @internal */
+        static _BindAttachmentsForEffect(engine: AbstractEngine, effect: Pick<Effect, "_multiTarget">): boolean;
+        /** @internal */
+        static _RestoreAttachments(engine: AbstractEngine): void;
+        /** @internal */
+        static _BindColorAttachments(engine: AbstractEngine): boolean;
+        /** @internal */
+        static _IsColorAttachmentEnabled(engine: AbstractEngine): boolean;
+        /** @internal */
+        static _BindZeroAlphaDiscard(engine: AbstractEngine, effect: Effect): void;
         /**
          * Adds uniforms and samplers for geometry rendering.
          * @param uniforms The array of uniforms to add to.
@@ -88898,6 +90603,10 @@ declare namespace BABYLON {
          */
         onCompiled?: Nullable<(effect: Effect) => void>;
         /**
+         * Callback when there is an error compiling the effect
+         */
+        onError?: (effect: Effect, errors: string) => void;
+        /**
          * The friendly name of the effect (default: "effectWrapper")
          */
         name?: string;
@@ -90029,6 +91738,205 @@ declare namespace BABYLON {
     }
 
 
+    /**
+     * The material families supported by {@link DitheredTileFadeMaterialPlugin}.
+     */
+    export type DitheredTileFadeSupportedMaterial = StandardMaterial | PBRBaseMaterial;
+    /**
+     * The mesh types that can store independent dithered tile fade bounds.
+     */
+    export type DitheredTileFadeMesh = Mesh | InstancedMesh;
+    /**
+     * Defines a normalized interval in the 8x8 Bayer threshold domain.
+     */
+    export interface IDitheredTileFadeBounds {
+        /**
+         * The inclusive lower bound.
+         */
+        lowerBound: number;
+        /**
+         * The exclusive upper bound.
+         */
+        upperBound: number;
+    }
+    /**
+     * Applies an opaque, screen-space dithered fade for tile LOD meshes that share a Standard or PBR material.
+     *
+     * The plugin keeps depth writing and the material's alpha mode unchanged. It affects the material color and integrated
+     * prepass outputs, but not standalone depth, shadow, picking, outline, or custom passes. Tile renderers using those passes
+     * must provide equivalent pass-specific coverage or exclude fading tiles from them.
+     *
+     * Per-mesh bounds are runtime state. Material cloning and serialization do not copy them; use {@link copyToMaterial} to
+     * copy the enabled state to a cloned material and then configure bounds for the cloned tile meshes.
+     * @see https://playground.babylonjs.com/#HI17VI#0
+     */
+    export class DitheredTileFadeMaterialPlugin extends MaterialPluginBase {
+        /**
+         * The name used to register the plugin on a material.
+         */
+        static readonly Name = "DitheredTileFade";
+        private _meshBounds;
+        private _instancedBufferSources;
+        private _thinInstanceFadeBuffers;
+        private _generation;
+        private _isEnabled;
+        private _shaderIncludeReady;
+        private _shaderIncludeError;
+        /**
+         * Gets whether configured fades are applied. Disabling the plugin makes every mesh fully visible without discarding its stored bounds.
+         */
+        get isEnabled(): boolean;
+        /**
+         * Sets whether configured fades are applied. This uniform-only change does not recompile the material.
+         */
+        set isEnabled(value: boolean);
+        /**
+         * Creates and attaches a dithered fade plugin.
+         * @param material The Standard or PBR material that the plugin will extend.
+         * @throws If the material is unsupported or already has a dithered tile fade plugin. Use {@link GetOrCreate} when reuse is intended.
+         */
+        constructor(material: DitheredTileFadeSupportedMaterial);
+        /**
+         * Gets the plugin already attached to a material, or creates and attaches one.
+         * @param material The Standard or PBR material to extend.
+         * @returns The material's dithered fade plugin.
+         * @throws If the material is unsupported or another plugin uses the reserved plugin name.
+         */
+        static GetOrCreate(material: DitheredTileFadeSupportedMaterial): DitheredTileFadeMaterialPlugin;
+        /**
+         * Checks whether the plugin supports a shader language.
+         * @param shaderLanguage The shader language to check.
+         * @returns True for GLSL and WGSL.
+         */
+        isCompatible(shaderLanguage: ShaderLanguage): boolean;
+        /**
+         * Sets both normalized Bayer interval bounds for a mesh.
+         * @param mesh The tile mesh or hardware instance whose draw calls use the bounds.
+         * @param lowerBound The inclusive lower bound in the range [0, 1].
+         * @param upperBound The exclusive upper bound in the range [0, 1].
+         * @remarks Bounds are independent. A lower bound greater than or equal to the upper bound intentionally produces an empty interval.
+         */
+        setFadeBounds(mesh: DitheredTileFadeMesh, lowerBound: number, upperBound: number): void;
+        /**
+         * Sets the normalized inclusive lower Bayer interval bound for a mesh.
+         * @param mesh The tile mesh or hardware instance whose draw calls use the bound.
+         * @param lowerBound The inclusive lower bound in the range [0, 1].
+         */
+        setFadeLowerBound(mesh: DitheredTileFadeMesh, lowerBound: number): void;
+        /**
+         * Sets the normalized exclusive upper Bayer interval bound for a mesh.
+         * @param mesh The tile mesh or hardware instance whose draw calls use the bound.
+         * @param upperBound The exclusive upper bound in the range [0, 1].
+         */
+        setFadeUpperBound(mesh: DitheredTileFadeMesh, upperBound: number): void;
+        /**
+         * Copies a mesh's current bounds without allocating.
+         * @param mesh The mesh whose bounds are queried.
+         * @param result The object that receives the bounds.
+         * @returns True when the mesh has explicit bounds. Otherwise false is returned with the source mesh's bounds for a hardware instance, or [0, 1].
+         */
+        getFadeBoundsToRef(mesh: DitheredTileFadeMesh, result: IDitheredTileFadeBounds): boolean;
+        /**
+         * Removes a mesh's explicit bounds. A hardware instance inherits its source mesh's bounds; a source mesh uses [0, 1].
+         * @param mesh The mesh to reset.
+         */
+        resetFade(mesh: DitheredTileFadeMesh): void;
+        /**
+         * Sets normalized Bayer interval bounds for one thin instance.
+         * @param mesh The source mesh containing the thin instance.
+         * @param index The thin instance index.
+         * @param lowerBound The inclusive lower bound in the range [0, 1].
+         * @param upperBound The exclusive upper bound in the range [0, 1].
+         * @param refresh Whether to immediately upload the updated attribute buffer.
+         */
+        setThinInstanceFadeBounds(mesh: Mesh, index: number, lowerBound: number, upperBound: number, refresh?: boolean): void;
+        /**
+         * Sets normalized Bayer interval bounds for all thin instances from packed lower/upper pairs.
+         * @param mesh The source mesh containing the thin instances.
+         * @param bounds Packed lower/upper pairs, with two values per thin instance.
+         */
+        setThinInstanceFadeBoundsBuffer(mesh: Mesh, bounds: Float32Array): void;
+        /**
+         * Uploads thin-instance fade changes after one or more setters used `refresh = false`.
+         * @param mesh The source mesh whose fade attribute buffer changed.
+         */
+        commitThinInstanceFadeBounds(mesh: Mesh): void;
+        /**
+         * Removes one thin instance's explicit bounds so it inherits the source mesh's bounds.
+         * @param mesh The source mesh containing the thin instance.
+         * @param index The thin instance index.
+         * @param refresh Whether to immediately upload the updated attribute buffer.
+         */
+        resetThinInstanceFade(mesh: Mesh, index: number, refresh?: boolean): void;
+        /**
+         * Removes all explicit mesh bounds while keeping the plugin enabled.
+         */
+        reset(): void;
+        /**
+         * Copies material-level configuration to another supported material.
+         *
+         * Per-mesh bounds are intentionally not copied because they belong to the source tile meshes.
+         * @param material The destination material, including a material clone.
+         * @returns The destination material's dithered tile fade plugin.
+         */
+        copyToMaterial(material: DitheredTileFadeSupportedMaterial): DitheredTileFadeMaterialPlugin;
+        /** @internal */
+        isReadyForSubMesh(_defines: MaterialDefines, _scene: Scene, _engine: AbstractEngine, _subMesh: SubMesh): boolean;
+        /**
+         * Uploads the current mesh's bounds for every draw, including shared and frozen materials.
+         * @param _uniformBuffer The material uniform buffer.
+         * @param _scene The scene being rendered.
+         * @param _engine The engine being used.
+         * @param subMesh The submesh being bound.
+         */
+        hardBindForSubMesh(_uniformBuffer: UniformBuffer, _scene: Scene, _engine: AbstractEngine, subMesh: SubMesh): void;
+        /**
+         * Registers the per-instance fade attribute when a mesh is rendered as a hardware or thin instance batch.
+         * @param attributes The attributes used to compile the material.
+         * @param _scene The scene containing the mesh.
+         * @param mesh The mesh being compiled.
+         */
+        getAttributes(attributes: string[], _scene: Scene, mesh: AbstractMesh): void;
+        /**
+         * Gets the uniforms used by the plugin.
+         * @returns The external uniform names.
+         */
+        getUniforms(): {
+            externalUniforms: string[];
+        };
+        /**
+         * Gets the shader code injected by the plugin.
+         * @param shaderType The shader stage being customized.
+         * @param shaderLanguage The material shader language.
+         * @returns Fragment customizations, or null for the vertex stage.
+         */
+        getCustomCode(shaderType: string, shaderLanguage?: ShaderLanguage): Nullable<{
+            [pointName: string]: string;
+        }>;
+        /**
+         * Gets the class name.
+         * @returns The class name.
+         */
+        getClassName(): string;
+        /**
+         * Releases all weakly held runtime fade state and disables fading.
+         *
+         * The plugin remains attached to its material and can be reused through {@link GetOrCreate}.
+         */
+        dispose(): void;
+        private static _ValidateNewPlugin;
+        private static _ValidateMaterial;
+        private _validateMesh;
+        private _validateThinInstanceIndex;
+        private _getInstanceAttributeName;
+        private _ensureInstancedBuffer;
+        private _ensureThinInstanceBuffer;
+        private _updateInstancedFadeBounds;
+        private _validateBound;
+        private _loadShaderIncludeAsync;
+    }
+
+
     type ColorCurvesBindType = typeof ColorCurvesBind;
     type ColorCurvesParseType = typeof ColorCurvesParse;
         export namespace ColorCurves {
@@ -90927,6 +92835,23 @@ declare namespace BABYLON {
         dispose?: () => void;
     }
     /**
+     * Controls the GPU texture created by a texture processing operation.
+     */
+    export interface ITextureProcessorOutputOptions {
+        /**
+         * Texture type used by the render target. Defaults to `Constants.TEXTURETYPE_UNSIGNED_BYTE`.
+         */
+        textureType?: number;
+        /**
+         * Sampling mode used by the output texture. Defaults to `Constants.TEXTURE_BILINEAR_SAMPLINGMODE`.
+         */
+        samplingMode?: number;
+        /**
+         * Whether mipmaps are generated for the output texture. Defaults to `false`.
+         */
+        generateMipMaps?: boolean;
+    }
+    /**
      * Create an operand from a texture alone (no constant factor scaling).
      * @param texture - The texture to sample, or null to produce an identity (1,1,1,1) constant operand
      * @param channel - Optional channel selection. When set, the sampled value is swizzled before use
@@ -90977,9 +92902,10 @@ declare namespace BABYLON {
      *   result is converted to sRGB (IEC 61966-2-1) before being written. Defaults to `TextureColorSpace.Linear`.
      * @param outputChannelMask - Optional bitmask of channels to write. Excluded color channels are set to
      *   `0.0`; excluded alpha is set to `1.0`. Defaults to `ChannelMask.RGBA` (all channels written).
+     * @param outputOptions - Optional render-target type, sampling, and mipmap settings.
      * @returns An operand whose `texture` holds the GPU result, or whose `factor` holds the CPU-folded constant
      */
-    export function MultiplyTexturesAsync(name: string, a: ITextureProcessOperand, b: ITextureProcessOperand, scene: Scene, outputColorSpace?: TextureColorSpace, outputChannelMask?: ChannelMask): Promise<ITextureProcessOperand>;
+    export function MultiplyTexturesAsync(name: string, a: ITextureProcessOperand, b: ITextureProcessOperand, scene: Scene, outputColorSpace?: TextureColorSpace, outputChannelMask?: ChannelMask, outputOptions?: ITextureProcessorOutputOptions): Promise<ITextureProcessOperand>;
     /**
      * Take the component-wise maximum of two texture operands: `result = max(a, b)`.
      *
@@ -91001,9 +92927,10 @@ declare namespace BABYLON {
      *   result is converted to sRGB (IEC 61966-2-1) before being written. Defaults to `TextureColorSpace.Linear`.
      * @param outputChannelMask - Optional bitmask of channels to write. Excluded color channels are set to
      *   `0.0`; excluded alpha is set to `1.0`. Defaults to `ChannelMask.RGBA` (all channels written).
+     * @param outputOptions - Optional render-target type, sampling, and mipmap settings.
      * @returns An operand whose `texture` holds the GPU result, or whose `factor` holds the CPU-folded constant
      */
-    export function MaxTexturesAsync(name: string, a: ITextureProcessOperand, b: ITextureProcessOperand, scene: Scene, outputColorSpace?: TextureColorSpace, outputChannelMask?: ChannelMask): Promise<ITextureProcessOperand>;
+    export function MaxTexturesAsync(name: string, a: ITextureProcessOperand, b: ITextureProcessOperand, scene: Scene, outputColorSpace?: TextureColorSpace, outputChannelMask?: ChannelMask, outputOptions?: ITextureProcessorOutputOptions): Promise<ITextureProcessOperand>;
     /**
      * Linearly interpolate between two texture operands: `result = mix(a, b, t)`.
      *
@@ -91027,9 +92954,10 @@ declare namespace BABYLON {
      *   result is converted to sRGB (IEC 61966-2-1) before being written. Defaults to `TextureColorSpace.Linear`.
      * @param outputChannelMask - Optional bitmask of channels to write. Excluded color channels are set to
      *   `0.0`; excluded alpha is set to `1.0`. Defaults to `ChannelMask.RGBA` (all channels written).
+     * @param outputOptions - Optional render-target type, sampling, and mipmap settings.
      * @returns An operand whose `texture` holds the GPU result, or whose `factor` holds the CPU-folded constant
      */
-    export function LerpTexturesAsync(name: string, a: ITextureProcessOperand, b: ITextureProcessOperand, t: ITextureProcessOperand, scene: Scene, outputColorSpace?: TextureColorSpace, outputChannelMask?: ChannelMask): Promise<ITextureProcessOperand>;
+    export function LerpTexturesAsync(name: string, a: ITextureProcessOperand, b: ITextureProcessOperand, t: ITextureProcessOperand, scene: Scene, outputColorSpace?: TextureColorSpace, outputChannelMask?: ChannelMask, outputOptions?: ITextureProcessorOutputOptions): Promise<ITextureProcessOperand>;
     /**
      * Invert selected channels of a texture operand: `result[ch] = 1 - input[ch]`.
      *
@@ -91054,9 +92982,10 @@ declare namespace BABYLON {
      *   result is converted to sRGB (IEC 61966-2-1) before being written. Defaults to `TextureColorSpace.Linear`.
      * @param outputChannelMask - Optional bitmask of channels to write. Excluded color channels are set to
      *   `0.0`; excluded alpha is set to `1.0`. Defaults to `ChannelMask.RGBA` (all channels written).
+     * @param outputOptions - Optional render-target type, sampling, and mipmap settings.
      * @returns An operand whose `texture` holds the GPU result, or whose `factor` holds the CPU-folded constant
      */
-    export function InvertTextureAsync(name: string, input: ITextureProcessOperand, scene: Scene, channels?: ChannelMask, outputColorSpace?: TextureColorSpace, outputChannelMask?: ChannelMask): Promise<ITextureProcessOperand>;
+    export function InvertTextureAsync(name: string, input: ITextureProcessOperand, scene: Scene, channels?: ChannelMask, outputColorSpace?: TextureColorSpace, outputChannelMask?: ChannelMask, outputOptions?: ITextureProcessorOutputOptions): Promise<ITextureProcessOperand>;
     /**
      * Extract the per-texel maximum channel value from a texture and broadcast it to all output
      * channels, producing a single-value (greyscale) texture in a single GPU pass.
@@ -91086,9 +93015,10 @@ declare namespace BABYLON {
      *   result is converted to sRGB (IEC 61966-2-1) before being written. Defaults to `TextureColorSpace.Linear`.
      * @param outputChannelMask - Optional bitmask of channels to write. Excluded color channels are set to
      *   `0.0`; excluded alpha is set to `1.0`. Defaults to `ChannelMask.RGBA` (all channels written).
+     * @param outputOptions - Optional render-target type, sampling, and mipmap settings.
      * @returns An operand whose `texture` holds the GPU result, or whose `factor` holds the CPU-folded constant
      */
-    export function ExtractMaxChannelAsync(name: string, input: ITextureProcessOperand, scene: Scene, includeAlpha?: boolean, outputColorSpace?: TextureColorSpace, outputChannelMask?: ChannelMask): Promise<ITextureProcessOperand>;
+    export function ExtractMaxChannelAsync(name: string, input: ITextureProcessOperand, scene: Scene, includeAlpha?: boolean, outputColorSpace?: TextureColorSpace, outputChannelMask?: ChannelMask, outputOptions?: ITextureProcessorOutputOptions): Promise<ITextureProcessOperand>;
     /**
      * Extract a single channel from a texture and broadcast it to RGB (or all four components for
      * `TextureChannel.A`), producing a new texture. This is a convenience wrapper over
@@ -91117,9 +93047,10 @@ declare namespace BABYLON {
      *   result is converted to sRGB (IEC 61966-2-1) before being written. Defaults to `TextureColorSpace.Linear`.
      * @param outputChannelMask - Optional bitmask of channels to write. Excluded color channels are set to
      *   `0.0`; excluded alpha is set to `1.0`. Defaults to `ChannelMask.RGBA` (all channels written).
+     * @param outputOptions - Optional render-target type, sampling, and mipmap settings.
      * @returns An operand whose `texture` holds the GPU result, or whose `factor` holds the CPU-folded constant
      */
-    export function ExtractChannelAsync(name: string, input: ITextureProcessOperand, channel: TextureChannel, scene: Scene, outputColorSpace?: TextureColorSpace, outputChannelMask?: ChannelMask): Promise<ITextureProcessOperand>;
+    export function ExtractChannelAsync(name: string, input: ITextureProcessOperand, channel: TextureChannel, scene: Scene, outputColorSpace?: TextureColorSpace, outputChannelMask?: ChannelMask, outputOptions?: ITextureProcessorOutputOptions): Promise<ITextureProcessOperand>;
 
 
     /**
@@ -91201,6 +93132,20 @@ declare namespace BABYLON {
      * @returns True if the format is a depth texture format
      */
     export function IsDepthTexture(format: number): boolean;
+    /**
+     * Checks if a given format stores integer color components.
+     * @param format Format to check
+     * @returns True if the format is an integer color format
+     * @internal
+     */
+    export function IsIntegerTextureFormat(format: number): boolean;
+    /**
+     * Checks whether an integer texture type stores unsigned values.
+     * @param type Texture type to check
+     * @returns True for unsigned scalar and packed integer texture types
+     * @internal
+     */
+    export function IsUnsignedIntegerTextureType(type: number): boolean;
     /**
      * Gets the type of a depth texture for a given format
      * @param format Format of the texture
@@ -92275,7 +94220,7 @@ declare namespace BABYLON {
          * @param depth defines the depth of the texture
          * @param format defines the texture format to use
          * @param scene defines the hosting scene
-         * @param generateMipMaps defines a boolean indicating if mip levels should be generated (true by default)
+         * @param generateMipMaps defines whether mip levels should be generated across width, height, and depth (true by default)
          * @param invertY defines if texture must be stored with Y axis inverted
          * @param samplingMode defines the sampling mode to use (Texture.TRILINEAR_SAMPLINGMODE by default)
          * @param textureType defines the texture Type (Engine.TEXTURETYPE_UNSIGNED_BYTE, Engine.TEXTURETYPE_FLOAT...)
@@ -92294,11 +94239,11 @@ declare namespace BABYLON {
 
     /**
      * These helpers populate 2D array texture layers from decoded image sources.
-     * They rely on the AbstractEngine.updateTextureArrayLayerFromImageSource engine extension, which is
-     * an opt-in side effect. Register it before use by importing the matching module for your backend:
+     * They rely on the AbstractEngine.updateTextureArrayLayerFromImageSource engine extension. The full
+     * Engine build registers it for both backends at load time. On the side-effect-free (pure /
+     * tree-shaken) path it is opt-in: import the matching module for your backend before use:
      * - WebGL2:  import "core/Engines/Extensions/engine.texture2DArrayImageSource";
      * - WebGPU:  import "core/Engines/WebGPU/Extensions/engine.texture2DArrayImageSource";
-     * (the full Engine build does not register it by default to keep it out of every engine bundle).
      *
      * Consuming the result: the built-in way to sample a chosen layer is Node Material's Texture block,
      * which exposes a `layer` input (feed it a Float) and samples the array at that layer for you — no
@@ -93403,7 +95348,7 @@ declare namespace BABYLON {
         /**
          * Gets the number of mip levels for this texture.
          * Note: This property has the correct value only if the texture was created through
-         * `createRawTexture` or `createRawTexture2DArray`.
+         * `createRawTexture`, `createRawTexture2DArray`, or (on WebGPU) `createRawTexture3D`.
          */
         mipLevelCount: number;
         /**
@@ -93426,6 +95371,11 @@ declare namespace BABYLON {
          * Observable called when the texture load is raising an error
          */
         onErrorObservable: Observable<Partial<{
+            message: string;
+            exception: any;
+        }>>;
+        /** @internal */
+        _loadError: Nullable<Partial<{
             message: string;
             exception: any;
         }>>;
@@ -93565,6 +95515,8 @@ declare namespace BABYLON {
          * Increments the number of references (ie. the number of Texture that point to it)
          */
         incrementReferences(): void;
+        /** @internal */
+        _setError(message?: string, exception?: any): void;
         /**
          * Change the size of the texture (not the size of the content)
          * @param width defines the new width
@@ -95078,6 +97030,7 @@ declare namespace BABYLON {
          * @returns an ArrayBufferView promise (Uint8Array or Float32Array)
          */
         getContent(): Nullable<Promise<ArrayBufferView>>;
+        private _readContent;
         private _createIndexBuffer;
         /** @internal */
         _rebuild(): void;
@@ -95156,47 +97109,47 @@ declare namespace BABYLON {
          */
         setFloats(name: string, value: number[]): ProceduralTexture;
         /**
-         * Set a vec3 in the shader from a Color3.
+         * Set a vec3 in the shader.
          * @param name Define the name of the uniform as defined in the shader
          * @param value Define the value to give to the uniform
          * @returns the texture itself allowing "fluent" like uniform updates
          */
-        setColor3(name: string, value: Color3): ProceduralTexture;
+        setColor3(name: string, value: IColor3Like): ProceduralTexture;
         /**
-         * Set a vec4 in the shader from a Color4.
+         * Set a vec4 in the shader.
          * @param name Define the name of the uniform as defined in the shader
          * @param value Define the value to give to the uniform
          * @returns the texture itself allowing "fluent" like uniform updates
          */
-        setColor4(name: string, value: Color4): ProceduralTexture;
+        setColor4(name: string, value: IColor4Like): ProceduralTexture;
         /**
-         * Set a vec2 in the shader from a Vector2.
+         * Set a vec2 in the shader.
          * @param name Define the name of the uniform as defined in the shader
          * @param value Define the value to give to the uniform
          * @returns the texture itself allowing "fluent" like uniform updates
          */
-        setVector2(name: string, value: Vector2): ProceduralTexture;
+        setVector2(name: string, value: IVector2Like): ProceduralTexture;
         /**
-         * Set a vec3 in the shader from a Vector3.
+         * Set a vec3 in the shader.
          * @param name Define the name of the uniform as defined in the shader
          * @param value Define the value to give to the uniform
          * @returns the texture itself allowing "fluent" like uniform updates
          */
-        setVector3(name: string, value: Vector3): ProceduralTexture;
+        setVector3(name: string, value: IVector3Like): ProceduralTexture;
         /**
-         * Set a vec4 in the shader from a Vector4.
+         * Set a vec4 in the shader.
          * @param name Define the name of the uniform as defined in the shader
          * @param value Define the value to give to the uniform
          * @returns the texture itself allowing "fluent" like uniform updates
          */
-        setVector4(name: string, value: Vector4): ProceduralTexture;
+        setVector4(name: string, value: IVector4Like): ProceduralTexture;
         /**
-         * Set a mat4 in the shader from a MAtrix.
+         * Set a mat4 in the shader.
          * @param name Define the name of the uniform as defined in the shader
          * @param value Define the value to give to the uniform
          * @returns the texture itself allowing "fluent" like uniform updates
          */
-        setMatrix(name: string, value: Matrix): ProceduralTexture;
+        setMatrix(name: string, value: IMatrixLike): ProceduralTexture;
         /**
          * Render the texture to its associated render target.
          * @param useCameraPostProcess Define if camera post process should be applied to the texture
@@ -98187,6 +100140,8 @@ declare namespace BABYLON {
             PREPASS_OBJECT_ID: boolean;
             PREPASS_OBJECT_ID_INDEX: number;
             PREPASS_OBJECT_ID_R8: boolean;
+            PREPASS_MESH_BLEND_TAG: boolean;
+            PREPASS_MESH_BLEND_TAG_INDEX: number;
             SCENE_MRT_COUNT: number;
         };
     } & {
@@ -99354,6 +101309,8 @@ declare namespace BABYLON {
             PREPASS_OBJECT_ID: boolean;
             PREPASS_OBJECT_ID_INDEX: number;
             PREPASS_OBJECT_ID_R8: boolean;
+            PREPASS_MESH_BLEND_TAG: boolean;
+            PREPASS_MESH_BLEND_TAG_INDEX: number;
             SCENE_MRT_COUNT: number;
         };
     } & {
@@ -101101,7 +103058,7 @@ declare namespace BABYLON {
         /**
          * @internal
          */
-        _getShaderType(type: NodeMaterialBlockConnectionPointTypes): "" | "float" | "i32" | "int" | "f32" | "vec2f" | "vec2" | "vec3f" | "vec3" | "vec4f" | "vec4" | "mat4x4f" | "mat4";
+        _getShaderType(type: NodeMaterialBlockConnectionPointTypes): "" | "float" | "i32" | "f32" | "int" | "vec2f" | "vec2" | "vec3f" | "vec3" | "vec4f" | "vec4" | "mat4x4f" | "mat4";
         /**
          * @internal
          */
@@ -101882,6 +103839,10 @@ declare namespace BABYLON {
         PREPASS_OBJECT_ID_INDEX: number;
         /** Whether object IDs use the RED texture format */
         PREPASS_OBJECT_ID_R8: boolean;
+        /** Packed mesh-blending tag */
+        PREPASS_MESH_BLEND_TAG: boolean;
+        /** Packed mesh-blending tag index */
+        PREPASS_MESH_BLEND_TAG_INDEX: number;
         /** Scene MRT count */
         SCENE_MRT_COUNT: number;
         /** BONES */
@@ -110453,6 +112414,7 @@ declare namespace BABYLON {
     export class ImageSourceBlock extends NodeMaterialBlock {
         private static _DefaultTextureByEngine;
         private _samplerName;
+        private _dimensionsUniformName;
         protected _texture: Nullable<Texture>;
         private static _GetDefaultTexture;
         /**
@@ -111699,6 +113661,143 @@ declare namespace BABYLON {
 
     /** This file must only contain pure code and pure imports */
     /**
+     * Visualizes the longest projected Gaussian ellipse diameter in render-target pixels.
+     * Smaller splats are whiter: brightness = sizeScale / (sizeScale + diameter).
+     * See https://playground.babylonjs.com/#8FOB3C#0
+     */
+    export class GaussianSplattingSizeMaterialPlugin extends MaterialPluginBase {
+        private _isEnabled;
+        private _sizeScale;
+        /**
+         * Whether this plugin replaces the splat's RGB color. Disabling it restores normal color without removing the plugin.
+         */
+        get isEnabled(): boolean;
+        set isEnabled(value: boolean);
+        /**
+         * Positive half-brightness diameter, measured in render-target pixels. Defaults to 16.
+         */
+        get sizeScale(): number;
+        set sizeScale(value: number);
+        /**
+         * Attaches the projected-size visualization to a Gaussian splat material.
+         * @param material The material to visualize
+         */
+        constructor(material: GaussianSplattingMaterial);
+        /** @returns The registered plugin class name */
+        getClassName(): string;
+        /**
+         * @param shaderLanguage Shader language to test
+         * @returns Whether the shader language is supported
+         */
+        isCompatible(shaderLanguage: ShaderLanguage): boolean;
+        /**
+         * @param shaderType Vertex or fragment
+         * @param shaderLanguage GLSL or WGSL
+         * @returns Code inserted into the Gaussian shader, or null
+         */
+        getCustomCode(shaderType: string, shaderLanguage?: ShaderLanguage): Nullable<{
+            [pointName: string]: string;
+        }>;
+        /** @returns Shader uniforms for both languages */
+        getUniforms(): {
+            externalUniforms: string[];
+        };
+        /**
+         * Binds the projected-size visualization uniforms for the rendered submesh.
+         * @param _uniformBuffer Unused
+         * @param _scene Current scene
+         * @param _engine Current engine
+         * @param subMesh Rendered submesh
+         */
+        bindForSubMesh(_uniformBuffer: UniformBuffer, _scene: Scene, _engine: AbstractEngine, subMesh: SubMesh): void;
+    }
+    /** Registers the plugin for material parsing; safe to call repeatedly. */
+    export function RegisterGaussianSplattingSizeMaterialPlugin(): void;
+
+
+
+
+    /** This file must only contain pure code and pure imports */
+    /**
+     * Displays equal-contribution Gaussian fragment overdraw, independently of color and Gaussian opacity.
+     * Uses additive ONE+ONE RGB blending and disables depth writes while active; keeps depth testing.
+     * Restores the material's prior blending/depth settings on disable or disposal.
+     * See https://playground.babylonjs.com/#D4U720#1
+     */
+    export class GaussianSplattingOverdrawMaterialPlugin extends MaterialPluginBase {
+        private _isEnabled;
+        private _intensity;
+        private _originalAlphaMode;
+        private _originalDisableDepthWrite;
+        private _originalForceDepthWrite;
+        /**
+         * Whether equal-contribution additive rendering is active. Defaults to true.
+         */
+        get isEnabled(): boolean;
+        set isEnabled(value: boolean);
+        /**
+         * Equal RGB contribution per surviving fragment. Defaults to 1/256 (256 overlaps reach white).
+         */
+        get intensity(): number;
+        set intensity(value: number);
+        /**
+         * Attaches the additive overdraw visualization to a Gaussian splat material.
+         * @param material The material to visualize
+         */
+        constructor(material: GaussianSplattingMaterial);
+        private _applyBlendState;
+        /** @returns The registered plugin class name */
+        getClassName(): string;
+        /**
+         * @param shaderLanguage Shader language to test
+         * @returns Whether the shader language is supported
+         */
+        isCompatible(shaderLanguage: ShaderLanguage): boolean;
+        /**
+         * @param shaderType Vertex or fragment
+         * @param shaderLanguage GLSL or WGSL
+         * @returns Code inserted into the Gaussian shader, or null
+         */
+        getCustomCode(shaderType: string, shaderLanguage?: ShaderLanguage): Nullable<{
+            [pointName: string]: string;
+        }>;
+        /** @returns Shader uniforms for both languages */
+        getUniforms(): {
+            externalUniforms: string[];
+        };
+        /**
+         * Binds the overdraw visualization uniforms for the rendered submesh.
+         * @param _uniformBuffer Unused
+         * @param _scene Current scene
+         * @param _engine Current engine
+         * @param subMesh Rendered submesh
+         */
+        bindForSubMesh(_uniformBuffer: UniformBuffer, _scene: Scene, _engine: AbstractEngine, subMesh: SubMesh): void;
+        /** Restores blend/depth settings owned by this plugin. */
+        dispose(): void;
+        /** @returns Serialized settings, including the pre-plugin blend/depth state */
+        serialize(): any;
+        /**
+         * Restores original blend settings after material parsing.
+         * @param source Serialized plugin
+         * @param scene Scene containing the material
+         * @param rootUrl Asset root URL
+         */
+        parse(source: any, scene: Scene, rootUrl: string): void;
+        /**
+         * Copies the original blend state as well as the public settings.
+         * @param plugin Destination plugin
+         */
+        copyTo(plugin: MaterialPluginBase): void;
+    }
+    /** Registers the plugin for material parsing; safe to call repeatedly. */
+    export function RegisterGaussianSplattingOverdrawMaterialPlugin(): void;
+
+
+
+
+    /** This file must only contain pure code and pure imports */
+    /**
      * Computes the maximum number of Gaussian Splatting compound parts supported by the given engine.
      * The limit is derived from the engine's maximum vertex uniform vectors capability.
      * @param engine - The engine to compute the limit for
@@ -111709,6 +113808,18 @@ declare namespace BABYLON {
      * @deprecated Use {@link GetGaussianSplattingMaxPartCount} with an engine instance instead.
      */
     export const GaussianSplattingMaxPartCount = 128;
+    /**
+     * Returns an include-guarded declaration of the `vPartIndex` varying shared by the Gaussian
+     * Splatting material plugins (debug, solid-color, GPU picking). More than one of these plugins can
+     * be attached to the same material at once; each needs `vPartIndex` to carry `splat.partIndex` from
+     * the vertex to the fragment stage. Without a guard each plugin injects its own `varying vPartIndex`,
+     * which is a duplicate declaration — fatal under WGSL ("redefinition of 'vPartIndex'"). The guard
+     * makes the declaration idempotent so exactly one survives regardless of how many plugins inject it.
+     * Inject the result at a CUSTOM_VERTEX_DEFINITIONS / CUSTOM_FRAGMENT_DEFINITIONS point.
+     * @param shaderLanguage - The shader language the host material is compiling.
+     * @returns The guarded `vPartIndex` varying declaration.
+     */
+    export function GetPartIndexVaryingDeclaration(shaderLanguage: ShaderLanguage): string;
     /**
      * GaussianSplattingMaterial material used to render Gaussian Splatting
      * @experimental
@@ -111772,6 +113883,11 @@ declare namespace BABYLON {
         protected static _VoxelSamplers: string[];
         protected static _Uniforms: string[];
         private _sourceMesh;
+        private _inverseProjection;
+        private _geometryProjectionUpdateFlag;
+        private _partMotionHistory;
+        private _renderPassObserver;
+        private static _BindViewportAndFocal;
         /**
          * Checks whether the material is ready to be rendered for a given mesh.
          * @param mesh The mesh to render
@@ -111796,6 +113912,14 @@ declare namespace BABYLON {
          * @param scene scene that contains mesh and camera used for rendering
          */
         static BindEffect(mesh: Mesh, effect: Effect, scene: Scene): void;
+        private _bindGeometryRendering;
+        /**
+         * Releases the material and its render-pass motion histories.
+         * @param forceDisposeEffect whether associated effects should be disposed
+         * @param forceDisposeTextures whether associated textures should be disposed
+         * @param notBoundToMesh whether mesh references can be left unchanged
+         */
+        dispose(forceDisposeEffect?: boolean, forceDisposeTextures?: boolean, notBoundToMesh?: boolean): void;
         /**
          * Bind SOG dequantization uniforms + raw textures.
          * @internal
@@ -112108,11 +114232,42 @@ declare namespace BABYLON {
         private _dbgPartDataTexture;
         private _textureDirty;
         private _maxPartCount;
+        private _resolvedPartData;
+        private _mutableValuesSnapshot;
         /**
          * Creates a new GaussianSplattingDebugMaterialPlugin.
          * @param material The GaussianSplattingMaterial to attach the plugin to.
          */
         constructor(material: GaussianSplattingMaterial);
+        /**
+         * True when any global or per-part debug feature is active.
+         * @returns true when debug work is needed
+         */
+        get isDebugActive(): boolean;
+        /**
+         * Returns resolved per-part debug data in the classic `dbgPartData` layout (5 RGBA rows per part).
+         * @param partCount current mesh part count
+         * @param engine engine used to size the LUT if needed
+         * @returns the resolved LUT floats and its per-row part-count stride
+         */
+        getResolvedPartData(partCount: number, engine: AbstractEngine): {
+            data: Float32Array;
+            maxPartCount: number;
+        };
+        /**
+         * Stores the current values of every externally mutable debug setting and reports whether any changed.
+         * @param partCount current mesh part count
+         * @returns true when at least one value differs from the previous call
+         */
+        private _refreshMutableValuesSnapshot;
+        /**
+         * Writes a value into the snapshot and reports whether it replaced a different one.
+         * @param snapshot the snapshot buffer
+         * @param index the slot index to write
+         * @param value the current value
+         * @returns true when the stored value changed
+         */
+        private _diffMutableValue;
         private _isAnyFeatureActive;
         private _markDirty;
         /**
@@ -112290,6 +114445,128 @@ declare namespace BABYLON {
     /**
      * Re-exports pure implementation and applies runtime side effects.
      * Import gaussianSplattingDebugMaterialPlugin.pure for tree-shakeable, side-effect-free usage.
+     */
+
+
+    /** This file must only contain pure code and pure imports */
+    /**
+     * Writes resolved Gaussian Point Splatting depth into a DepthRenderer map with a fullscreen triangle.
+     * The depth is opaque nearest-surface depth, not the coverage-weighted `alphaBlendedDepth`. WebGPU only.
+     */
+    export class GaussianPointSplattingDepthBlitMaterial extends ShaderMaterial {
+        private readonly _resolution;
+        private readonly _projZ;
+        private readonly _depthValues;
+        /**
+         * Creates a new depth blit material.
+         * @param name material name
+         * @param scene hosting scene
+         */
+        constructor(name: string, scene: Scene);
+        /**
+         * Binds the resolved accumulation buffer; only its coverage channel is read, to reject empty pixels.
+         * @param buffer the renderer's accumulation buffer
+         */
+        setAccumBuffer(buffer: StorageBuffer): void;
+        /**
+         * Binds the resolved per-pixel surface depth buffer (NDC z).
+         * @param buffer the renderer's accumulation depth buffer
+         */
+        setAccumDepthBuffer(buffer: StorageBuffer): void;
+        /**
+         * Sets the render resolution used to index the accumulation buffers.
+         * @param width render width in pixels
+         * @param height render height in pixels
+         */
+        setResolution(width: number, height: number): void;
+        /**
+         * Sets the active camera's projection matrix z-row, used to recover clip-space z from the stored NDC z.
+         * @param m10 projection matrix element [10]
+         * @param m11 projection matrix element [11]
+         * @param m14 projection matrix element [14]
+         * @param m15 projection matrix element [15]
+         */
+        setProjectionZ(m10: number, m11: number, m14: number, m15: number): void;
+        /**
+         * Sets the inverse full projection to recover clip-space z for the depth metric.
+         * @param inverseProjection inverse camera projection matrix
+         */
+        setInverseProjection(inverseProjection: Matrix): void;
+        /**
+         * Sets the depth renderer's (minZ, minZ + maxZ) normalization pair.
+         * @param minZ the depth metric offset
+         * @param minZPlusMaxZ the depth metric divisor
+         */
+        setDepthValues(minZ: number, minZPlusMaxZ: number): void;
+        /**
+         * Sets whether the engine uses a reverse depth buffer (negates clip-space z in the metric).
+         * @param reverse true when the engine uses a reverse depth buffer
+         */
+        setReverseDepth(reverse: boolean): void;
+    }
+
+
+    /**
+     * Re-exports the pure implementation and imports required shaders for their runtime registration.
+     * Import gaussianPointSplattingDepthBlitMaterial.pure for tree-shakeable, side-effect-free usage.
+     */
+
+
+    /** This file must only contain pure code and pure imports */
+    /**
+     * Composites the resolved Gaussian Point Splatting color over the scene with a fullscreen triangle.
+     * The result depth-tests against the scene without writing depth. WebGPU only.
+     */
+    export class GaussianPointSplattingBlitMaterial extends ShaderMaterial {
+        private readonly _resolution;
+        private readonly _projZ;
+        /**
+         * Creates a new blit material.
+         * @param name material name
+         * @param scene hosting scene
+         */
+        constructor(name: string, scene: Scene);
+        /**
+         * Binds the resolved accumulation buffer (premultiplied color + coverage) to sample from.
+         * @param buffer the renderer's accumulation buffer
+         */
+        setAccumBuffer(buffer: StorageBuffer): void;
+        /**
+         * Binds the resolved per-pixel surface depth buffer used for fragDepth compositing.
+         * @param buffer the renderer's accumulation depth buffer
+         */
+        setAccumDepthBuffer(buffer: StorageBuffer): void;
+        /**
+         * Sets the render resolution used to index the accumulation buffer.
+         * @param width render width in pixels
+         * @param height render height in pixels
+         */
+        setResolution(width: number, height: number): void;
+        /**
+         * Sets the active camera's projection matrix z-row, used to recover clip-space w for logarithmic depth.
+         * @param m10 projection matrix element [10]
+         * @param m11 projection matrix element [11]
+         * @param m14 projection matrix element [14]
+         * @param m15 projection matrix element [15]
+         */
+        setProjectionZ(m10: number, m11: number, m14: number, m15: number): void;
+        /**
+         * Sets the inverse full projection to recover clip-space w for logarithmic depth.
+         * @param inverseProjection inverse camera projection matrix
+         */
+        setInverseProjection(inverseProjection: Matrix): void;
+        /**
+         * Sets the logarithmic depth constant (2 / log2(camera.maxZ + 1)) so the composite depth-tests against
+         * scenes rendered with logarithmic depth. 0 keeps the regular NDC depth.
+         * @param constant the logarithmic depth constant, or 0 to disable
+         */
+        setLogarithmicDepthConstant(constant: number): void;
+    }
+
+
+    /**
+     * Re-exports the pure implementation and imports required shaders for their runtime registration.
+     * Import gaussianPointSplattingBlitMaterial.pure for tree-shakeable, side-effect-free usage.
      */
 
 
@@ -116208,6 +118485,11 @@ declare namespace BABYLON {
          * Register the component to one instance of a scene.
          */
         register(): void;
+        /**
+         * Checks that enabled clustered lights have prepared their proxy shaders.
+         * @returns true when every supported, enabled container is ready
+         */
+        isReady(): boolean;
         private _gatherActiveCameraRenderTargets;
     }
     /**
@@ -119055,6 +121337,7 @@ declare namespace BABYLON {
         private _pointerCaptures;
         private _meshUnderPointerId;
         private _movePointerInfo;
+        private _latestPointerMoveEvents;
         private _cameraObserverCount;
         private _delayedClicks;
         private _onKeyDown;
@@ -119107,6 +121390,9 @@ declare namespace BABYLON {
         private _checkPrePointerObservable;
         /** @internal */
         _pickMove(evt: IPointerEvent): PickingInfo;
+        /** @internal */
+        _updateMeshUnderPointer(): void;
+        private _ensurePointerMovePredicate;
         private _setCursorAndPointerOverMesh;
         /**
          * Use this method to simulate a pointer move on a mesh
@@ -123199,7 +125485,9 @@ declare namespace BABYLON {
          */
         clear(color: Nullable<IColor4Like>, backBuffer: boolean, depth: boolean, stencil?: boolean, stencilClearValue?: number): void;
         /**
-         * Clears the color attachments of the current render target
+         * Clears the color attachments of the current render target.
+         *
+         * Float, signed-integer, and unsigned-integer attachments can be mixed in the same layout.
          * @param color Defines the color to use
          * @param attachments The attachments to clear
          */
@@ -123299,6 +125587,11 @@ declare namespace BABYLON {
          * The particle systems in the object list.
          */
         particleSystems: Nullable<IParticleSystem[]>;
+        /**
+         * The sprite managers in the object list. If omitted or null, all sprite managers in the scene are used. An empty array renders none.
+         * @see https://playground.babylonjs.com/#PVK3RV#2
+         */
+        spriteManagers?: Nullable<ISpriteManager[]>;
     }
 
 
@@ -123389,6 +125682,7 @@ declare namespace BABYLON {
         private _currentProcessedTask;
         private _whenReadyAsyncCancel;
         private _importPromise;
+        private _needsPreviousWorldMatrices;
         /**
          * Name of the frame graph
          */
@@ -123467,6 +125761,9 @@ declare namespace BABYLON {
          * @param task Task to add
          */
         addTask(task: FrameGraphTask): void;
+        /** @internal */
+        _requestPreviousWorldMatrices(): void;
+        private _updateSceneNeedsPreviousWorldMatrices;
         /**
          * Adds a pass to a task. This method can only be called during a Task.record execution.
          * @param name The name of the pass
@@ -124284,6 +126581,7 @@ declare namespace BABYLON {
          */
         textureDescriptions: IFrameGraphGeometryRendererTextureDescription[];
         private _objectIdProvider?;
+        private _meshBlendTagProvider?;
         /**
          * Provides the object ID written for each rendered mesh.
          *
@@ -124293,10 +126591,20 @@ declare namespace BABYLON {
          * Instances use the ID of their source mesh. Default IDs are only stable for the lifetime of the current scene and should not be persisted.
          * When using a RED texture, provide a custom ID if mesh unique IDs can exceed 0xFF.
          * The provider runs in the render hot path and may be called multiple times for the same mesh in a frame.
-         * @see https://playground.babylonjs.com/#00T6WJ#0
+         * @see https://playground.babylonjs.com/?version=preview#00T6WJ#0
          */
         get objectIdProvider(): GeometryRenderingObjectIdProvider | undefined;
         set objectIdProvider(value: GeometryRenderingObjectIdProvider | undefined);
+        /**
+         * Provides the packed mesh-blending tag written for each rendered mesh.
+         *
+         * Tags must be 0 or contain a group ID between 1 and 63 in their low six bits. Tag 0 disables mesh blending.
+         * By default, meshes use their `meshBlendingTag` property. Instances and thin instances use the source mesh tag.
+         * The provider runs in the render hot path and receives the source mesh for instanced draws.
+         * It should avoid allocations and return a consistent value for a mesh during a render.
+         */
+        get meshBlendTagProvider(): GeometryRenderingMeshBlendTagProvider | undefined;
+        set meshBlendTagProvider(value: GeometryRenderingMeshBlendTagProvider | undefined);
         /**
          * The irradiance output texture. Will point to a valid texture only if that texture has been requested in textureDescriptions!
          */
@@ -124319,7 +126627,8 @@ declare namespace BABYLON {
          */
         readonly geometryViewNormalTexture: FrameGraphTextureHandle;
         /**
-         * The normal (in world space) output texture. Will point to a valid texture only if that texture has been requested in textureDescriptions!
+         * The normal (in world space, encoded from [-1, 1] to [0, 1]) output texture.
+         * Will point to a valid texture only if that texture has been requested in textureDescriptions!
          */
         readonly geometryWorldNormalTexture: FrameGraphTextureHandle;
         /**
@@ -124340,10 +126649,12 @@ declare namespace BABYLON {
         readonly geometryReflectivityTexture: FrameGraphTextureHandle;
         /**
          * The velocity output texture. Will point to a valid texture only if that texture has been requested in textureDescriptions!
+         * Built-in CPU/GPU particles write neutral velocity (0.5, 0.5); their motion is not represented.
          */
         readonly geometryVelocityTexture: FrameGraphTextureHandle;
         /**
          * The linear velocity output texture. Will point to a valid texture only if that texture has been requested in textureDescriptions!
+         * Built-in CPU/GPU particles write neutral velocity (0, 0); their motion is not represented.
          */
         readonly geometryLinearVelocityTexture: FrameGraphTextureHandle;
         /**
@@ -124353,12 +126664,19 @@ declare namespace BABYLON {
          */
         readonly geometryObjectIdTexture: FrameGraphTextureHandle;
         /**
+         * The packed, single-sample R8UI mesh-blending tag output texture for WebGL2 and WebGPU.
+         *
+         * Opaque, alpha-tested, and caller-selected transparent meshes are supported.
+         */
+        readonly geometryMeshBlendTagTexture: FrameGraphTextureHandle;
+        /**
          * Gets or sets the name of the task.
          */
         get name(): string;
         set name(value: string);
         private _clearAttachmentsLayout;
         private _allAttachmentsLayout;
+        private _colorAttachmentsLayout;
         /**
          * Constructs a new geometry renderer task.
          * @param name The name of the task.
@@ -124398,6 +126716,7 @@ declare namespace BABYLON {
         protected _checkTextureCompatibility(targetTextures: FrameGraphTextureHandle[]): boolean;
         protected _getTargetHandles(): FrameGraphTextureHandle[];
         protected _prepareRendering(context: FrameGraphRenderContext, depthEnabled: boolean): number[];
+        private _getTargetTextureCount;
         private _buildClearAttachmentsLayout;
         private _registerForRenderPassId;
     }
@@ -125296,6 +127615,71 @@ declare namespace BABYLON {
 
 
     /**
+     * Frame-graph task which visually blends SceneColor across validated contacts between opaque or alpha-tested meshes.
+     *
+     * This WebGL2 and WebGPU task uses the same effect and configuration as MeshBlendingPostProcess. It does not modify
+     * geometry, collision queries, depth, normals, or shadows. All source and geometry textures must have matching
+     * physical dimensions and sample counts. Transparent rendering is caller-controlled; overlapping transparent
+     * surfaces can make SceneColor inconsistent with the single-layer geometry inputs. On WebGL2, rendering transparent
+     * meshes into the integer tag attachment requires per-target blend parameters.
+     * @see https://playground.babylonjs.com/?version=preview#O05LI8#6
+     */
+    export class FrameGraphMeshBlendingTask extends FrameGraphPostProcessTask {
+        /**
+         * The packed R8UI mesh-blending tag texture used to locate seams.
+         */
+        meshBlendTagTexture: FrameGraphTextureHandle;
+        /**
+         * The view-depth or screen-depth texture aligned with the packed tag texture.
+         */
+        depthTexture: FrameGraphTextureHandle;
+        /**
+         * Optional linear base-color/albedo geometry texture aligned with SceneColor.
+         *
+         * When omitted, shadow estimation is compiled out.
+         */
+        baseColorTexture?: FrameGraphTextureHandle;
+        /**
+         * Camera used to project radii and reconstruct view-space positions.
+         */
+        camera: Camera;
+        /**
+         * The thin post process containing the shared quality variant and blend configuration.
+         */
+        readonly postProcess: ThinMeshBlendingPostProcess;
+        /** Gets or sets the compile-time mesh-blending quality variant. */
+        get quality(): MeshBlendQuality;
+        set quality(value: MeshBlendQuality);
+        /** Gets the four configurable radius definitions indexed by packed radius class. */
+        get radiusClasses(): MeshBlendRadiusDefinitions;
+        /** Gets or sets the contact-slope narrowing factor. A value of 1 disables narrowing. */
+        get slopeFactor(): number;
+        set slopeFactor(value: number);
+        /** Gets or sets the representation stored in depthTexture. */
+        get depthType(): MeshBlendDepthType;
+        set depthType(value: MeshBlendDepthType);
+        /** Gets or sets the compiled debug visualization. */
+        get debugMode(): MeshBlendDebugMode;
+        set debugMode(value: MeshBlendDebugMode);
+        /**
+         * Constructs a mesh-blending task.
+         * @param name The name of the task.
+         * @param frameGraph The frame graph this task belongs to.
+         * @param thinPostProcess The thin post process to use. A new one is created when omitted.
+         */
+        constructor(name: string, frameGraph: FrameGraph, thinPostProcess?: ThinMeshBlendingPostProcess);
+        dispose(): void;
+        /**
+         * Applies the same configuration accepted by the classic MeshBlendingPostProcess wrapper.
+         * @param options Values to apply. Omitted values retain their current settings.
+         */
+        configure(options?: IMeshBlendConfiguration): void;
+        getClassName(): string;
+        record(skipCreationOfDisabledPasses?: boolean): FrameGraphRenderPass;
+    }
+
+
+    /**
      * Task which applies an image processing post process.
      */
     export class FrameGraphImageProcessingTask extends FrameGraphPostProcessTask {
@@ -125709,6 +128093,67 @@ declare namespace BABYLON {
         constructor(name: string, frameGraph: FrameGraph, thinPostProcess?: ThinAnaglyphPostProcess);
         getClassName(): string;
         record(skipCreationOfDisabledPasses?: boolean): FrameGraphRenderPass;
+    }
+
+
+    /**
+     * Task which computes the minimum and maximum values in the red channel of a frame graph texture,
+     * or in the depth aspect of a WebGPU depth/stencil attachment.
+     * Set sourceTexture to a handle from an earlier task (for example, a geometry renderer's geometryNormViewDepthTexture)
+     * to reuse its output without rendering another depth map. The reduction is performed on each graph execution.
+     */
+    export class FrameGraphMinMaxReducerTask extends FrameGraphTask {
+        /**
+         * The 2D texture to reduce. If generated by a graph task, that task must execute before this one.
+         * WebGPU can reduce the depth aspect of a single-sampled depth/stencil attachment; backbuffer depth,
+         * stencil-only attachments and integer color formats are not supported.
+         */
+        sourceTexture: FrameGraphTextureHandle;
+        /**
+         * Whether to ignore the clear value of a depth-as-color texture during reduction (default: false).
+         * For normalized view or forward screen depth, the clear value is 1; for view depth or reverse screen depth, it is 0.
+         * Always enabled for a depth/stencil attachment, which stores screen depth.
+         */
+        depthRedux: boolean;
+        /**
+         * The type of depth values stored in the source texture when depthRedux is true (default: normalized view depth).
+         */
+        depthTextureType: DepthTextureType;
+        /**
+         * The type of the intermediate and output textures (default: half float).
+         * Supported types are FLOAT, HALF_FLOAT, and UNSIGNED_BYTE.
+         */
+        textureType: number;
+        /**
+         * Wait for WebGPU texture readback before notifying observers (default: false).
+         * This delays the notification; it does not block graph execution.
+         */
+        get waitForReadback(): boolean;
+        set waitForReadback(value: boolean);
+        /**
+         * The 1x1 RG texture containing the minimum in red and maximum in green.
+         */
+        readonly outputTexture: FrameGraphTextureHandle;
+        /**
+         * Observable triggered after the reduced texture has been read back.
+         * With depthRedux enabled, an empty or equal-valued depth range falls back to [0, 1].
+         */
+        get onAfterReductionPerformed(): Observable<{
+            min: number;
+            max: number;
+        }>;
+        private readonly _reducer;
+        private _stepCount;
+        /**
+         * Creates a min/max reduction task.
+         * @param name The name of the task.
+         * @param frameGraph The frame graph to add the task to.
+         */
+        constructor(name: string, frameGraph: FrameGraph);
+        getClassName(): string;
+        isReady(): boolean;
+        record(): void;
+        dispose(): void;
     }
 
 
@@ -126951,7 +129396,7 @@ declare namespace BABYLON {
         TextureAlbedoSqrt = 2048,
         /** Depth (in screen space) geometry texture */
         TextureScreenDepth = 4096,
-        /** Normal (in world space) geometry texture */
+        /** Normal (in world space) geometry texture, encoded from [-1, 1] to [0, 1] */
         TextureWorldNormal = 8192,
         /** Position (in local space) geometry texture */
         TextureLocalPosition = 16384,
@@ -126961,6 +129406,8 @@ declare namespace BABYLON {
         TextureNormalizedViewDepth = 65536,
         /** Object ID geometry texture */
         TextureObjectId = 131072,
+        /** Packed mesh-blending tag geometry texture */
+        TextureMeshBlendTag = 262144,
         /** Bit field for all textures but back buffer depth/stencil */
         TextureAllButBackBufferDepthStencil = 1048571,
         /** Bit field for all textures but back buffer color and depth/stencil */
@@ -126975,7 +129422,7 @@ declare namespace BABYLON {
         ShadowLight = 4194304,
         /** Camera */
         Camera = 16777216,
-        /** List of objects (meshes, particle systems, sprites) */
+        /** List of objects (meshes, particle systems, sprite managers) */
         ObjectList = 33554432,
         /** Detect type based on connection */
         AutoDetect = 268435456,
@@ -127519,6 +129966,60 @@ declare namespace BABYLON {
 
 
     /** Pure barrel — re-exports only side-effect-free modules */
+
+
+    /** This file must only contain pure code and pure imports */
+    /**
+     * Block that reduces a color texture's red channel to its minimum and maximum values.
+     * When using a geometry depth-as-color output, enable depthRedux and select the matching depthTextureType.
+     * WebGPU depth/stencil attachments are reduced as screen depth automatically.
+     * Connect the output to a downstream texture input or a dependency so the block is included in the graph.
+     */
+    export class NodeRenderGraphMinMaxReducerBlock extends NodeRenderGraphBlock {
+        protected _frameGraphTask: FrameGraphMinMaxReducerTask;
+        /**
+         * Gets the frame graph task associated with this block.
+         */
+        get task(): FrameGraphMinMaxReducerTask;
+        /**
+         * Creates a min/max reducer block.
+         * @param name The block name.
+         * @param frameGraph The hosting frame graph.
+         * @param scene The hosting scene.
+         */
+        constructor(name: string, frameGraph: FrameGraph, scene: Scene);
+        /** Whether to ignore the depth clear value of a depth-as-color source. Depth/stencil attachments are handled automatically. */
+        get depthRedux(): boolean;
+        set depthRedux(value: boolean);
+        /** The kind of depth values stored in a depth-as-color source when depth reduction is enabled. */
+        get depthTextureType(): DepthTextureType;
+        set depthTextureType(value: DepthTextureType);
+        /** The texture type used for the reduction steps and the 1x1 result. */
+        get textureType(): number;
+        set textureType(value: number);
+        /** Wait for WebGPU readback before notifying observers, without blocking the render loop. */
+        get waitForReadback(): boolean;
+        set waitForReadback(value: boolean);
+        /**
+         * Gets the source texture input.
+         */
+        get source(): NodeRenderGraphConnectionPoint;
+        /**
+         * Gets the 1x1 RG texture containing the minimum in red and maximum in green.
+         */
+        get output(): NodeRenderGraphConnectionPoint;
+        getClassName(): string;
+        protected _buildBlock(state: NodeRenderGraphBuildState): void;
+        protected _dumpPropertiesCode(): string;
+        serialize(): any;
+        _deserialize(serializationObject: any): void;
+    }
+    /**
+     * Registers the min/max reducer block for node render graph deserialization.
+     */
+    export function RegisterMinMaxReducerBlock(): void;
+
+
 
 
     /** This file must only contain pure code and pure imports */
@@ -128189,7 +130690,7 @@ declare namespace BABYLON {
          */
         get geomViewNormal(): NodeRenderGraphConnectionPoint;
         /**
-         * Gets the world geometry normal component
+         * Gets the world geometry normal component, encoded from [-1, 1] to [0, 1]
          */
         get geomWorldNormal(): NodeRenderGraphConnectionPoint;
         /**
@@ -128220,6 +130721,10 @@ declare namespace BABYLON {
          * Gets the geometry object ID component
          */
         get geomObjectId(): NodeRenderGraphConnectionPoint;
+        /**
+         * Gets the packed mesh-blending tag component.
+         */
+        get geomMeshBlendTag(): NodeRenderGraphConnectionPoint;
         protected _buildBlock(state: NodeRenderGraphBuildState): void;
         protected _dumpPropertiesCode(): string;
         /**
@@ -129186,6 +131691,94 @@ declare namespace BABYLON {
     /**
      * Re-exports pure implementation and applies runtime side effects.
      * Import motionBlurPostProcessBlock.pure for tree-shakeable, side-effect-free usage.
+     */
+
+
+    /** This file must only contain pure code and pure imports */
+    /**
+     * Block that blends colors across seams between objects.
+     */
+    export class NodeRenderGraphMeshBlendingPostProcessBlock extends NodeRenderGraphBasePostProcessBlock {
+        protected _frameGraphTask: FrameGraphMeshBlendingTask;
+        /**
+         * Gets the frame graph task associated with this block.
+         */
+        get task(): FrameGraphMeshBlendingTask;
+        private _setRadiusValue;
+        /** Mesh blending always uses exact texel loads from SceneColor. */
+        get sourceSamplingMode(): number;
+        set sourceSamplingMode(_value: number);
+        /**
+         * Creates a mesh-blending post-process block.
+         * @param name The block name.
+         * @param frameGraph The hosting frame graph.
+         * @param scene The hosting scene.
+         */
+        constructor(name: string, frameGraph: FrameGraph, scene: Scene);
+        /** Gets or sets the compile-time mesh-blending quality variant. */
+        get quality(): MeshBlendQuality;
+        set quality(value: MeshBlendQuality);
+        /** Gets or sets the small-class authored world radius. */
+        get smallWorldRadius(): number;
+        set smallWorldRadius(value: number);
+        /** Gets or sets the small-class minimum projected radius in physical pixels. */
+        get smallMinimumProjectedRadius(): number;
+        set smallMinimumProjectedRadius(value: number);
+        /** Gets or sets the medium-class authored world radius. */
+        get mediumWorldRadius(): number;
+        set mediumWorldRadius(value: number);
+        /** Gets or sets the medium-class minimum projected radius in physical pixels. */
+        get mediumMinimumProjectedRadius(): number;
+        set mediumMinimumProjectedRadius(value: number);
+        /** Gets or sets the large-class authored world radius. */
+        get largeWorldRadius(): number;
+        set largeWorldRadius(value: number);
+        /** Gets or sets the large-class minimum projected radius in physical pixels. */
+        get largeMinimumProjectedRadius(): number;
+        set largeMinimumProjectedRadius(value: number);
+        /** Gets or sets the extra-large-class authored world radius. */
+        get extraLargeWorldRadius(): number;
+        set extraLargeWorldRadius(value: number);
+        /** Gets or sets the extra-large-class minimum projected radius in physical pixels. */
+        get extraLargeMinimumProjectedRadius(): number;
+        set extraLargeMinimumProjectedRadius(value: number);
+        /** Gets or sets the contact-slope narrowing factor. A value of 1 disables narrowing. */
+        get slopeFactor(): number;
+        set slopeFactor(value: number);
+        /** Gets or sets the compiled debug visualization. */
+        get debugMode(): MeshBlendDebugMode;
+        set debugMode(value: MeshBlendDebugMode);
+        /**
+         * Gets the camera used for world-radius projection and depth reconstruction.
+         */
+        get camera(): NodeRenderGraphConnectionPoint;
+        /**
+         * Gets the view-depth or screen-depth input.
+         */
+        get geomDepth(): NodeRenderGraphConnectionPoint;
+        /**
+         * Gets the optional linear geometry base-color/albedo input used for shadow estimation.
+         */
+        get geomAlbedo(): NodeRenderGraphConnectionPoint;
+        /**
+         * Gets the packed mesh-blending tag input.
+         */
+        get geomMeshBlendTag(): NodeRenderGraphConnectionPoint;
+        getClassName(): string;
+        protected _buildBlock(state: NodeRenderGraphBuildState): void;
+        protected _dumpPropertiesCode(): string;
+        serialize(): any;
+        _deserialize(serializationObject: any): void;
+    }
+    /**
+     * Registers the mesh-blending post-process block.
+     */
+    export function RegisterMeshBlendingPostProcessBlock(): void;
+
+
+    /**
+     * Re-exports the pure implementation and applies runtime side effects.
+     * Import meshBlendingPostProcessBlock.pure for tree-shakeable, side-effect-free usage.
      */
 
 
@@ -130353,7 +132946,7 @@ declare namespace BABYLON {
         /**
          * @deprecated Use get instead
          */
-        getPropertyName?: Array<(target: GLTFTargetType) => string>;
+        getPropertyName?: Array<(target: GLTFTargetType, index?: number) => string>;
         /**
          * Set a new value to the property.
          * @param newValue the new value to set
@@ -130430,6 +133023,10 @@ declare namespace BABYLON {
          */
         connectedPointIds: string[];
         /**
+         * Optional host-format metadata associated with this connection.
+         */
+        metadata?: any;
+        /**
          * The serialized default value of a data connection (set by the user for
          * unconnected inputs).  Only present on data connections.
          */
@@ -130489,6 +133086,10 @@ declare namespace BABYLON {
          */
         uniqueId?: string;
         /**
+         * Optional host-format metadata associated with the graph.
+         */
+        metadata?: any;
+        /**
          * Contexts belonging to the flow graph
          */
         executionContexts: ISerializedFlowGraphContext[];
@@ -130503,6 +133104,8 @@ declare namespace BABYLON {
     }
 
 
+    /** @internal */
+    export function _GetDefaultEventDataParseCount(value: unknown): number;
     /**
      * Resolves a serialized node reference (`{ id, name, className, uniqueId }`) to an actual scene node.
      * Matching prefers `id` (falling back to `name`), then narrows by class name, then by `uniqueId`.
@@ -130525,8 +133128,8 @@ declare namespace BABYLON {
      * @param key the key to the value that will be parsed
      * @param serializationObject the object that will be parsed
      * @param assetsContainer the assets container that will be used to find the objects
-     * @param scene
-     * @returns
+     * @param scene the scene used to resolve node and animation group references
+     * @returns the parsed value, with serialized Babylon types and scene references restored
      */
     export function defaultValueParseFunction(key: string, serializationObject: any, assetsContainer: IAssetContainer, scene: Scene): any;
     /**
@@ -131149,9 +133752,10 @@ declare namespace BABYLON {
          * element of one of the host's collections. Must return `undefined` for values the host does
          * not recognise as an indexed reference.
          * @param reference the reference to decode
+         * @param collection optional host collection the decoded reference must address
          * @returns the index the reference denotes, or `undefined` when it does not denote one
          */
-        decodeIndexReference?(reference: string): number | undefined;
+        decodeIndexReference?(reference: string, collection?: string): number | undefined;
         /**
          * Maps a runtime object to the reference the host addresses it by, for example the JSON
          * Pointer of the resource a loaded object originates from.
@@ -131302,6 +133906,11 @@ declare namespace BABYLON {
          * The type of the event
          */
         readonly type: FlowGraphEventType;
+        /**
+         * Stable key used to represent this event during propagation.
+         * Event blocks with equivalent event sources should return the same key.
+         */
+        get eventKey(): string;
         /**
          * @internal
          */
@@ -131591,12 +134200,22 @@ declare namespace BABYLON {
         _eventDispatchStack: {
             eventId: string;
             state: EventState;
+            propagationStopped: boolean;
         }[];
         constructor(
         /**
          * the configuration of the block
          */
         config: IFlowGraphCoordinatorConfiguration);
+        private _attachToScene;
+        private _detachFromScene;
+        /**
+         * Reattaches this coordinator's lifecycle observers to another scene.
+         * @param scene new scene owned by the coordinator
+         * @param updateGraphs whether existing graphs should also be reattached
+         * @internal
+         */
+        _setScene(scene: Scene, updateGraphs?: boolean): void;
         /**
          * Creates a new flow graph and adds it to the list of existing flow graphs
          * @param name - optional name for the new graph. If not provided, an auto-generated name is used.
@@ -131654,7 +134273,11 @@ declare namespace BABYLON {
          * Marks the end of the most recent custom-event dispatch started with
          * {@link _beginEventDispatch}.
          */
-        _endEventDispatch(): void;
+        _endEventDispatch(): {
+            eventId: string;
+            state: EventState;
+            propagationStopped: boolean;
+        } | undefined;
         /**
          * Stops the propagation of an in-flight custom event, preventing any event
          * handler nodes that have not been activated yet from running for the current
@@ -131909,9 +134532,10 @@ declare namespace BABYLON {
          * Decodes the array index denoted by a reference. Returns `undefined` when no host resolver is
          * configured or the host does not recognise the value as an indexed reference.
          * @param reference the reference to decode
+         * @param collection optional host collection the reference must address
          * @returns the index the reference denotes, or `undefined` when it does not denote one
          */
-        decodeIndexReference(reference: string): number | undefined;
+        decodeIndexReference(reference: string, collection?: string): number | undefined;
         /**
          * Maps a runtime object to the reference the host addresses it by. Returns `undefined` when no
          * host resolver is configured or the host cannot address the object.
@@ -132138,6 +134762,10 @@ declare namespace BABYLON {
          */
         uniqueId: string;
         /**
+         * Optional host-format metadata associated with this connection.
+         */
+        metadata?: any;
+        /**
          * The name of the connection.
          */
         name: string;
@@ -132180,6 +134808,9 @@ declare namespace BABYLON {
          * Disconnects all connected points.
          */
         disconnectFromAll(): void;
+        /**
+         * Disconnects this point from every connected point.
+         */
         dispose(): void;
         /**
          * Saves the connection to a JSON object.
@@ -132389,6 +135020,28 @@ declare namespace BABYLON {
     export function GetFlowGraphAssetWithType<T extends FlowGraphAssetType>(assetsContext: IAssetContainer, type: T, index: number, useIndexAsUniqueId?: boolean): Nullable<AssetType<T>>;
 
 
+    /** Observer ownership for animation groups started by FlowGraph. */
+    export interface IFlowGraphAnimationObserverSet {
+        /** Block that owns the animation group. */
+        block: FlowGraphPlayAnimationBlock;
+        /** Group completion observer. */
+        groupEnd: Observer<AnimationGroup>;
+        /** Animation completion observer. */
+        animationEnd: Observer<any>;
+        /** Animation loop observer. */
+        animationLoop: Observer<any>;
+        /** Group loop observer. */
+        groupLoop: Observer<AnimationGroup>;
+    }
+    /**
+     * Removes observers owned by the play block that started an animation group.
+     * @param context active FlowGraph context
+     * @param animationGroup animation group being replaced or stopped
+     * @returns the owning play block, when one was registered
+     */
+    export function RemoveFlowGraphAnimationGroupObservers(context: FlowGraphContext, animationGroup: AnimationGroup): FlowGraphPlayAnimationBlock | undefined;
+
+
     /**
      * Interface used to configure the launch of the flow graph editor.
      */
@@ -132477,6 +135130,10 @@ declare namespace BABYLON {
          * A unique identifier for this graph. Auto-generated if not provided.
          */
         uniqueId: string;
+        /**
+         * Optional host-format metadata associated with this graph.
+         */
+        metadata?: any;
         /**
          * Define the URL to load the flow graph editor script from.
          */
@@ -132606,8 +135263,9 @@ declare namespace BABYLON {
         /**
          * Starts the flow graph. Initializes the event blocks and starts listening to events.
          * Can also be called to resume from a paused state.
+         * @param skipSceneReadyCheck whether to activate the startup event immediately even when the scene is not yet ready
          */
-        start(): void;
+        start(skipSceneReadyCheck?: boolean): void;
         private _startPendingEvents;
         private _getContextualOrder;
         /**
@@ -132809,6 +135467,11 @@ declare namespace BABYLON {
          */
         _m: number[];
         constructor(m?: number[]);
+        /**
+         * Creates an independent copy of this matrix.
+         * @returns a new matrix with copied column-major elements
+         */
+        clone(): FlowGraphMatrix2D;
         get m(): number[];
         transformVector(v: Vector2): Vector2;
         transformVectorToRef(v: Vector2, result: Vector2): Vector2;
@@ -132842,6 +135505,11 @@ declare namespace BABYLON {
          */
         _m: number[];
         constructor(array?: number[]);
+        /**
+         * Creates an independent copy of this matrix.
+         * @returns a new matrix with copied column-major elements
+         */
+        clone(): FlowGraphMatrix3D;
         get m(): number[];
         transformVector(v: Vector3): Vector3;
         transformVectorToRef(v: Vector3, result: Vector3): Vector3;
@@ -132878,6 +135546,11 @@ declare namespace BABYLON {
          */
         readonly value: number;
         constructor(value: number);
+        /**
+         * Creates an independent copy of this integer.
+         * @returns a new integer with the same value
+         */
+        clone(): FlowGraphInteger;
         /**
          * Converts a float to an integer.
          * @param n the float to convert
@@ -133189,9 +135862,13 @@ declare namespace BABYLON {
          */
         variable?: string;
         /**
-         * The name of the variables to set.
+         * The names of the variables to set.
          */
         variables?: string[];
+        /** Whether all input values are evaluated before any variable is written. Defaults to false. */
+        evaluateInputsBeforeWrite?: boolean;
+        /** Whether writes cancel animations targeting the user-variable dictionary without firing done. Defaults to false. */
+        cancelVariableAnimations?: boolean;
     }
     /**
      * This block will set a variable on the context.
@@ -133229,6 +135906,8 @@ declare namespace BABYLON {
          * The target asset from which the property will be retrieved
          */
         target?: AssetType<O>;
+        /** Whether a failed write activates only error, without also activating out. Defaults to false. */
+        stopOnError?: boolean;
     }
     /**
      * This block will set a property on a given target asset.
@@ -133696,6 +136375,13 @@ declare namespace BABYLON {
 
     /** This file must only contain pure code and pure imports */
     /**
+     * Configuration for the throttle block.
+     */
+    export interface IFlowGraphThrottleBlockConfiguration extends IFlowGraphBlockConfiguration {
+        /** Whether a zero duration is accepted and always activates the output. Defaults to false. */
+        allowZeroDuration?: boolean;
+    }
+    /**
      * A block that throttles the execution of its output flow.
      */
     export class FlowGraphThrottleBlock extends FlowGraphExecutionBlockWithOutSignal {
@@ -133711,7 +136397,11 @@ declare namespace BABYLON {
          * Output connection: The time remaining before the throttle is triggering again, in seconds.
          */
         readonly lastRemainingTime: FlowGraphDataConnection<number>;
-        constructor(config?: IFlowGraphBlockConfiguration);
+        /**
+         * Creates a throttle block.
+         * @param config optional duration handling
+         */
+        constructor(config?: IFlowGraphThrottleBlockConfiguration);
         _execute(context: FlowGraphContext, callingSignal: FlowGraphSignalConnection): void;
         /**
          * @returns class name of the block.
@@ -134223,6 +136913,13 @@ declare namespace BABYLON {
 
     /** This file must only contain pure code and pure imports */
     /**
+     * Configuration for the cancel delay block.
+     */
+    export interface IFlowGraphCancelDelayBlockConfiguration extends IFlowGraphBlockConfiguration {
+        /** Whether invalid delay indices are ignored while still activating out. Defaults to false. */
+        ignoreInvalidDelay?: boolean;
+    }
+    /**
      * This block cancels a delay that was previously scheduled.
      */
     export class FlowGraphCancelDelayBlock extends FlowGraphExecutionBlockWithOutSignal {
@@ -134230,7 +136927,11 @@ declare namespace BABYLON {
          * Input connection: The index value of the scheduled activation to be cancelled.
          */
         readonly delayIndex: FlowGraphDataConnection<FlowGraphInteger>;
-        constructor(config?: IFlowGraphBlockConfiguration);
+        /**
+         * Creates a delay cancellation block.
+         * @param config optional invalid-index handling
+         */
+        constructor(config?: IFlowGraphCancelDelayBlockConfiguration);
         _execute(context: FlowGraphContext, _callingSignal: FlowGraphSignalConnection): void;
         getClassName(): string;
     }
@@ -134460,6 +137161,21 @@ declare namespace BABYLON {
 
     /** This file must only contain pure code and pure imports */
     /**
+     * Configuration for stopping an animation.
+     */
+    export interface IFlowGraphStopAnimationBlockConfiguration extends IFlowGraphBlockConfiguration {
+        /**
+         * Whether stopAtFrame uses the unbounded KHR_interactivity timeline.
+         * When false, the block retains its legacy positive-frame scheduling behavior.
+         */
+        useVirtualStopAt?: boolean;
+        /**
+         * Whether stopping suppresses the animation-group end notification.
+         * Defaults to true to preserve the historical StopAnimation behavior.
+         */
+        skipOnAnimationEnd?: boolean;
+    }
+    /**
      * @experimental
      * Block that stops a running animation
      */
@@ -134472,7 +137188,7 @@ declare namespace BABYLON {
          * Input connection - if defined (positive integer) the animation will stop at this frame.
          */
         readonly stopAtFrame: FlowGraphDataConnection<number>;
-        constructor(config?: IFlowGraphBlockConfiguration);
+        constructor(config?: IFlowGraphStopAnimationBlockConfiguration);
         _preparePendingTasks(context: FlowGraphContext): void;
         _cancelPendingTasks(context: FlowGraphContext): void;
         _execute(context: FlowGraphContext): void;
@@ -134498,6 +137214,15 @@ declare namespace BABYLON {
 
     /** This file must only contain pure code and pure imports */
     /**
+     * Configuration for playing an animation.
+     */
+    export interface IFlowGraphPlayAnimationBlockConfiguration extends IFlowGraphBlockConfiguration {
+        /**
+         * Whether animation-group playback uses the unbounded KHR_interactivity timeline.
+         */
+        useVirtualTimeline?: boolean;
+    }
+    /**
      * @experimental
      * A block that plays an animation on an animatable object.
      */
@@ -134505,7 +137230,7 @@ declare namespace BABYLON {
         /**
          * the configuration of the block
          */
-        config?: IFlowGraphBlockConfiguration | undefined;
+        config?: IFlowGraphPlayAnimationBlockConfiguration | undefined;
         /**
          * Input connection: The speed of the animation.
          */
@@ -134544,6 +137269,11 @@ declare namespace BABYLON {
          */
         readonly animation: FlowGraphDataConnection<Animation | Animation[]>;
         /**
+         * Input connection: Optional targets matching the animation array in order.
+         * When supplied, these replace the single object target. Ignored when animationGroup is supplied.
+         */
+        readonly animationTargets: FlowGraphDataConnection<IAnimatable[] | undefined>;
+        /**
          * Input connection: The target object that will be animated. If animation group is provided this input will be ignored.
          */
         readonly object: FlowGraphDataConnection<any>;
@@ -134551,7 +137281,7 @@ declare namespace BABYLON {
         /**
          * the configuration of the block
          */
-        config?: IFlowGraphBlockConfiguration | undefined);
+        config?: IFlowGraphPlayAnimationBlockConfiguration | undefined);
         /**
          * @internal
          * @param context
@@ -134585,6 +137315,8 @@ declare namespace BABYLON {
          */
         private _checkInterpolationDuplications;
         private _stopAnimationGroup;
+        /** @internal */
+        _cleanupAfterExternalStop(context: FlowGraphContext, animationGroup: AnimationGroup): void;
         private _removeFromCurrentlyRunning;
         /**
          * @internal
@@ -135006,11 +137738,18 @@ declare namespace BABYLON {
 
     /** This file must only contain pure code and pure imports */
     /**
+     * Configuration for the scene tick event.
+     */
+    export interface IFlowGraphSceneTickEventBlockConfiguration extends IFlowGraphBlockConfiguration {
+        /** Whether elapsed time starts at the first tick, whose delta time remains NaN. Defaults to false. */
+        useFirstTickAsStart?: boolean;
+    }
+    /**
      * Payload for the scene tick event.
      */
     export interface IFlowGraphOnTickEventPayload {
         /**
-         * the time in seconds since the scene started.
+         * The scene's accumulated time in seconds before the current frame interval.
          */
         timeSinceStart: number;
         /**
@@ -135023,11 +137762,11 @@ declare namespace BABYLON {
      */
     export class FlowGraphSceneTickEventBlock extends FlowGraphEventBlock {
         /**
-         * the time in seconds since the scene started.
+         * Time in seconds since the scene started, or since the first tick when useFirstTickAsStart is enabled.
          */
         readonly timeSinceStart: FlowGraphDataConnection<number>;
         /**
-         * the time in seconds since the last frame.
+         * Time in seconds since the last frame. Remains NaN on the first opted-in tick.
          */
         readonly deltaTime: FlowGraphDataConnection<number>;
         /**
@@ -135037,7 +137776,13 @@ declare namespace BABYLON {
          */
         readonly eventRef: FlowGraphDataConnection<string>;
         readonly type: FlowGraphEventType;
-        constructor();
+        /** @returns the shared scene-tick event key */
+        get eventKey(): string;
+        /**
+         * Creates a scene tick event block.
+         * @param config optional clock behavior
+         */
+        constructor(config?: IFlowGraphSceneTickEventBlockConfiguration);
         _updateOutputs(context: FlowGraphContext): void;
         /**
          * @internal
@@ -135076,6 +137821,8 @@ declare namespace BABYLON {
     export class FlowGraphSceneReadyEventBlock extends FlowGraphEventBlock {
         initPriority: number;
         readonly type: FlowGraphEventType;
+        /** @returns the shared scene-ready event key */
+        get eventKey(): string;
         /**
          * Output: the opaque reference identifying this event source.
          * All instances of this block share the same reference, so comparing the `event` output of two
@@ -135122,9 +137869,16 @@ declare namespace BABYLON {
         eventData: {
             [key: string]: {
                 type: RichType<any>;
+                value?: any;
             };
         };
     }
+    /**
+     * Returns the event-dispatch key for an authored custom event id.
+     * @param eventId authored custom event id
+     * @returns namespaced event key
+     */
+    export function GetFlowGraphCustomEventKey(eventId: string): string;
     /**
      * A block that receives a custom event.
      * It saves the event data in the data outputs, based on the provided eventData in the configuration. For example, if the event data is
@@ -135142,6 +137896,8 @@ declare namespace BABYLON {
          * `event` outputs for equality succeeds. The reference format is owned by the host environment.
          */
         readonly eventRef: FlowGraphDataConnection<string>;
+        /** @returns the configured custom event id */
+        get eventKey(): string;
         constructor(
         /**
          * the configuration of the block
@@ -135297,6 +138053,8 @@ declare namespace BABYLON {
         readonly type: FlowGraphEventType;
         constructor(config?: IFlowGraphPointerOverEventBlockConfiguration);
         _executeEvent(context: FlowGraphContext, payload: IFlowGraphPointerOverEventPayload): boolean;
+        /** @internal */
+        _getReferencedMesh(context: FlowGraphContext): AbstractMesh;
         _preparePendingTasks(_context: FlowGraphContext): void;
         _cancelPendingTasks(_context: FlowGraphContext): void;
         getClassName(): FlowGraphBlockNames;
@@ -135365,6 +138123,8 @@ declare namespace BABYLON {
         readonly type: FlowGraphEventType;
         constructor(config?: IFlowGraphPointerOutEventBlockConfiguration);
         _executeEvent(context: FlowGraphContext, payload: IFlowGraphPointerOutEventPayload): boolean;
+        /** @internal */
+        _getReferencedMesh(context: FlowGraphContext): AbstractMesh;
         _preparePendingTasks(_context: FlowGraphContext): void;
         _cancelPendingTasks(_context: FlowGraphContext): void;
         getClassName(): FlowGraphBlockNames;
@@ -135614,6 +138374,14 @@ declare namespace BABYLON {
          * The mesh to listen to. Can also be set by the asset input.
          */
         targetMesh?: AbstractMesh;
+        /**
+         * Whether unavailable selection vectors use NaN components.
+         */
+        useNaNDefaults?: boolean;
+        /**
+         * Initial pointer/controller id.
+         */
+        pointerIdDefault?: number;
     }
     /**
      * A block that activates when a mesh is picked.
@@ -136081,6 +138849,12 @@ declare namespace BABYLON {
          * If true, the block will reset the output to the default value when the target asset is undefined.
          */
         resetToDefaultWhenUndefined?: boolean;
+        /**
+         * Optional value copied for each failed resolution and returned alongside isValid=false.
+         * Scalars are retained, cloneable values use clone(), and arrays/plain records are copied recursively.
+         * Other objects must support structured cloning.
+         */
+        invalidValue?: unknown;
     }
     /**
      * This block will deliver a property of an asset, based on the property name and an input asset.
@@ -136124,6 +138898,7 @@ declare namespace BABYLON {
          */
         _doOperation(context: FlowGraphContext): P | undefined;
         private _getPropertyValue;
+        protected _getInvalidOutputValue(context: FlowGraphContext): P;
         /**
          * Returns the class name of this block.
          * @returns the class name
@@ -136683,10 +139458,19 @@ declare namespace BABYLON {
 
     /** This file must only contain pure code and pure imports */
     /**
+     * Configuration for array-index reference resolution.
+     */
+    export interface IFlowGraphArrayIndexBlockConfiguration extends IFlowGraphBlockConfiguration {
+        /**
+         * Optional host collection name required when the index input is an opaque reference.
+         */
+        referenceCollection?: string;
+    }
+    /**
      * This simple Util block takes an array as input and selects a single element from it.
      */
     export class FlowGraphArrayIndexBlock<T = any> extends FlowGraphBlock {
-        config: IFlowGraphBlockConfiguration;
+        config: IFlowGraphArrayIndexBlockConfiguration;
         /**
          * Input connection: The array to select from.
          */
@@ -136703,7 +139487,7 @@ declare namespace BABYLON {
          * Construct a FlowGraphArrayIndexBlock.
          * @param config construction parameters
          */
-        constructor(config: IFlowGraphBlockConfiguration);
+        constructor(config: IFlowGraphArrayIndexBlockConfiguration);
         /**
          * @internal
          */
@@ -136810,6 +139594,11 @@ declare namespace BABYLON {
          * Whether to output the value of the property.
          */
         outputValue?: boolean;
+        /**
+         * Expected property value type for writes. When provided, writes require a mutable accessor
+         * with the matching type; vector/color and vector4/quaternion representations are equivalent.
+         */
+        valueType?: string;
     }
     /**
      * This block will take a JSON pointer and parse it to get the value from the JSON object.
@@ -136841,6 +139630,10 @@ declare namespace BABYLON {
          * Output connection: A function that can be used to get the interpolation animation property info.
          */
         readonly generateAnimationsFunction: FlowGraphDataConnection<() => (keys: any[], fps: number, easingFunction?: EasingFunction) => Animation[]>;
+        /**
+         * Output connection: Targets supplied by the animation builder, in the same order as its generated animations.
+         */
+        readonly animationTargets: FlowGraphDataConnection<IAnimatable[] | undefined>;
         /**
          * The component with the templated inputs for the provided path.
          */
@@ -138749,6 +141542,7 @@ declare namespace BABYLON {
     interface IWebGPURenderPassWrapper {
         renderPassDescriptor: Nullable<GPURenderPassDescriptor>;
         colorAttachmentViewDescriptor: Nullable<GPUTextureViewDescriptor>;
+        colorAttachmentDepthSlice: number | undefined;
         depthAttachmentViewDescriptor: Nullable<GPUTextureViewDescriptor>;
         colorAttachmentGPUTextures: (WebGPUHardwareTexture | null)[];
         depthTextureFormat: GPUTextureFormat | undefined;
@@ -138817,6 +141611,17 @@ declare namespace BABYLON {
          * Defines the requested Swap Chain Format.
          */
         swapChainFormat?: GPUTextureFormat;
+        /**
+         * Defines the canvas presentation tone mapping. Default: `{ mode: "standard" }`.
+         * Extended mode allows HDR presentation with swapChainFormat: "rgba16float" on supported browsers and displays.
+         * This does not replace material or post-process tone mapping; the rendering pipeline must preserve values above 1 for HDR output.
+         */
+        canvasToneMapping?: GPUCanvasToneMapping;
+        /**
+         * Defines the canvas output color space. Default: "srgb".
+         * Selecting "display-p3" changes how output colors are interpreted; it does not convert the rendering pipeline's colors to Display P3.
+         */
+        canvasColorSpace?: PredefinedColorSpace;
         /**
          * Defines whether we should generate debug markers in the gpu command lists (can be seen with PIX for eg). Default: false
          */
@@ -139182,7 +141987,7 @@ declare namespace BABYLON {
          */
         exitPointerlock(): void;
         protected _rebuildBuffers(): void;
-        protected _restoreEngineAfterContextLost(initEngine: () => void): void;
+        protected _restoreEngineAfterContextLost(initEngine: () => void | Promise<void>): void;
         /**
          * Force a specific size of the canvas
          * @param width defines the new canvas' width
@@ -139200,7 +142005,8 @@ declare namespace BABYLON {
          * @internal
          */
         _getShaderProcessingContext(shaderLanguage: ShaderLanguage, pureMode: boolean): Nullable<_IShaderProcessingContext>;
-        private _getCurrentRenderPass;
+        /** @internal */
+        _getCurrentRenderPass(): GPURenderPassEncoder;
         /** @internal */
         _getCurrentRenderPassWrapper(): IWebGPURenderPassWrapper;
         /** @internal */
@@ -139586,9 +142392,10 @@ declare namespace BABYLON {
          * @param format defines the format of the data
          * @param forcedExtension defines the extension to use to pick the right loader
          * @param createPolynomials defines wheter or not to create polynomails harmonics for the texture
+         * @param buffer defines the data buffer to load instead of loading the rootUrl
          * @returns the cube texture as an InternalTexture
          */
-        createPrefilteredCubeTexture(rootUrl: string, scene: Nullable<Scene>, lodScale: number, lodOffset: number, onLoad?: Nullable<(internalTexture: Nullable<InternalTexture>) => void>, onError?: Nullable<(message?: string, exception?: any) => void>, format?: number, forcedExtension?: any, createPolynomials?: boolean): InternalTexture;
+        createPrefilteredCubeTexture(rootUrl: string, scene: Nullable<Scene>, lodScale: number, lodOffset: number, onLoad?: Nullable<(internalTexture: Nullable<InternalTexture>) => void>, onError?: Nullable<(message?: string, exception?: any) => void>, format?: number, forcedExtension?: any, createPolynomials?: boolean, buffer?: Nullable<ArrayBufferView>): InternalTexture;
         /**
          * Sets a texture to the according uniform.
          * @param channel The texture channel
@@ -139911,11 +142718,15 @@ declare namespace BABYLON {
         /** @internal */
         _occlusionQuery: WebGPUOcclusionQuery;
         /** @internal */
+        _occlusionQueryActive: boolean;
+        /** @internal */
         _renderEncoder: GPUCommandEncoder;
         /** @internal */
         _uploadEncoder: GPUCommandEncoder;
         /** @internal */
         _currentRenderPass: Nullable<GPURenderPassEncoder>;
+        /** @internal */
+        _getCurrentRenderPass(): Nullable<GPURenderPassEncoder>;
         protected _snapshotRendering: WebGPUSnapshotRendering;
         protected _snapshotRenderingMode: number;
         /** @internal */
@@ -139994,7 +142805,7 @@ declare namespace BABYLON {
     /**
      * Options to create the Native engine
      */
-    export interface ThinNativeEngineOptions {
+    export interface ThinNativeEngineOptions extends AbstractEngineOptions {
         /**
          * defines whether to adapt to the device's viewport characteristics (default: false)
          */
@@ -140010,6 +142821,13 @@ declare namespace BABYLON {
         private _commandBufferEncoder;
         private _frameStats;
         private _boundBuffersVertexArray;
+        private _transformFeedbackBuffer;
+        private _transformFeedbackActive;
+        /**
+         * Bit i is set when color attachment i is selected by the last bindAttachments() call.
+         * Only used to mask clears (see bindAttachments).
+         */
+        private _clearAttachmentMask;
         private _currentDepthTest;
         private _depthTestEnabled;
         private _stencilTest;
@@ -140029,6 +142847,10 @@ declare namespace BABYLON {
         private _cachedZOffsetUnits;
         private _depthWrite;
         private _fillModeWarningDisplayed;
+        private _int2Scratch;
+        private _int3Scratch;
+        private _int4Scratch;
+        private _frameGraphFramebufferRefCount;
         constructor(options?: ThinNativeEngineOptions);
         /**
          * Keeps as a separate function to use in NativeEngine
@@ -140084,10 +142906,12 @@ declare namespace BABYLON {
         }): WebGLVertexArrayObject;
         private _deleteVertexArray;
         bindVertexArrayObject(vertexArray: WebGLVertexArrayObject): void;
+        /** @internal Native vertex arrays capture their buffers when recorded; there is no bound array buffer. */
+        bindArrayBuffer(_buffer: Nullable<DataBuffer>): void;
         releaseVertexArrayObject(vertexArray: WebGLVertexArrayObject): void;
         getAttributes(pipelineContext: IPipelineContext, attributesNames: string[]): number[];
         /**
-         * Triangle Fan and Line Loop are not supported by modern rendering API
+         * Check whether the runtime can expand primitive modes unavailable in modern rendering APIs.
          * @param fillMode  defines the primitive to use
          * @returns true if supported
          */
@@ -140108,6 +142932,24 @@ declare namespace BABYLON {
          * @param instancesCount defines the number of instances to draw (if instantiation is enabled)
          */
         drawArraysType(fillMode: number, verticesStart: number, verticesCount: number, instancesCount?: number): void;
+        /** @internal Transform feedback objects are implicit on native; state lives on the engine. */
+        createTransformFeedback(): WebGLTransformFeedback;
+        /** @internal */
+        deleteTransformFeedback(_value: WebGLTransformFeedback): void;
+        /** @internal */
+        bindTransformFeedback(_value: Nullable<WebGLTransformFeedback>): void;
+        /** @internal */
+        bindTransformFeedbackBuffer(value: Nullable<DataBuffer>): void;
+        /** @internal Varyings are passed to the native program when it is created. */
+        setTranformFeedbackVaryings(_program: WebGLProgram, _value: string[]): void;
+        /** @internal */
+        beginTransformFeedback(_usePoints?: boolean): void;
+        /** @internal */
+        endTransformFeedback(): void;
+        /** @internal */
+        readTransformFeedbackBuffer(target: ArrayBufferView): void;
+        /** @internal Transform feedback draws never rasterize on native. */
+        setRasterizerState(_value: boolean): void;
         createPipelineContext(shaderProcessingContext: Nullable<_IShaderProcessingContext>): IPipelineContext;
         createMaterialContext(): IMaterialContext | undefined;
         createDrawContext(): IDrawContext | undefined;
@@ -140115,17 +142957,17 @@ declare namespace BABYLON {
          * Function is not technically Async
          * @internal
          */
-        _preparePipelineContextAsync(pipelineContext: IPipelineContext, vertexSourceCode: string, fragmentSourceCode: string, createAsRaw: boolean, _rawVertexSourceCode: string, _rawFragmentSourceCode: string, _rebuildRebind: any, defines: Nullable<string>, _transformFeedbackVaryings: Nullable<string[]>, _key: string, onReady: () => void): void;
+        _preparePipelineContextAsync(pipelineContext: IPipelineContext, vertexSourceCode: string, fragmentSourceCode: string, createAsRaw: boolean, _rawVertexSourceCode: string, _rawFragmentSourceCode: string, _rebuildRebind: any, defines: Nullable<string>, transformFeedbackVaryings: Nullable<string[]>, _key: string, onReady: () => void): void;
         /**
          * @internal
          */
-        _getShaderProcessingContext(_shaderLanguage: ShaderLanguage): Nullable<_IShaderProcessingContext>;
+        _getShaderProcessingContext(shaderLanguage: ShaderLanguage): Nullable<_IShaderProcessingContext>;
         /**
          * @internal
          */
         _executeWhenRenderingStateIsCompiled(pipelineContext: IPipelineContext, action: () => void): void;
         createRawShaderProgram(): WebGLProgram;
-        createShaderProgram(pipelineContext: IPipelineContext, vertexCode: string, fragmentCode: string, defines: Nullable<string>): WebGLProgram;
+        createShaderProgram(pipelineContext: IPipelineContext, vertexCode: string, fragmentCode: string, defines: Nullable<string>, _context?: WebGLRenderingContext, transformFeedbackVaryings?: Nullable<string[]>): WebGLProgram;
         /**
          * Inline functions in shader code that are marked to be inlined
          * @param code code to inline
@@ -140174,7 +143016,6 @@ declare namespace BABYLON {
         setDepthBuffer(enable: boolean): void;
         private _encodeDepthTest;
         private _flushDepthTestState;
-        applyStates(): void;
         /**
          * Gets a boolean indicating if depth writing is enabled
          * @returns the current depth writing state
@@ -140197,6 +143038,20 @@ declare namespace BABYLON {
          * @returns the current color writing state
          */
         getColorWrite(): boolean;
+        /**
+         * Apply the currently pending engine states.
+         *
+         * The base ThinEngine.applyStates() flushes state by calling
+         * this._depthCullingState.apply(this._gl) (and similar for alpha/stencil), but the
+         * native engine has no WebGL context (_gl is undefined), so inheriting that path
+         * throws "Cannot read properties of undefined (reading 'depthMask')". Callers such
+         * as the depth-peeling (OIT) renderer mutate engine.depthCullingState directly and
+         * then call applyStates() expecting the change to be flushed, so reconcile the shared
+         * depth-culling state into the native command buffer here instead. Alpha and stencil
+         * states are already encoded immediately on the native side (setAlphaMode /
+         * setStencil* emit commands directly), so only the depth state needs reconciling.
+         */
+        applyStates(): void;
         private applyStencil;
         private _setStencil;
         /**
@@ -140235,8 +143090,8 @@ declare namespace BABYLON {
          */
         setStencilFunctionReference(reference: number): void;
         /**
-         * Sets the current stencil mask
-         * @param mask defines the new stencil mask to use
+         * Sets the current stencil function mask
+         * @param mask defines the new stencil function mask to use
          */
         setStencilFunctionMask(mask: number): void;
         /**
@@ -140295,7 +143150,19 @@ declare namespace BABYLON {
          * @see https://doc.babylonjs.com/features/featuresDeepDive/materials/advanced/transparent_rendering
          */
         setAlphaMode(mode: number, noDepthWriteChange?: boolean, targetIndex?: number): void;
+        /**
+         * Sets the current alpha blend equation (ADD / SUB / MAX / MIN / ...).
+         * Dual depth peeling (OIT) requires ALPHA_EQUATION_MAX so peel passes accumulate
+         * farthest/nearest depths. Native previously only wired blend *factors*; equations
+         * stayed at bgfx's default ADD and transparent peels never wrote useful depth.
+         * @param equation one of Constants.ALPHA_EQUATION_*
+         * @param targetIndex MRT attachment index (Native applies equation globally; kept for API parity)
+         */
+        setAlphaEquation(equation: number, targetIndex?: number): void;
         setInt(uniform: WebGLUniformLocation, int: number): boolean;
+        setInt2(uniform: Nullable<WebGLUniformLocation>, x: number, y: number): boolean;
+        setInt3(uniform: Nullable<WebGLUniformLocation>, x: number, y: number, z: number): boolean;
+        setInt4(uniform: Nullable<WebGLUniformLocation>, x: number, y: number, z: number, w: number): boolean;
         setIntArray(uniform: WebGLUniformLocation, array: Int32Array): boolean;
         setIntArray2(uniform: WebGLUniformLocation, array: Int32Array): boolean;
         setIntArray3(uniform: WebGLUniformLocation, array: Int32Array): boolean;
@@ -140334,7 +143201,42 @@ declare namespace BABYLON {
         updateVideoTexture(texture: Nullable<InternalTexture>, video: HTMLVideoElement, invertY: boolean): void;
         createRawTexture(data: Nullable<ArrayBufferView>, width: number, height: number, format: number, generateMipMaps: boolean, invertY: boolean, samplingMode: number, compression?: Nullable<string>, type?: number, creationFlags?: number, useSRGBBuffer?: boolean): InternalTexture;
         createRawTexture2DArray(data: Nullable<ArrayBufferView>, width: number, height: number, depth: number, format: number, generateMipMaps: boolean, invertY: boolean, samplingMode: number, compression?: Nullable<string>, textureType?: number): InternalTexture;
+        createRawTexture3D(data: Nullable<ArrayBufferView>, width: number, height: number, depth: number, format: number, generateMipMaps: boolean, invertY: boolean, samplingMode: number, compression?: Nullable<string>, textureType?: number): InternalTexture;
+        updateRawTexture3D(texture: Nullable<InternalTexture>, bufferView: Nullable<ArrayBufferView>, format: number, invertY: boolean, compression?: Nullable<string>, textureType?: number): void;
         updateRawTexture(texture: Nullable<InternalTexture>, bufferView: Nullable<ArrayBufferView>, format: number, invertY: boolean, compression?: Nullable<string>, type?: number, useSRGBBuffer?: boolean): void;
+        /**
+         * Creates a raw cube texture on the native engine.
+         *
+         * The WebGL implementation (engine.rawTexture) drives the whole upload through `this._gl`, which is null
+         * on Native, so loading an HDR/`.env` cube via `createRawCubeTextureFromUrl` used to throw
+         * `Cannot read properties of undefined (reading 'FLOAT')`. This override allocates a native cube texture
+         * and uploads its faces through the bgfx `updateTextureData` path instead.
+         *
+         * Native has no 3-component float texture format, so an RGB float/half-float source (what HDRCubeTexture
+         * requests) is allocated and uploaded as RGBA; the per-face RGB->RGBA expansion happens in
+         * `updateRawCubeTexture`.
+         * @param data defines the data used to create the texture (6 faces, +X +Y +Z -X -Y -Z) or null
+         * @param size defines the size of the textures (each face is size x size)
+         * @param format defines the format of the data
+         * @param type defines the type of the data
+         * @param generateMipMaps defines if the engine should generate the mip levels
+         * @param invertY defines if data must be stored with Y axis inverted
+         * @param samplingMode defines the required sampling mode (like Texture.NEAREST_SAMPLINGMODE)
+         * @param compression defines the compression used (null by default)
+         * @returns the cube texture as an InternalTexture
+         */
+        createRawCubeTexture(data: Nullable<ArrayBufferView[]>, size: number, format: number, type: number, generateMipMaps: boolean, invertY: boolean, samplingMode: number, compression?: Nullable<string>): InternalTexture;
+        /**
+         * Updates a raw cube texture on the native engine.
+         * @param texture defines the texture to update
+         * @param data defines the data to store (6 faces, +X +Y +Z -X -Y -Z)
+         * @param format defines the data format
+         * @param type defines the type of the data
+         * @param invertY defines if data must be stored with Y axis inverted
+         * @param compression defines the compression used (null by default)
+         * @param level defines which mip level of the texture to update (0 by default)
+         */
+        updateRawCubeTexture(texture: InternalTexture, data: ArrayBufferView[], format: number, type: number, invertY: boolean, compression?: Nullable<string>, level?: number): void;
         /**
          * Usually called from Texture.ts.
          * Passed information to create a NativeTexture
@@ -140388,11 +143290,98 @@ declare namespace BABYLON {
          * @param texture defines the new native texture handle to wrap
          */
         updateWrappedNativeTexture(internalTexture: InternalTexture, texture: NativeTexture): void;
+        /**
+         * Creates a depth/stencil texture for a render target wrapper.
+         * @param size The size of the depth texture
+         * @param options The options defining the depth texture
+         * @param rtWrapper The render target wrapper the depth texture belongs to
+         * @returns The depth/stencil texture
+         */
+        createDepthStencilTexture(size: TextureSize, options: DepthTextureCreationOptions, rtWrapper: RenderTargetWrapper): InternalTexture;
         _createDepthStencilTexture(size: TextureSize, options: DepthTextureCreationOptions, rtWrapper: RenderTargetWrapper): InternalTexture;
+        /**
+         * Builds the framebuffer(s) of a render target so they carry its sampleable depth/stencil texture. The depth
+         * texture's native handle must not be allocated yet: the first framebuffer creation allocates it.
+         * @internal
+         */
+        _attachDepthStencilTexture(nativeRTWrapper: NativeRenderTargetWrapper, texture: InternalTexture, width: number, height: number, generateStencil: boolean, samples: number): void;
+        private _recreateDepthStencilTexture;
+        /**
+         * Returns whether a render-target texture was created with mip storage, independently of generateMipMaps.
+         * @internal
+         */
+        _hasMipStorage(texture: InternalTexture): boolean;
+        private _setHasMipStorage;
+        /**
+         * Ensures a cloned render-target texture retains allocation-only mip storage.
+         * @internal
+         */
+        _ensureRenderTargetMipStorage(texture: InternalTexture): boolean;
+        /**
+         * Rebuilds native framebuffer objects after a wrapper's explicit depth attachment changes.
+         * @internal
+         */
+        _rebuildRenderTargetFramebuffersAfterDepthChange(nativeRTWrapper: NativeRenderTargetWrapper): void;
+        /**
+         * Rejects an explicit depth attachment the render target cannot use, before any attachment state is mutated.
+         * bgfx requires every framebuffer attachment to share one sample count.
+         * @internal
+         */
+        _assertDepthAttachmentCompatible(rtWrapper: NativeRenderTargetWrapper, depthSamples: number): void;
+        /**
+         * Whether the depth attachment carries stencil: an explicit depth texture decides from its own format (its handle
+         * may be unallocated after a sample-count change), otherwise the automatic depth buffer request does.
+         * @internal
+         */
+        _getDepthAttachmentStencil(rtWrapper: NativeRenderTargetWrapper): boolean;
+        /** @internal */
+        _assertVolumeDepthAttachmentSupported(depthSamples?: number, colorSamples?: number): void;
+        /**
+         * Updates a depth texture Comparison Mode and Function.
+         * @param texture The texture to set the comparison function for
+         * @param comparisonFunction The comparison function to set, 0 if no comparison required
+         */
+        updateTextureComparisonFunction(texture: InternalTexture, comparisonFunction: number): void;
+        /**
+         * Generates mipmaps for the given texture.
+         * @param _texture The texture to generate the mipmaps for.
+         */
+        generateMipmaps(_texture: InternalTexture): void;
+        /**
+         * Creates one framebuffer per layer (or cube face) of a native texture.
+         * @internal
+         */
+        _createLayerFramebuffers(nativeTexture: NativeTexture, width: number, height: number, layerCount: number, generateStencilBuffer: boolean, generateDepthBuffer: boolean, samples: number, autoGenerateMips?: boolean): NativeFramebuffer[];
+        /**
+         * Per-layer framebuffers carry their own depth/stencil attachment, either requested at creation or added by
+         * createDepthStencilTexture (see _createDepthStencilTexture), so recreate them with the same attachments.
+         * @internal
+         */
+        _getLayerFramebufferDepthStencil(rtWrapper: RenderTargetWrapper): {
+            generateDepth: boolean;
+            generateStencil: boolean;
+        };
         /**
          * @internal
          */
         _releaseFramebufferObjects(framebuffer: Nullable<NativeFramebuffer>): void;
+        /**
+         * Returns true when the given framebuffer was built by the frame graph path (_buildFrameGraphFramebuffer),
+         * i.e. it is reference-counted, shared between wrappers and rebuilt lazily on bind.
+         * @param framebuffer The framebuffer to test
+         * @returns true if the framebuffer is a frame graph framebuffer
+         * @internal
+         */
+        _isFrameGraphFramebuffer(framebuffer: NativeFramebuffer): boolean;
+        /**
+         * Lazily builds (or reuses a shared) bgfx framebuffer for a frame graph render-target wrapper whose
+         * textures were attached after creation (dontCreateTextures). All wrappers that reference the same
+         * underlying color texture share a single framebuffer, cached on that texture's hardware wrapper, so that
+         * successive passes (clear, object render, post) accumulate into the same target instead of each fresh
+         * framebuffer/view clearing it.
+         * @internal
+         */
+        private _buildFrameGraphFramebuffer;
         /**
          * @internal Engine abstraction for loading and creating an image bitmap from a given source string.
          * @param imageSource source to load the image from.
@@ -140419,13 +143408,18 @@ declare namespace BABYLON {
         _createHardwareTexture(): IHardwareTextureWrapper;
         /** @internal */
         _createHardwareRenderTargetWrapper(isMulti: boolean, isCube: boolean, size: TextureSize): RenderTargetWrapper;
+        /**
+         * Older bgfx D3D11/D3D12/Vulkan backends share one texture descriptor between the MSAA render target and its
+         * resolve target, so requesting mips together with samples > 1 fails texture creation (BabylonNative#1714).
+         * Only keep the mip chain of a multisampled render target when the runtime reports that it supports it.
+         * @internal
+         */
+        _getRenderTargetHasMips(generateMipMaps: boolean, samples: number): boolean;
         /** @internal */
         _createInternalTexture(size: TextureSize, options: boolean | InternalTextureCreationOptions, _delayGPUTextureCreation?: boolean, source?: InternalTextureSource): InternalTexture;
-        createRenderTargetTexture(size: number | {
-            width: number;
-            height: number;
-            depth: number;
-        }, options: boolean | RenderTargetCreationOptions): RenderTargetWrapper;
+        private _createInternalCubeTexture;
+        createRenderTargetTexture(size: TextureSize, options: boolean | RenderTargetCreationOptions): RenderTargetWrapper;
+        private _createRenderTargetTexture3D;
         createRenderTargetCubeTexture(size: number, options?: RenderTargetCreationOptions): RenderTargetWrapper;
         createMultipleRenderTarget(size: TextureSize, options: IMultiRenderTargetOptions, _initializeBuffers?: boolean): RenderTargetWrapper;
         /**
@@ -140438,8 +143432,16 @@ declare namespace BABYLON {
          * @internal
          */
         _createMultiRenderTargetFramebuffer(rtWrapper: NativeRenderTargetWrapper): void;
+        private _applyDepthTextureSampling;
+        /**
+         * Creates a multi-attachment framebuffer, falling back to a single-attachment framebuffer bound to the first
+         * color target (and its first requested layer) on older Babylon Native runtimes without createMultiFrameBuffer.
+         * @internal
+         */
+        _createNativeMultiFrameBuffer(colorTextures: NativeTexture[], width: number, height: number, generateStencilBuffer: boolean, generateDepthBuffer: boolean, samples: number, layers?: number[], explicitDepthTexture?: NativeTexture): NativeFramebuffer;
         generateMipMapsForCubemap(_texture: InternalTexture, _unbind?: boolean): void;
-        bindAttachments(_attachments: number[]): void;
+        bindAttachments(attachments: number[]): void;
+        clearAttachments(color: Nullable<IColor4Like>, attachments: number[], clearColor: boolean, clearDepth: boolean, clearStencil?: boolean, stencilClearValue?: number): void;
         buildTextureLayout(textureStatus: boolean[], _backBufferLayout?: boolean): number[];
         restoreSingleAttachment(): void;
         restoreSingleAttachmentForRenderTarget(): void;
@@ -140449,7 +143451,13 @@ declare namespace BABYLON {
         updateMultipleRenderTargetTextureSampleCount(rtWrapper: Nullable<RenderTargetWrapper>, samples: number, _initializeBuffers?: boolean): number;
         updateRenderTargetTextureSampleCount(rtWrapper: RenderTargetWrapper, samples: number): number;
         updateTextureSamplingMode(samplingMode: number, texture: InternalTexture): void;
-        bindFramebuffer(texture: RenderTargetWrapper, faceIndex?: number, requiredWidth?: number, requiredHeight?: number, forceFullscreenViewport?: boolean): void;
+        updateTextureWrappingMode(texture: InternalTexture, wrapU: Nullable<number>, wrapV?: Nullable<number>, wrapR?: Nullable<number>): void;
+        bindFramebuffer(texture: RenderTargetWrapper, faceIndex?: number, requiredWidth?: number, requiredHeight?: number, forceFullscreenViewport?: boolean, lodLevel?: number, layer?: number): void;
+        private _applyBoundViewport;
+        private _get3DLayerFramebuffer;
+        private _getCubeFaceMipFramebuffer;
+        private _isLayeredFrameGraphMRT;
+        private _bindLayeredMultiFramebuffer;
         unBindFramebuffer(texture: RenderTargetWrapper, disableGenerateMipMaps?: boolean, onBeforeUnbind?: () => void): void;
         createDynamicVertexBuffer(data: DataArray): DataBuffer;
         updateDynamicIndexBuffer(indexBuffer: DataBuffer, indices: IndicesArray, offset?: number): void;
@@ -140467,6 +143475,10 @@ declare namespace BABYLON {
          * @internal
          */
         _bindTexture(channel: number, texture: Nullable<InternalTexture>): void;
+        /**
+         * @internal
+         */
+        _bindTextureDirectly(_target: number, _texture: Nullable<InternalTexture>, _forTextureDataUpdate?: boolean, _force?: boolean): boolean;
         /**
          * Unbind all textures
          */
@@ -140585,6 +143597,7 @@ declare namespace BABYLON {
     export class ThinEngine extends AbstractEngine {
         private static _TempClearColorUint32;
         private static _TempClearColorInt32;
+        private static _TempClearColorFloat32;
         /** Use this array to turn off some WebGL2 features on known buggy browsers version */
         static ExceptionList: ({
             key: string;
@@ -140633,6 +143646,8 @@ declare namespace BABYLON {
         /** @internal */
         _webGLVersion: number;
         /** @internal */
+        _integerMRTAttachmentsMask: number;
+        /** @internal */
         _glSRGBExtensionValues: {
             SRGB: typeof WebGL2RenderingContext.SRGB;
             SRGB8: typeof WebGL2RenderingContext.SRGB8 | EXT_sRGB["SRGB_ALPHA_EXT"];
@@ -140659,6 +143674,7 @@ declare namespace BABYLON {
         private _currentBufferPointers;
         private _currentInstanceLocations;
         private _currentInstanceBuffers;
+        private _cachedVertexBuffersSetInstanceDivisors;
         private _textureUnits;
         /** @internal */
         _workingCanvas: Nullable<ICanvas>;
@@ -140747,6 +143763,15 @@ declare namespace BABYLON {
          * @param stencilClearValue defines the value to use to clear the stencil buffer (default is 0)
          */
         clear(color: Nullable<IColor4Like>, backBuffer: boolean, depth: boolean, stencil?: boolean, stencilClearValue?: number): void;
+        /**
+         * Clears one color attachment using the operation required by its texture format.
+         * @param attachmentIndex The color attachment index.
+         * @param color The clear value.
+         * @param format The texture format.
+         * @param type The texture type.
+         * @internal
+         */
+        _clearColorAttachment(attachmentIndex: number, color: IColor4Like, format: number, type: number): void;
         /**
          * @internal
          */
@@ -141314,6 +144339,8 @@ declare namespace BABYLON {
          * @returns true if the value was set
          */
         setFloat4(uniform: Nullable<WebGLUniformLocation>, x: number, y: number, z: number, w: number): boolean;
+        /** @internal */
+        _applyColorWriteState(): void;
         /**
          * Apply all cached states (depth, culling, stencil and alpha)
          */
@@ -143339,7 +146366,6 @@ declare namespace BABYLON {
          */
         beginFrame(): void;
         _deletePipelineContext(pipelineContext: IPipelineContext): void;
-        createShaderProgram(pipelineContext: IPipelineContext, vertexCode: string, fragmentCode: string, defines: Nullable<string>, context?: WebGLRenderingContext, transformFeedbackVaryings?: Nullable<string[]>): WebGLProgram;
         protected _createShaderProgram(pipelineContext: WebGLPipelineContext, vertexShader: WebGLShader, fragmentShader: WebGLShader, context: WebGLRenderingContext, transformFeedbackVaryings?: Nullable<string[]>): WebGLProgram;
         /**
          * @internal
@@ -144245,6 +147271,10 @@ declare namespace BABYLON {
          * Object IDs are stored as 24-bit RGB values or 8-bit RED values, depending on the texture format.
          */
         static readonly PREPASS_OBJECT_ID_TEXTURE_TYPE = 15;
+        /**
+         * Constant used to retrieve the packed mesh-blending tag texture index in geometry rendering textures.
+         */
+        static readonly PREPASS_MESH_BLEND_TAG_TEXTURE_TYPE = 16;
         /** Flag to create a readable buffer (the buffer can be the source of a copy) */
         static readonly BUFFER_CREATIONFLAG_READ = 1;
         /** Flag to create a writable buffer (the buffer can be the destination of a copy) */
@@ -144653,6 +147683,20 @@ declare namespace BABYLON {
          */
         useExactSrgbConversions?: boolean;
         /**
+         * Defines whether the depth buffer should be reversed, going from far (0) to near (1) (default: false).
+         * This is the same as setting `engine.useReverseDepthBuffer = true` right after the engine is created, but it is
+         * applied during construction, so it is already in effect for the first frame.
+         *
+         * A reversed depth buffer gives more depth precision to distant objects and reduces z-fighting, especially when the
+         * camera covers a large depth range. It is recommended for WebGPU. With WebGL it brings little or no gain, because the
+         * [-1, 1] clip space depth range loses the extra precision.
+         * For the best precision, pair it with a floating-point depth buffer (on WebGPU, creating the engine with `stencil: false`
+         * makes the main depth buffer `depth32float` instead of `depth24plus-stencil8`).
+         *
+         * Custom shaders that write or read depth values must account for the reversed range (see the `USE_REVERSE_DEPTHBUFFER` define).
+         */
+        useReverseDepthBuffer?: boolean;
+        /**
          * Defines the tab index to set on the rendering canvas (default: 1).
          * Any value >= 0 makes the canvas focusable so it can capture keyboard events and places it in the
          * document's sequential tab order (0 follows DOM order, a positive value forces an explicit order).
@@ -144971,7 +148015,7 @@ declare namespace BABYLON {
         private _rebuildEffects;
         protected _rebuildGraphicsResources(): void;
         protected _flagContextRestored(): void;
-        protected _restoreEngineAfterContextLost(initEngine: () => void): void;
+        protected _restoreEngineAfterContextLost(initEngine: () => void | Promise<void>): void;
         /** @internal */
         protected _isDisposed: boolean;
         /** Gets a boolean indicating if the engine was disposed */
@@ -145779,6 +148823,8 @@ declare namespace BABYLON {
         static _RenderPassIdCounter: number;
         /** @internal */
         _renderPassNames: string[];
+        /** @internal */
+        _onReleaseRenderPassObservable: Nullable<Observable<number>>;
         /** @internal */
         abstract _createHardwareTexture(): IHardwareTextureWrapper;
         /**
@@ -146986,6 +150032,7 @@ declare namespace BABYLON {
         private _device;
         private _bufferManager;
         private _mipmapSampler;
+        private _mipmap3DSampler;
         private _videoSampler;
         private _ubCopyWithOfst;
         private _pipelines;
@@ -147012,6 +150059,7 @@ declare namespace BABYLON {
         }, hasMipmaps?: boolean, generateMipmaps?: boolean, invertY?: boolean, premultiplyAlpha?: boolean, format?: GPUTextureFormat, sampleCount?: number, commandEncoder?: GPUCommandEncoder, usage?: number, additionalUsages?: number, label?: string): GPUTexture;
         generateCubeMipmaps(gpuOrHdwTexture: GPUTexture | WebGPUHardwareTexture, mipLevelCount: number, commandEncoder?: GPUCommandEncoder): void;
         generateMipmaps(gpuOrHdwTexture: GPUTexture | WebGPUHardwareTexture, mipLevelCount: number, faceIndex?: number, commandEncoder?: GPUCommandEncoder): void;
+        generate3DMipmaps(gpuOrHdwTexture: GPUTexture | WebGPUHardwareTexture, mipLevelCount: number, commandEncoder?: GPUCommandEncoder): void;
         createGPUTextureForInternalTexture(texture: InternalTexture, width?: number, height?: number, depth?: number, creationFlags?: number): WebGPUHardwareTexture;
         createMSAATexture(gpuTexture: GPUTexture, format: GPUTextureFormat, samples: number): GPUTexture;
         resolveMSAADepthTexture(msaaTexture: GPUTexture, outputTexture: GPUTexture, commandEncoder?: GPUCommandEncoder): void;
@@ -147026,7 +150074,7 @@ declare namespace BABYLON {
 
     /** @internal */
     export class WebGPUTextureHelper {
-        static ComputeNumMipmapLevels(width: number, height: number): number;
+        static ComputeNumMipmapLevels(width: number, height: number, depth?: number): number;
         static GetTextureTypeFromFormat(format: GPUTextureFormat): number;
         static GetBlockInformationFromFormat(format: GPUTextureFormat): {
             width: number;
@@ -147094,6 +150142,8 @@ declare namespace BABYLON {
         private _play;
         private _playBundleListIndex;
         private _allBundleLists;
+        private _recordingInvalidated;
+        private _skipNextRenderPass;
         private _modeSaved;
         private _bundleList;
         private _enabled;
@@ -147106,6 +150156,8 @@ declare namespace BABYLON {
         set enabled(activate: boolean);
         get mode(): number;
         set mode(mode: number);
+        /** @internal */
+        handleRenderPassRestart(): void;
         endRenderPass(currentRenderPass: GPURenderPassEncoder): boolean;
         endFrame(): void;
         reset(): void;
@@ -148781,6 +151833,8 @@ declare namespace BABYLON {
         private _currentItemIsBundle;
         private _currentBundleList;
         numDrawCalls: number;
+        /** @internal */
+        get isEmpty(): boolean;
         constructor(device: GPUDevice);
         addBundle(bundle?: GPURenderBundle): void;
         private _finishBundle;
@@ -149190,6 +152244,18 @@ declare namespace BABYLON {
              * @param attachments gl attachments
              */
             bindAttachments(attachments: number[]): void;
+            /**
+             * Clears selected color attachments and optionally the depth/stencil attachments.
+             * Attachment formats are handled by the active rendering backend.
+             * @param color Clear color
+             * @param attachments Attachment layout created by buildTextureLayout
+             * @param clearColor Whether color attachments should be cleared
+             * @param clearDepth Whether the depth attachment should be cleared
+             * @param clearStencil Whether the stencil attachment should be cleared
+             * @param stencilClearValue Stencil clear value
+             * @internal
+             */
+            clearAttachments(color: Nullable<IColor4Like>, attachments: number[], clearColor: boolean, clearDepth: boolean, clearStencil?: boolean, stencilClearValue?: number): void;
             /**
              * Creates a layout object to draw/clear on specific textures in a MRT
              * @param textureStatus textureStatus[i] indicates if the i-th is active
@@ -149967,6 +153033,7 @@ declare namespace BABYLON {
         get currentLine(): string;
         get canRead(): boolean;
         set lines(value: string[]);
+        private static _ScanCode;
     }
 
 
@@ -150196,6 +153263,14 @@ declare namespace BABYLON {
         private __framebuffer;
         private __framebufferDepthStencil;
         private __framebuffers;
+        _layerFramebuffers: Nullable<Map<number, NativeFramebuffer>>;
+        _layeredFramebufferKey: Nullable<{
+            colors: unknown[];
+            layers: number[];
+            depth: unknown;
+            samples: number;
+        }>;
+        _isMixedTypeMRT: boolean;
         get _framebuffer(): Nullable<NativeFramebuffer>;
         set _framebuffer(framebuffer: Nullable<NativeFramebuffer>);
         get _framebuffers(): Nullable<NativeFramebuffer[]>;
@@ -150203,7 +153278,39 @@ declare namespace BABYLON {
         get _framebufferDepthStencil(): Nullable<NativeFramebuffer>;
         set _framebufferDepthStencil(framebufferDepthStencil: Nullable<NativeFramebuffer>);
         constructor(isMulti: boolean, isCube: boolean, size: TextureSize, engine: ThinNativeEngine);
+        /**
+         * Releases the lazily-built per-(mip, layer/face) framebuffers, e.g. when the underlying texture is recreated.
+         * @internal
+         */
+        _releaseLayerFramebuffers(): void;
+        /**
+         * True when the multi-attachment framebuffer is built lazily on bind with per-attachment layers/faces.
+         * @internal
+         */
+        get _usesLayeredFramebuffer(): boolean;
+        /**
+         * Drops the layered multi-attachment framebuffer so the next bind rebuilds it with its per-attachment layers.
+         * @internal
+         */
+        _invalidateLayeredFramebuffer(): void;
+        /**
+         * Attaches a texture to one of the color attachments of this render target.
+         * @param texture The texture to attach
+         * @param index The index of the color attachment
+         * @param disposePrevious Whether to dispose the texture currently attached at this index
+         */
         setTexture(texture: InternalTexture, index?: number, disposePrevious?: boolean): void;
+        setDepthStencilTexture(texture: Nullable<InternalTexture>, disposeExisting?: boolean): void;
+        createDepthStencilTexture(comparisonFunction?: number, bilinearFiltering?: boolean, generateStencil?: boolean, samples?: number, format?: number, label?: string): InternalTexture;
+        protected _cloneRenderTargetWrapper(): Nullable<RenderTargetWrapper>;
+        protected _swapRenderTargetWrapper(target: NativeRenderTargetWrapper): void;
+        /**
+         * Shares this wrapper's depth texture with another render target and rebuilds the destination
+         * framebuffer when needed so Native actually samples the shared depth (bgfx attaches depth at
+         * framebuffer creation time; a pointer-only shareDepth would leave the auto-depth from creation).
+         * @param renderTarget The render target that receives the shared depth texture
+         */
+        shareDepth(renderTarget: RenderTargetWrapper): void;
         dispose(disposeOnlyFramebuffers?: boolean): void;
     }
 
@@ -150527,6 +153634,15 @@ declare namespace BABYLON {
     };
     /** @internal */
     export interface INativeEngine {
+        /**
+         * True when the runtime expands line-loop and triangle-fan draws, which modern rendering APIs lack.
+         */
+        readonly supportsPrimitiveModeExpansion?: boolean;
+        /**
+         * True when the runtime can create multisampled render targets that also request a mip chain
+         * (BabylonNative#1714).
+         */
+        readonly supportsMultisampledMipmaps?: boolean;
         dispose(): void;
         requestAnimationFrame(callback: () => void): void;
         /**
@@ -150546,27 +153662,37 @@ declare namespace BABYLON {
         createVertexBuffer(dataBuffer: ArrayBufferLike, dataByteOffset: number, dataByteLength: number, dynamic: boolean): NativeData;
         recordVertexBuffer(vertexArray: NativeData, vertexBuffer: NativeData, location: number, byteOffset: number, byteStride: number, numElements: number, type: number, normalized: boolean, instanceDivisor: number): void;
         updateDynamicVertexBuffer(vertexBuffer: NativeData, dataBuffer: ArrayBufferLike, dataByteOffset: number, dataByteLength: number, vertexByteOffset?: number): void;
-        createProgram(vertexShader: string, fragmentShader: string): NativeProgram;
-        createProgramAsync(vertexShader: string, fragmentShader: string, onSuccess: () => void, onError: (error: Error) => void): NativeProgram;
+        readTransformFeedbackBuffer?(vertexBuffer: NativeData, dataBuffer: ArrayBufferLike, dataByteOffset: number, dataByteLength: number): void;
+        createProgram(vertexShader: string, fragmentShader: string, transformFeedbackVaryings?: string[]): NativeProgram;
+        createProgramAsync(vertexShader: string, fragmentShader: string, onSuccess: () => void, onError: (error: Error) => void, transformFeedbackVaryings?: string[]): NativeProgram;
         getUniforms(shaderProgram: NativeProgram, uniformsNames: string[]): WebGLUniformLocation[];
         getAttributes(shaderProgram: NativeProgram, attributeNames: string[]): number[];
         createTexture(): NativeTexture;
-        initializeTexture(texture: NativeTexture, width: number, height: number, hasMips: boolean, format: number, renderTarget: boolean, srgb: boolean, samples: number, isCube?: boolean): void;
+        initializeTexture(texture: NativeTexture, width: number, height: number, hasMips: boolean, format: number, renderTarget: boolean, srgb: boolean, samples: number, isCube?: boolean, numLayers?: number, is3D?: boolean): void;
         loadTexture(texture: NativeTexture, data: ArrayBufferView, generateMips: boolean, invertY: boolean, srgb: boolean, onSuccess: () => void, onError: () => void): void;
-        loadRawTexture(texture: NativeTexture, data: ArrayBufferView, width: number, height: number, format: number, generateMips: boolean, invertY: boolean): void;
-        updateTextureData?(texture: NativeTexture, data: ArrayBufferView, xOffset: number, yOffset: number, width: number, height: number, faceIndex: number, lod: number, invertY: boolean): void;
+        loadRawTexture(texture: NativeTexture, data: ArrayBufferView, width: number, height: number, format: number, generateMips: boolean, invertY: boolean, srgb: boolean): void;
+        updateTextureData?(texture: NativeTexture, data: ArrayBufferView, xOffset: number, yOffset: number, width: number, height: number, faceIndex: number, lod: number, invertY: boolean, generateMipMaps?: boolean): void;
         loadRawTexture2DArray(texture: NativeTexture, data: Nullable<ArrayBufferView>, width: number, height: number, depth: number, format: number, generateMipMaps: boolean, invertY: boolean): void;
+        loadRawTexture3D(texture: NativeTexture, data: Nullable<ArrayBufferView>, width: number, height: number, depth: number, format: number, generateMipMaps: boolean, invertY: boolean): void;
         loadCubeTexture(texture: NativeTexture, data: Array<ArrayBufferView>, generateMips: boolean, invertY: boolean, srgb: boolean, onSuccess: (sphericalPolynomial?: ArrayLike<number>) => void, onError: () => void): void;
         loadCubeTextureWithMips(texture: NativeTexture, data: Array<Array<ArrayBufferView>>, invertY: boolean, srgb: boolean, onSuccess: () => void, onError: () => void): void;
         getTextureWidth(texture: NativeTexture): number;
         getTextureHeight(texture: NativeTexture): number;
         getTextureLayerCount?(texture: NativeTexture): number;
+        /**
+         * Sets hardware depth-compare sampling on a depth texture (PCF/PCSS shadow maps).
+         * comparisonFunction is a Babylon/GL compare enum (Constants.LESS etc.); 0 disables compare mode.
+         */
+        setTextureComparisonFunction?(texture: NativeTexture, comparisonFunction: number): void;
         deleteTexture(texture: NativeTexture): void;
-        readTexture(texture: NativeTexture, mipLevel: number, x: number, y: number, width: number, height: number, buffer: Nullable<ArrayBuffer>, bufferOffset: number, bufferLength: number): Promise<ArrayBuffer>;
+        readTexture(texture: NativeTexture, mipLevel: number, x: number, y: number, width: number, height: number, buffer: Nullable<ArrayBuffer>, bufferOffset: number, bufferLength: number, faceIndex: number): Promise<ArrayBuffer>;
+        /** Optional float-preserving readback; readTexture retains its RGBA8 contract. */
+        readTexture2?: INativeEngine["readTexture"];
         createImageBitmap(data: ArrayBuffer | IImage): ImageBitmap;
         resizeImageBitmap(image: ImageBitmap, bufferWidth: number, bufferHeight: number): Uint8Array;
-        createFrameBuffer(texture: Nullable<NativeTexture>, width: number, height: number, generateStencilBuffer: boolean, generateDepthBuffer: boolean, samples: number, layer?: number): NativeFramebuffer;
-        createMultiFrameBuffer?(textures: NativeTexture[], width: number, height: number, generateStencilBuffer: boolean, generateDepthBuffer: boolean, samples: number): NativeFramebuffer;
+        createFrameBuffer(texture: Nullable<NativeTexture>, width: number, height: number, generateStencilBuffer: boolean, generateDepthBuffer: boolean, samples: number, layer?: number, mip?: number, autoGenerateMips?: boolean): NativeFramebuffer;
+        /** Optional: older runtimes only support single-attachment framebuffers. */
+        createMultiFrameBuffer?(colorTextures: NativeTexture[], width: number, height: number, generateStencilBuffer: boolean, generateDepthBuffer: boolean, samples: number, layers?: number[], explicitDepthTexture?: NativeTexture): NativeFramebuffer;
         getRenderWidth(): number;
         getRenderHeight(): number;
         setHardwareScalingLevel(level: number): void;
@@ -150725,6 +153851,12 @@ declare namespace BABYLON {
         readonly ALPHA_INTERPOLATE: number;
         readonly ALPHA_SCREENMODE: number;
         readonly ALPHA_REPLACE_COLOR?: number;
+        readonly ALPHA_EQUATION_ADD?: number;
+        readonly ALPHA_EQUATION_SUBTRACT?: number;
+        readonly ALPHA_EQUATION_REVERSE_SUBTRACT?: number;
+        readonly ALPHA_EQUATION_MAX?: number;
+        readonly ALPHA_EQUATION_MIN?: number;
+        readonly ALPHA_EQUATION_DARKEN?: number;
         readonly STENCIL_TEST_LESS: number;
         readonly STENCIL_TEST_LEQUAL: number;
         readonly STENCIL_TEST_EQUAL: number;
@@ -150789,6 +153921,7 @@ declare namespace BABYLON {
         readonly COMMAND_SETDEPTHWRITE: NativeData;
         readonly COMMAND_SETCOLORWRITE: NativeData;
         readonly COMMAND_SETBLENDMODE: NativeData;
+        readonly COMMAND_SETBLENDEQUATION?: NativeData;
         readonly COMMAND_SETFLOAT: NativeData;
         readonly COMMAND_SETFLOAT2: NativeData;
         readonly COMMAND_SETFLOAT3: NativeData;
@@ -150801,10 +153934,13 @@ declare namespace BABYLON {
         readonly COMMAND_DRAW: NativeData;
         readonly COMMAND_DRAWINSTANCED: NativeData;
         readonly COMMAND_CLEAR: NativeData;
+        readonly COMMAND_CLEAR2?: NativeData;
         readonly COMMAND_SETSTENCIL: NativeData;
+        readonly COMMAND_SETSTENCIL2?: NativeData;
         readonly COMMAND_SETVIEWPORT: NativeData;
         readonly COMMAND_SETSCISSOR: NativeData;
         readonly COMMAND_COPYTEXTURE: NativeData;
+        readonly COMMAND_DRAWTRANSFORMFEEDBACK?: NativeData;
     }
     /** @internal */
     export interface INativeCamera {
@@ -150892,6 +154028,13 @@ declare namespace BABYLON {
     export class NativeHardwareTexture implements IHardwareTextureWrapper {
         private readonly _engine;
         private _nativeTexture;
+        /**
+         * Shared bgfx framebuffer lazily built for frame graph render targets that attach this texture.
+         * The frame graph creates several render-target wrappers referencing the same texture; they all
+         * reuse this single framebuffer so passes don't clobber each other (see ThinNativeEngine.bindFramebuffer).
+         * @internal
+         */
+        _frameGraphFramebuffer: Nullable<NativeFramebuffer>;
         get underlyingResource(): Nullable<NativeTexture>;
         constructor(existingTexture: NativeTexture, engine: INativeEngine);
         setUsage(): void;
@@ -150984,7 +154127,7 @@ declare namespace BABYLON {
 
         interface ThinNativeEngine {
             /**
-             * Creates a cube texture
+             * Creates a cube texture from six face images or a single DDS/env container.
              * @param rootUrl defines the url where the files to load is located
              * @param scene defines the current scene
              * @param files defines the list of files to load (1 per face)
@@ -150999,10 +154142,28 @@ declare namespace BABYLON {
              * @param fallback defines texture to use while falling back when (compressed) texture file not found.
              * @param loaderOptions options to be passed to the loader
              * @param useSRGBBuffer defines if the texture must be loaded in a sRGB GPU buffer (if supported by the GPU).
-             * @param buffer defines the data buffer to load instead of loading the rootUrl
+             * @param buffer defines the DDS or env data buffer to load instead of loading the rootUrl
              * @returns the cube texture as an InternalTexture
              */
             createCubeTexture(rootUrl: string, scene: Nullable<Scene>, files: Nullable<string[]>, noMipmap?: boolean, onLoad?: Nullable<(data?: any) => void>, onError?: Nullable<(message?: string, exception?: any) => void>, format?: number, forcedExtension?: any, createPolynomials?: boolean, lodScale?: number, lodOffset?: number, fallback?: Nullable<InternalTexture>, loaderOptions?: any, useSRGBBuffer?: boolean, buffer?: Nullable<ArrayBufferView>): InternalTexture;
+            /**
+             * Creates a prefiltered cube texture suitable for IBL (Native).
+             * Completes the same load contract as the Web engines: onLoad receives the
+             * InternalTexture, `_source` is CubePrefiltered, and an empty spherical
+             * polynomial is installed when createPolynomials is false.
+             * @param rootUrl defines the url where the file to load is located
+             * @param scene defines the current scene
+             * @param lodScale defines scale to apply to the mip map selection
+             * @param lodOffset defines offset to apply to the mip map selection
+             * @param onLoad defines an optional callback raised when the texture is loaded
+             * @param onError defines an optional callback raised if there is an issue to load the texture
+             * @param format defines the format of the data
+             * @param forcedExtension defines the extension to use to pick the right loader
+             * @param createPolynomials defines whether to create spherical polynomial harmonics for the texture
+             * @param buffer defines the DDS or env data buffer to load instead of loading the rootUrl
+             * @returns the cube texture as an InternalTexture
+             */
+            createPrefilteredCubeTexture(rootUrl: string, scene: Nullable<Scene>, lodScale: number, lodOffset: number, onLoad?: Nullable<(internalTexture: Nullable<InternalTexture>) => void>, onError?: Nullable<(message?: string, exception?: any) => void>, format?: number, forcedExtension?: any, createPolynomials?: boolean, buffer?: Nullable<ArrayBufferView>): InternalTexture;
         }
 
 
@@ -151532,9 +154693,10 @@ declare namespace BABYLON {
              * @param format defines the format of the data
              * @param forcedExtension defines the extension to use to pick the right loader
              * @param createPolynomials defines wheter or not to create polynomails harmonics for the texture
+             * @param buffer defines the data buffer to load instead of loading the rootUrl
              * @returns the cube texture as an InternalTexture
              */
-            createPrefilteredCubeTexture(rootUrl: string, scene: Nullable<Scene>, lodScale: number, lodOffset: number, onLoad?: Nullable<(internalTexture: Nullable<InternalTexture>) => void>, onError?: Nullable<(message?: string, exception?: any) => void>, format?: number, forcedExtension?: any, createPolynomials?: boolean): InternalTexture;
+            createPrefilteredCubeTexture(rootUrl: string, scene: Nullable<Scene>, lodScale: number, lodOffset: number, onLoad?: Nullable<(internalTexture: Nullable<InternalTexture>) => void>, onError?: Nullable<(message?: string, exception?: any) => void>, format?: number, forcedExtension?: any, createPolynomials?: boolean, buffer?: Nullable<ArrayBufferView>): InternalTexture;
         }
 
 
@@ -151668,6 +154830,18 @@ declare namespace BABYLON {
              * @param attachments gl attachments
              */
             bindAttachments(attachments: number[]): void;
+            /**
+             * Clears selected color attachments and optionally the depth/stencil attachments.
+             * Attachment formats are handled by the active rendering backend.
+             * @param color Clear color
+             * @param attachments Attachment layout created by buildTextureLayout
+             * @param clearColor Whether color attachments should be cleared
+             * @param clearDepth Whether the depth attachment should be cleared
+             * @param clearStencil Whether the stencil attachment should be cleared
+             * @param stencilClearValue Stencil clear value
+             * @internal
+             */
+            clearAttachments(color: Nullable<IColor4Like>, attachments: number[], clearColor: boolean, clearDepth: boolean, clearStencil?: boolean, stencilClearValue?: number): void;
             /**
              * Creates a layout object to draw/clear on specific textures in a MRT
              * @param textureStatus textureStatus[i] indicates if the i-th is active
@@ -152614,11 +155788,20 @@ declare namespace BABYLON {
              */;
             isQueryResultAvailable(query: OcclusionQuery): boolean;
             /**
-             * Gets the value of a given query
+             * Gets the backend-specific value of a query.
+             * For an available occlusion query, only zero (no samples passed) versus a positive value (samples passed) is portable across backends.
+             * The magnitude of a positive value is backend-dependent and should not be relied upon. Use isOcclusionQueryVisible when only visibility is needed.
              * @param query defines the query to check
-             * @returns the value of the query
+             * @returns the raw backend query value
              */
             getQueryResult(query: OcclusionQuery): number;
+            /**
+             * Checks whether an available occlusion query indicates that any samples passed.
+             * This normalizes backend-specific query values without changing the raw value returned by getQueryResult.
+             * @param query defines the occlusion query to check
+             * @returns true when the query result is greater than zero, otherwise false
+             */
+            isOcclusionQueryVisible(query: OcclusionQuery): boolean;
             /**
              * Initiates an occlusion query
              * @param algorithmType defines the algorithm to use
@@ -157003,6 +160186,8 @@ declare namespace BABYLON {
          * (for example ArcRotateCamera uses ArcRotateCameraMovement).
          */
         movement: CameraMovement;
+        /** @internal */
+        protected _processMovementAsTargetCamera: boolean;
         private _targetInertia;
         /**
          * Defines the inertia (decay coefficient applied per reference frame at 60fps) of the camera.
@@ -159980,6 +163165,8 @@ declare namespace BABYLON {
          * See {@link InputMapper} for the full inputMap API (e.g. `setInteraction`, `getEntry`, `addEntry`).
          */
         movement: ArcRotateCameraMovement;
+        /** @internal */
+        protected _processMovementAsTargetCamera: boolean;
         /**
          * Gets or sets whether ctrl+keyboard triggers panning.
          * Setting this updates the keyboard→pan inputMap entry.
@@ -170636,6 +173823,24 @@ declare namespace BABYLON {
 
 
     /**
+     * @internal
+     * A write of a runtime animation to one of its targets in an animation step, recorded as it is made.
+     */
+    export interface IRuntimeAnimationWrite {
+        /** The runtime animation that wrote; null once the record is emptied, after its step. */
+        runtimeAnimation: Nullable<RuntimeAnimation>;
+        /** The object it wrote a property of; null once the record is emptied. */
+        target: any;
+        /** The weight it wrote with, -1 for a direct write. */
+        weight: number;
+        /** Whether it wrote additively. */
+        additive: boolean;
+        /** The factor the value it wrote was blended in with, one once the animation has blended in. */
+        blendingFactor: number;
+        /** Whether a step prologue has already held the record over; a direct write is held over one step and no more. */
+        carried: boolean;
+    }
+    /**
      * Defines a runtime animation
      */
     export class RuntimeAnimation {
@@ -170717,6 +173922,14 @@ declare namespace BABYLON {
          * The previous absolute frame of the runtime animation (meaning, without taking into account the from/to values, only the elapsed time and the fps)
          */
         private _previousAbsoluteFrame;
+        private _playbackFrom;
+        private _playbackTo;
+        private _playbackFrames;
+        private _playbackProgress;
+        private _playbackSyncRoot;
+        private _playbackJumped;
+        private _playbackSyncMasterPlayed;
+        private _playbackSyncMasterFrame;
         private _enableBlending;
         private _keys;
         private _minFrame;
@@ -170728,6 +173941,36 @@ declare namespace BABYLON {
          * Gets the current frame of the runtime animation
          */
         get currentFrame(): number;
+        /**
+         * @internal
+         * The first frame of the range the animation was last evaluated over: the requested range, clamped to its keys.
+         */
+        get _evaluatedFrom(): number;
+        /**
+         * @internal
+         * The last frame of the range the animation was last evaluated over.
+         */
+        get _evaluatedTo(): number;
+        /**
+         * @internal
+         * How far the pose last evaluated had played from _evaluatedFrom, in frames, unwrapped across loops: folding it into
+         * the range gives the frame that was evaluated, and dividing it by the range counts the whole cycles the pose has been
+         * through. It follows a synchronization root, swings with a yoyo loop and holds where a constant loop or a playback
+         * that does not loop holds its pose, so it always describes the pose that was evaluated.
+         */
+        get _evaluatedProgress(): number;
+        /**
+         * @internal
+         * The animatable the evaluation was clocked by, captured as it was made: the pose of a step stays that of the root
+         * it was synchronized with then, whatever the host has been synchronized with since.
+         */
+        get _evaluatedSyncRoot(): Nullable<Animatable>;
+        /**
+         * @internal
+         * Whether the evaluated progress jumped rather than playing on from the one before: the pose of a follower snapped
+         * back to the start of its range by a root whose own clock cannot carry it to the end.
+         */
+        get _evaluatedJump(): boolean;
         /**
          * Gets the weight of the runtime animation
          */
@@ -170812,6 +174055,562 @@ declare namespace BABYLON {
          * @returns a boolean indicating if the animation is running
          */
         animate(elapsedTimeSinceAnimationStart: number, from: number, to: number, loop: boolean, speedRatio: number, weight?: number): boolean;
+    }
+
+
+    /**
+     * Where the travel of a {@link RootMotionClip} comes from.
+     */
+    export enum RootMotionSource {
+        /**
+         * No motion was found: the clip neither moves its root nor walks its contact nodes.
+         */
+        None = 0,
+        /**
+         * The root node's own animation - the clip's ground truth. Its travel (and turning, when extracted) is left out of
+         * the in-place animation group and applied to the character node instead.
+         */
+        Root = 1,
+        /**
+         * Deduced from the contact nodes (usually the feet) of an in-place clip: whatever a planted contact gives up in
+         * character space, the character travels. The travel is not in the clip, so nothing is left out of it.
+         */
+        FootContact = 2
+    }
+    /**
+     * Options for {@link RootMotionClip}.
+     */
+    export interface IRootMotionClipOptions {
+        /**
+         * The root node, usually the hips or a dedicated root bone, whose own travel is tried first. A bone is resolved to
+         * its linked transform node. Defaults to the position-animated node with the most animated descendants in the group.
+         * A node the group does not animate is accepted as the base of the animated hierarchy: the travel then comes from
+         * the contact nodes under it, and {@link RootMotionSource.Root} cannot be forced.
+         */
+        rootNode?: TransformNode | Bone;
+        /**
+         * The node that receives the motion and whose local space the motion is measured in. Defaults to the topmost
+         * ancestor of the root node (the "__root__" node of a glTF asset). The group must not animate its position or
+         * rotation, since the motion applied to it would be overwritten.
+         */
+        characterNode?: TransformNode;
+        /**
+         * The nodes that touch the ground, used when the root does not travel. A bone is resolved to its linked
+         * transform node. Defaults to the leaf nodes under the root that come closest to the ground during the clip.
+         */
+        contactNodes?: Array<TransformNode | Bone>;
+        /**
+         * Forces the source of the travel instead of trying {@link RootMotionSource.Root} first and falling back to
+         * {@link RootMotionSource.FootContact}.
+         */
+        source?: RootMotionSource;
+        /**
+         * Whether the root's turning about the up axis is extracted and applied to the character. By default it is when
+         * a cycle leaves the character facing at least {@link IRootMotionClipOptions.minimumTurn} away from where it
+         * started, so a walk's hip twist - or a dance that spins round to face the front again - stays in the pose while a
+         * turning clip turns the character.
+         */
+        extractRotation?: boolean;
+        /**
+         * How densely the clip is sampled during analysis. Default is 60 samples per second of animation.
+         */
+        samplesPerSecond?: number;
+        /**
+         * Travel below this share of the character's height over a cycle is treated as the clip standing still: root
+         * sway rather than root motion. Default is 0.1.
+         */
+        minimumTravel?: number;
+        /**
+         * Turning below this angle over a cycle, in radians, is treated as twist rather than a turn. Default is 10 degrees.
+         */
+        minimumTurn?: number;
+        /**
+         * A straight clip whose direction of travel is within this angle of a character space axis, in radians, travels
+         * along that axis; 0 keeps the measured direction. Ignored when lateral motion is extracted.
+         *
+         * By default a root clip keeps its direction (0): its travel is authored or captured, and a deliberate veer is data.
+         * Travel deduced from contacts snaps within 10 degrees: an in-place clip is meant to travel straight, and the
+         * deduced direction is an estimate - Xbot's run deduces 3.5 degrees off straight from feet that slide 1 degree off.
+         */
+        directionSnapAngle?: number;
+        /**
+         * When false (the default) only the travel along the clip's direction of travel is extracted, leaving the
+         * side-to-side sway of the root in the animation. Set to true to extract all horizontal motion, for strafing
+         * clips. Turning clips always extract all horizontal motion, since their direction of travel changes.
+         */
+        extractLateralMotion?: boolean;
+        /**
+         * The up axis in character space. Default is +Y.
+         */
+        upAxis?: Vector3;
+        /**
+         * The name of the in-place animation group. Defaults to the source group's name followed by " (in place)".
+         */
+        name?: string;
+        /**
+         * Whether every animation is cloned into the in-place animation group. By default (false) only the root channels
+         * the extraction rewrites are cloned, and the animations it leaves untouched are shared with the source group, as
+         * {@link AnimationGroup.clone} shares them. Set it to true before changing the in-place group's animations in place
+         * - with {@link AnimationGroup.MakeAnimationAdditive} or {@link AnimationGroup.normalize} for example - so the
+         * source group's animations are not changed with them.
+         */
+        cloneAnimations?: boolean;
+    }
+    /**
+     * What the animation mixer wrote to a root channel in the last animation step - the writes its late bindings read,
+     * those made after them belonging to the step that follows - gathered for every clip that follows that channel.
+     */
+    interface IChannelWriters {
+        /** The property of the channel. */
+        property: string;
+        /** The weights of the weighted animatables writing the channel, additive ones aside. */
+        total: number;
+        /** Whether any weighted animatable writes the channel. */
+        weighted: boolean;
+        /** The last runtime animation writing the channel unweighted, whose value is the pose unless a weighted one replaces it. */
+        lastDirect: Nullable<RuntimeAnimation>;
+        /** The writes to the channel this step, in order: the runtime animation of each, which may write more than once. */
+        current: RuntimeAnimation[];
+        /** The weight of each write, -1 for a direct one. */
+        currentWeights: number[];
+        /** Whether each write was additive. */
+        currentAdditive: boolean[];
+        /** The factor each write blended in with, one once the animation writing it has blended in. */
+        currentBlending: number[];
+    }
+    /**
+     * The root motion of an animation group: how far the clip carries the character over a cycle, and how far it turns it,
+     * so that the character can be moved by it and its feet stay planted instead of skating.
+     *
+     * The clip is analyzed once, when the RootMotionClip is created, without playing the group or changing it:
+     * 1. The root node's own animation is tried first, as the ground truth. If the root ends a cycle a meaningful distance
+     *    from where it started, that travel is the root motion. Turning is read from the root the same way.
+     * 2. Otherwise the clip is treated as an in-place cycle and the travel is deduced from its contact nodes: a planted
+     *    contact stays put in the world, so in character space it moves opposite to the character, and whatever it gives
+     *    up the character gains. The direction of travel falls out of the same measurement, so the forward axis of
+     *    the rig does not have to be known.
+     *
+     * The source group is never changed. The clip owns {@link RootMotionClip.animationGroup}, a clone of the source in
+     * which the root's travel and turning are left out, so it plays and loops in place: play that group, and give the clip
+     * to the {@link RootMotionController} of the character so the motion is applied to the character node instead.
+     *
+     * ```ts
+     * const walk = new RootMotionClip(walkGroup);
+     * const controller = new RootMotionController(walk.characterNode, [walk]);
+     * walk.animationGroup.start(true);
+     * ```
+     *
+     * The in-place group is a group of the scene, not of the source's asset container, so dispose the clip when it is done
+     * with; disposing the container does not. To play a clip additively, build it from the source as it is and make the
+     * in-place group additive: `AnimationGroup.MakeAnimationAdditive(clip.animationGroup, { referenceFrame: 0 })`, with
+     * {@link IRootMotionClipOptions.cloneAnimations} set so the source keeps its keys.
+     */
+    export class RootMotionClip implements IDisposable {
+        /**
+         * @internal
+         * The node of the clip's clock: the channel whose runtime animation the controller reads the evaluated progress
+         * from and turns into motion. It is the root node, or the first animated transform node when the group animates
+         * no position.
+         */
+        _clockNode: Nullable<TransformNode>;
+        /** @internal The property of the clock's channel. */
+        _clockProperty: string;
+        /** @internal The very channel of the in-place group the analysis ran on, which another of the same property must not be taken for. */
+        _clockAnimation: Nullable<Animation>;
+        /** @internal The runtime animation of the clock the controller followed last. */
+        _clockRuntime: Nullable<RuntimeAnimation>;
+        /** @internal The animatable of the clock the controller followed last. */
+        _clockAnimatable: Nullable<Animatable>;
+        /** @internal The animatable the last search for the clock found. */
+        _foundAnimatable: Nullable<Animatable>;
+        /** @internal The animatable the clock's playback was synchronized with last, and the runtime animation of that root. */
+        _syncRoot: Nullable<Animatable>;
+        /** @internal The runtime animation the clock was synchronized with last. */
+        _syncRuntime: Nullable<RuntimeAnimation>;
+        /** @internal The progress of the clock the controller consumed last. */
+        _lastProgress: Nullable<number>;
+        /** @internal Whether the clock has been left unevaluated at a weight of zero since the progress consumed last. */
+        _parked: boolean;
+        /** @internal The clock's runtime animation at the last reset, whose evaluation of then is not where the playback carries on from. */
+        _staleRuntime: Nullable<RuntimeAnimation>;
+        /** @internal Its progress then. */
+        _staleProgress: Nullable<number>;
+        /** @internal What the mixer wrote to the clock's channel this frame. */
+        _writers: Nullable<IChannelWriters>;
+        /** @internal The controller the clip belongs to. */
+        _controller: Nullable<RootMotionController>;
+        private readonly _sourceGroup;
+        private readonly _group;
+        private readonly _characterNode;
+        private readonly _upAxis;
+        private readonly _extractLateral;
+        private readonly _directionSnapAngle;
+        /** Sideways travel over a cycle left in the root's keys after snapping the direction, removed without being applied. */
+        private readonly _lateralDrift;
+        private readonly _channels;
+        private _source;
+        private _rootNode;
+        private _contactNodes;
+        private readonly _travelDirection;
+        private readonly _cycleOffset;
+        private _cycleRotation;
+        private _turns;
+        private _duration;
+        private _characterHeight;
+        private _fromFrame;
+        private _toFrame;
+        private _sampleCount;
+        private _track;
+        /** Whether the root's own travel is left out of the in-place group - not so for a clip that only turns on the spot. */
+        private _removesRootTravel;
+        /** Whether the motion is a turn about the root's starting point: a clip that only turns on the spot. */
+        private _pivots;
+        /** The root's position before the clip, when the in-place group animates a position the source leaves alone. */
+        private _restoredPosition;
+        private _clockIndex;
+        private _sampleBlend;
+        private readonly _lastOffset;
+        private readonly _rangeStart;
+        private readonly _rangeCycle;
+        private readonly _cyclesOffset;
+        private readonly _planarStep;
+        private readonly _yawQuaternion;
+        private readonly _yawMatrix;
+        /**
+         * The animation group the clip was analyzed from. It is never changed.
+         */
+        get sourceAnimationGroup(): AnimationGroup;
+        /**
+         * The in-place animation group to play: a clone of the source with the root motion left out of the root's keys.
+         * Animations the extraction does not rewrite are shared with the source unless the clip was created with
+         * {@link IRootMotionClipOptions.cloneAnimations}. It belongs to the scene, and is disposed with the clip.
+         */
+        get animationGroup(): AnimationGroup;
+        /**
+         * The controller the clip was added to, if any.
+         */
+        get controller(): Nullable<RootMotionController>;
+        /**
+         * Where the travel comes from. {@link RootMotionSource.None} when no motion was found.
+         */
+        get source(): RootMotionSource;
+        /**
+         * The root node the clip was analyzed with, or null when the group animates no position. It carries the motion
+         * only when {@link RootMotionClip.source} is {@link RootMotionSource.Root}.
+         */
+        get rootNode(): Nullable<TransformNode>;
+        /**
+         * The node the motion is measured in the local space of, and that a controller moves.
+         */
+        get characterNode(): TransformNode;
+        /**
+         * The contact nodes used to deduce the travel. Empty unless the source is {@link RootMotionSource.FootContact}.
+         */
+        get contactNodes(): ReadonlyArray<TransformNode>;
+        /**
+         * The up axis in character space (unit length).
+         */
+        get upAxis(): Vector3;
+        /**
+         * The first frame of the range the clip is analyzed over: the group's range, with a bound outside the clock
+         * channel's keys replaced by that channel's first or last key, as playback does.
+         */
+        get fromFrame(): number;
+        /**
+         * The last frame of the range the clip is analyzed over.
+         */
+        get toFrame(): number;
+        /**
+         * The direction the clip travels in over a cycle, in character space (unit length).
+         */
+        get travelDirection(): Vector3;
+        /**
+         * The travel covered by one cycle of the clip, in character space.
+         */
+        get cycleOffset(): Vector3;
+        /**
+         * The distance covered by one cycle of the clip along the direction of travel, in character space units.
+         */
+        get cycleDistance(): number;
+        /**
+         * The turn covered by one cycle of the clip about the up axis, in radians. Zero unless rotation is extracted.
+         */
+        get cycleRotation(): number;
+        /**
+         * Whether the root's turning is extracted and applied to the character.
+         */
+        get extractsRotation(): boolean;
+        /**
+         * The length of one cycle of the clip in seconds, at a speed ratio of 1.
+         */
+        get duration(): number;
+        /**
+         * The speed the clip implies at a speed ratio of 1, in character space units per second.
+         */
+        get averageSpeed(): number;
+        /**
+         * The vertical extent of the animated hierarchy at the first frame, in character space units. Thresholds are
+         * relative to it.
+         */
+        get characterHeight(): number;
+        /**
+         * Analyzes an animation group and builds the in-place animation group to play instead of it.
+         * @param animationGroup defines the animation group to extract the root motion of; it is not changed
+         * @param options defines how the root motion is extracted
+         * @throws when the group has nothing to analyze, is additive, or animates the character node itself
+         */
+        constructor(animationGroup: AnimationGroup, options?: IRootMotionClipOptions);
+        /**
+         * Gets the travel reached at a frame of the clip, relative to its first frame, in character space.
+         * @param frame defines the frame to sample
+         * @param result defines the vector receiving the travel
+         * @returns the result vector
+         */
+        getOffsetAtFrame(frame: number, result: Vector3): Vector3;
+        /**
+         * Gets the turn reached at a frame of the clip about the up axis, relative to its first frame, in radians.
+         * @param frame defines the frame to sample
+         * @returns the turn in radians
+         */
+        getRotationAtFrame(frame: number): number;
+        /**
+         * Removes the clip from its controller and disposes the in-place animation group. The source group is untouched.
+         * When the in-place group animates the root's position although the source does not (a root that only turns), the
+         * root's position is put back to what it was when the clip was created.
+         */
+        dispose(): void;
+        /**
+         * @internal
+         * Finds the runtime animation of the clock in the in-place group's current playback, leaving its animatable in
+         * _foundAnimatable.
+         * @returns the runtime animation once it has been evaluated, or null when the group is not playing the clock
+         */
+        _findClock(): Nullable<RuntimeAnimation>;
+        /**
+         * @internal
+         * Forgets the playback the controller was following.
+         */
+        _forgetPlayback(): void;
+        /**
+         * @internal
+         * The motion between two progresses of a playback over a range, as a turn and then a translation in the character
+         * space of the earlier progress. Progress is unwrapped: whole cycles are in it, however many passed.
+         * @param from defines the first frame of the played range
+         * @param to defines the last frame of the played range
+         * @param lastProgress defines the earlier progress, in frames from the first frame
+         * @param progress defines the later progress, in frames from the first frame
+         * @param result defines the vector receiving the translation
+         * @returns the turn in radians
+         */
+        _motionBetween(from: number, to: number, lastProgress: number, progress: number, result: Vector3): number;
+        /**
+         * The motion at a frame relative to the motion at the start of the played range.
+         * @param frame defines the frame
+         * @param startYaw defines the turn at the start of the range
+         * @param startOffset defines the travel at the start of the range
+         * @param result defines the vector receiving the travel
+         * @returns the turn
+         */
+        private _motionInRange;
+        /**
+         * A whole number of cycles of a planar motion - a turn about the up axis and then a translation - in closed form,
+         * for any number of cycles, forwards or back: the sum of the horizontal translation turned 0, 1, ... n-1 times is
+         * the translation turned (n - 1) / 2 times, sin(n * turn / 2) / sin(turn / 2) times as long, and n times the
+         * translation when there is no turn. The vertical part adds up. Nothing here is a matter of precision: no series
+         * is summed and no small angle is divided by.
+         * @param cycles defines the number of cycles, negative to go back
+         * @param step defines the translation of one cycle
+         * @param stepYaw defines the turn of one cycle
+         * @param result defines the vector receiving the translation of all the cycles
+         * @returns the turn of all the cycles
+         */
+        private _cyclePower;
+        private _measureRootYaw;
+        private _measureRootTravel;
+        /**
+         * The travel removed from the root at a pose, so that the in-place root keeps the start position (turning) or its
+         * sway (straight).
+         * @param position defines the root position in character space
+         * @param start defines the root position in character space at the first frame
+         * @param yaw defines the turn at this pose
+         * @param turning defines whether turning is extracted
+         * @param result defines the vector receiving the travel
+         * @returns the result vector
+         */
+        private _rootTravelAt;
+        private _measureContactTravel;
+        /**
+         * Clones the source group into the in-place group. When the root motion is in the root's keys, the root's channels
+         * are cloned with the motion left out: each key's pose, in character space, has the motion at its frame undone. The
+         * motion is the root's travel for a {@link RootMotionSource.Root} clip, plus the turn when rotation is extracted.
+         * Everything is computed from the source keys, which are not touched.
+         * @param name defines the name of the in-place group
+         * @param cloneAnimations defines whether every animation is cloned rather than only the rewritten root channels
+         * @returns the in-place group
+         */
+        private _buildInPlaceGroup;
+        private _findRootNode;
+        private _measureHeight;
+        /**
+         * The track sample before a frame; the blend towards the next one is left in _sampleBlend.
+         * @param frame defines the frame
+         * @returns the sample index
+         */
+        private _sampleAt;
+        private _frameAt;
+        private _horizontal;
+        private _project;
+        /**
+         * Snaps the direction of travel onto the nearest horizontal character space axis within the snap angle.
+         * @param defaultAngle defines the snap angle when none was given in the options
+         */
+        private _snapTravelDirection;
+        private _rotateAboutUp;
+        /**
+         * The turn about the up axis from a reference orientation to a rotation, both in character space: the angle of the
+         * rotation about the up axis that best matches the change of orientation. Unlike the twist of a swing-twist split,
+         * it stays well defined while the root pitches and rolls - a dancer's hips tilting through the vertical made the
+         * twist jump by half turns.
+         * @param rotation defines the rotation
+         * @param referenceConjugate defines the conjugate of the reference rotation
+         * @returns the angle in radians, between -PI and PI
+         */
+        private _twist;
+        private _positionInCharacter;
+        private _rotationInCharacter;
+        /**
+         * Composes a node's transform into character space at a frame of the clip, from the evaluated keys of animated
+         * nodes and the current transform of the others. Nothing is played or written.
+         * @param node defines the node, or null for the character space itself
+         * @param frame defines the frame to evaluate
+         * @param result defines the matrix receiving the transform
+         * @returns the result matrix
+         */
+        private _matrixToCharacter;
+        private _localMatrix;
+        private _resolveNode;
+        private _firstAnimatedNode;
+        private _topmostAncestor;
+    }
+    /**
+     * Moves and turns a character node by the root motion of the clips playing on it, once per animation step - from the
+     * scene's onAfterAnimationsObservable, so after animations are evaluated and before the world matrices are computed.
+     *
+     * The motion of each clip follows the playback of its in-place group's root animation: the progress of the pose it
+     * evaluated, so pausing, speed ratio changes, looping in every loop mode, forwards and backwards, playing a range,
+     * synchronizing with another animatable and running to the end all move the character exactly as far as the pose went.
+     * Clips playing together are blended the way the animation mixer blends their root pose: weighted animation groups
+     * contribute their share, normalized once their weights add up to more than one, additive groups add theirs on top,
+     * an unweighted group contributes its whole pose only while no weighted group animates the root (among unweighted
+     * groups the last to write wins), and a group blending in contributes as much as it is blended in, so the character
+     * moves with the blended pose whatever the clips do. The turn is blended as a weighted sum of the clips' turns.
+     *
+     * ```ts
+     * const controller = new RootMotionController(character, [walk, run]);
+     * walk.animationGroup.start(true);
+     * run.animationGroup.start(true);
+     * walk.animationGroup.weight = 0.3;
+     * run.animationGroup.weight = 0.7;
+     * ```
+     */
+    export class RootMotionController implements IDisposable {
+        /**
+         * Gets or sets whether the motion is applied to the character node every frame. Set it to false to consume
+         * {@link RootMotionController.deltaPosition} and {@link RootMotionController.deltaRotation} yourself, for example
+         * to drive a physics character controller.
+         */
+        applyToCharacter: boolean;
+        /**
+         * Notified every animation step the clips produce motion, after {@link RootMotionController.deltaPosition} and
+         * {@link RootMotionController.deltaRotation} are updated.
+         */
+        readonly onRootMotionObservable: Observable<RootMotionController>;
+        private readonly _characterNode;
+        private readonly _clips;
+        private readonly _sceneRootMotion;
+        private _upAxis;
+        private readonly _deltaPosition;
+        private _deltaRotation;
+        private readonly _frameDelta;
+        private _frameYaw;
+        private readonly _clipDelta;
+        /**
+         * The node the motion is applied to.
+         */
+        get characterNode(): TransformNode;
+        /**
+         * The clips whose motion moves the character.
+         */
+        get clips(): ReadonlyArray<RootMotionClip>;
+        /**
+         * The travel of the last animation step, in world space; applied to the character unless
+         * {@link RootMotionController.applyToCharacter} is false.
+         */
+        get deltaPosition(): Vector3;
+        /**
+         * The turn of the last animation step about the up axis, in radians; applied to the character unless
+         * {@link RootMotionController.applyToCharacter} is false.
+         */
+        get deltaRotation(): number;
+        /**
+         * Creates a controller for a character node.
+         * @param characterNode defines the node to move: the character node of the clips
+         * @param clips defines the clips to add
+         */
+        constructor(characterNode: TransformNode, clips?: RootMotionClip[]);
+        /**
+         * Adds a clip, so the character moves while its in-place group plays.
+         * @param clip defines the clip; its character node must be the controller's
+         * @throws when the clip belongs to another controller, moves another node, or has another up axis than the clips
+         * already added
+         */
+        addClip(clip: RootMotionClip): void;
+        /**
+         * Removes a clip. Its in-place group keeps playing, in place.
+         * @param clip defines the clip
+         */
+        removeClip(clip: RootMotionClip): void;
+        /**
+         * Forgets where the playbacks were last measured. Call after jumping a group with goToFrame or resetting it, so the
+         * jump is not read as motion. Starting a group again needs no reset.
+         */
+        reset(): void;
+        /**
+         * Stops applying the motion and lets the clips go. The clips and their groups are not disposed.
+         */
+        dispose(): void;
+        /**
+         * @internal
+         * Applies the motion of this frame, once the mixer's writers of the clips' channels are gathered.
+         * @param animated defines whether the scene animated this step at all; when it did not, nothing moved and nothing
+         * is read into the clips' playbacks
+         */
+        _update(animated: boolean): void;
+        /**
+         * Adds a clip's motion between two progresses of a playback into this frame's motion, weighted the way the mixer
+         * weighs the pose of the playback.
+         * @param clip defines the clip
+         * @param runtime defines the runtime animation of the clip's clock
+         * @param lastProgress defines the progress consumed before
+         * @param progress defines the progress to consume
+         * @returns whether anything was added
+         */
+        private _accumulate;
+        /**
+         * The share of a playback in the pose the mixer wrote to its channel this step, following the late animation
+         * bindings of the scene: an unweighted animatable writes directly and the last one wins, unless a weighted animatable
+         * also animates the channel, in which case the weighted ones replace it - normalized once their weights add up to
+         * more than one - and additive ones add their weight on top. A playback that ran to its end this step is among the
+         * writers like any other, from its place in the order they wrote; one that did not write this step has no share;
+         * one that wrote more than once - re-evaluated by an animation event, say - has the share of all its writes, as the
+         * bindings add them up. A playback still blending in wrote that much of its pose, so the share follows the factor
+         * its last write blended in with, taken from the record of that write rather than from the animation, whose own
+         * factor a write made since the step may have moved on.
+         * @param writers defines what the mixer wrote to the clip's channel this step
+         * @param runtime defines the runtime animation of the clip's clock
+         * @returns the share, between 0 and 1
+         */
+        private _effectiveWeight;
     }
 
 
@@ -171589,6 +175388,17 @@ declare namespace BABYLON {
         private _isPaused;
         private _speedRatio;
         private _loopAnimation;
+        private _virtualFrame;
+        private _virtualFrameStart;
+        private _virtualFrameStartTime;
+        private _virtualFrameRate;
+        private _virtualFrameDirection;
+        private _virtualFrameInitial;
+        private _virtualFrameEnd;
+        private _virtualSamplingObserver;
+        private _usesVirtualSampling;
+        private _retainedCurrentFrame;
+        private _isStopping;
         private _isAdditive;
         private _weight;
         private _playOrder;
@@ -171777,6 +175587,18 @@ declare namespace BABYLON {
          */
         start(loop?: boolean, speedRatio?: number, from?: number, to?: number, isAdditive?: boolean): AnimationGroup;
         /**
+         * Starts all animations using an unbounded requested timeline mapped to the animation's
+         * effective keyframe range.
+         * @param loop defines if animations must loop
+         * @param speedRatio defines the ratio to apply to animation speed
+         * @param from defines the requested start frame
+         * @param to defines the requested end frame
+         * @param isAdditive defines the additive state for the resulting animatables
+         * @returns the current animation group
+         */
+        startWithVirtualTimeline(loop?: boolean, speedRatio?: number, from?: number, to?: number, isAdditive?: boolean): AnimationGroup;
+        private _start;
+        /**
          * Pause all animations
          * @returns the animation group
          */
@@ -171830,10 +175652,47 @@ declare namespace BABYLON {
          */
         goToFrame(frame: number, useWeight?: boolean): AnimationGroup;
         /**
-         * Helper to get the current frame. This will return 0 if the AnimationGroup is not running, and it might return wrong results if multiple animations are running in different frames.
+         * Helper to get the current frame. This returns 0 when the AnimationGroup is
+         * not running and might be inaccurate when animations use different frames.
          * @returns current animation frame.
          */
         getCurrentFrame(): number;
+        /**
+         * Gets the last effective frame, retaining it after the group stops.
+         * @returns current or retained effective animation frame
+         */
+        getRetainedCurrentFrame(): number;
+        /**
+         * Gets the current frame on the unbounded timeline requested by the caller.
+         * Unlike {@link getCurrentFrame}, this value is not clamped or wrapped by the
+         * animation's keyframe range and is retained after the group stops.
+         * @returns the current virtual animation frame
+         */
+        getVirtualCurrentFrame(): number;
+        /**
+         * Returns whether the virtual timeline crossed the requested frame.
+         * @param frame virtual frame to test
+         * @returns true when the frame was reached in the playback direction
+         */
+        isVirtualFrameReached(frame: number): boolean;
+        /**
+         * Returns whether a frame is inside the requested start/end interval.
+         * The end frame is excluded because natural completion takes precedence.
+         * @param frame virtual frame to test
+         * @returns true when a scheduled stop may occur at the frame
+         */
+        isValidVirtualStopFrame(frame: number): boolean;
+        /**
+         * Snaps both retained playheads to an exact virtual timeline position.
+         * @param frame virtual frame to retain
+         */
+        setVirtualCurrentFrame(frame: number): void;
+        private _updateVirtualFrame;
+        private _sampleVirtualTimeline;
+        private _goToFrameWithMask;
+        private _isTargetRetainedByMask;
+        private _removeVirtualSamplingObserver;
+        private _mapVirtualFrame;
         /**
          * Dispose all associated resources
          */
