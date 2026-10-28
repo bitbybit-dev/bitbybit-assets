@@ -13893,7 +13893,7 @@ declare namespace Bit {
     declare const GZIP_NAME_FLAG = 8;
     declare const GZIP_COMMENT_FLAG = 16;
     declare function isGzip(bytes: Uint8Array): boolean;
-    declare function gunzipped(bytes: Uint8Array): Uint8Array;
+    declare function gunzipped(bytes: Uint8Array, limit?: number): Uint8Array;
     declare const MAX_CODE_BITS = 15;
     declare const SYMBOL_SHIFT = 4;
     declare const LENGTH_MASK = 15;
@@ -13940,6 +13940,7 @@ declare namespace Bit {
     declare const REPEAT_ZERO_LONG_BASE = 11;
     declare const INITIAL_OUTPUT: number;
     declare const MOST_DEFLATE_RATIO = 1032;
+    declare const MOST_INFLATED_BYTES = 1073741824;
     declare const CODE_LENGTH_ORDER: Uint8Array<ArrayBuffer>;
     declare const LENGTH_BASE: Uint16Array<ArrayBuffer>;
     declare const LENGTH_EXTRA: Uint8Array<ArrayBuffer>;
@@ -13947,7 +13948,7 @@ declare namespace Bit {
     declare const DISTANCE_EXTRA: Uint8Array<ArrayBuffer>;
     declare const STORED_LENGTH_BYTES = 2;
     declare function huffmanTable(lengths: ArrayLike<number>): HuffmanTable;
-    declare function inflateRaw(data: Uint8Array, expectedSize?: number): Uint8Array;
+    declare function inflateRaw(data: Uint8Array, expectedSize?: number, limit?: number): Uint8Array;
     declare const CRC32_POLYNOMIAL = 3988292384;
     declare const CRC32_ALL_ONES = 4294967295;
     declare const BYTE_MASK = 255;
@@ -13982,9 +13983,21 @@ declare namespace Bit {
     declare const DEFLATED_METHOD = 8;
     declare const UINT16_BYTES = 2;
     declare const UINT32_BYTES = 4;
+    declare const ZIP_VERSION = 20;
+    declare const DOS_EPOCH_YEAR = 1980;
+    declare const DOS_YEAR_SHIFT = 9;
+    declare const DOS_MONTH_SHIFT = 5;
+    declare const DOS_HOUR_SHIFT = 11;
+    declare const DOS_MINUTE_SHIFT = 5;
+    declare const DOS_SECONDS_PER_UNIT = 2;
+    declare const ZIP_MIME_TYPE = "application/zip";
     declare function isZip(bytes: Uint8Array): boolean;
     declare function zipEntries(bytes: Uint8Array): ZipEntry[];
-    declare function zipEntryData(bytes: Uint8Array, entry: ZipEntry): Uint8Array;
+    declare function zipEntryData(bytes: Uint8Array, entry: ZipEntry, limit?: number): Uint8Array;
+    declare function dosDateTime(moment: Date): DosDateTime;
+    declare function zipStoredParts<T>(records: readonly ZipStoredRecord<T>[], modified?: Date): (Uint8Array<ArrayBuffer> | T)[];
+    declare function zipStored(files: readonly ZipFile[], modified?: Date): Uint8Array<ArrayBuffer>;
+    declare function zipStoredBlob(files: readonly ZipFile[], modified?: Date): Blob;
     type Point2 = Inputs.Base.Point2;
     type Point3 = Inputs.Base.Point3;
     declare const arcThroughThreePoints: (start: Point3, middle: Point3, end: Point3) => ThreePointArc | undefined;
@@ -14118,6 +14131,26 @@ declare namespace Bit {
     interface HuffmanTable {
         readonly entries: Int32Array;
         readonly bits: number;
+    }
+    interface ZipFile {
+        readonly name: string;
+        readonly data: Uint8Array;
+    }
+    interface ZipStoredRecord<T> {
+        readonly name: string;
+        readonly size: number;
+        readonly crc32: number;
+        readonly data: T;
+    }
+    interface ZipHeaderWriter {
+        readonly bytes: Uint8Array<ArrayBuffer>;
+        readonly u16: (value: number) => void;
+        readonly u32: (value: number) => void;
+        readonly raw: (value: Uint8Array) => void;
+    }
+    interface DosDateTime {
+        readonly time: number;
+        readonly date: number;
     }
     interface ZipEntry {
         readonly name: string;

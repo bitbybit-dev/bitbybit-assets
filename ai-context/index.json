@@ -1,7 +1,7 @@
 {
-  "version": "1.6.0-rc.0",
+  "version": "1.6.0",
   "engines": ["babylonjs","threejs","playcanvas"],
-  "bundleSha256": {"babylonjs":"3be43203d9d988f7c714def4ff1abf13f35eeaf73d55e604356250ff04a504a7","threejs":"a35f74f6037228517c04835334b7253745da4cd659f12fd6e1463eb14159a74c","playcanvas":"b6ca8a9315c56c4759d90e7ac594392fa0079661a4958581da28a1863e925c20"},
+  "bundleSha256": {"babylonjs":"d00a9900dd98c3e1f899a19470b4c3117ff222c9fd106ebc92834f845c46b98f","threejs":"29a6085126ef292494db64446b3677fcf78fcc890dbc7b2f87284e8b05be75d1","playcanvas":"f90f4787cb65af8cd2e3e02e89bc24c7adb41331c659e88e6253a7f8bcd260f5"},
   "namespaces": [
     "advanced",
     "advanced.dimensions",
