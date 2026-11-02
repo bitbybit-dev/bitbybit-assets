@@ -297,6 +297,22 @@ are governed by the Apache License 2.0 (see component 2 above).
 
 Source: https://github.com/BabylonJS/Babylon.js
 
+Poly Haven Environments (CC0)
+-----------------------------
+The following environments are converted from Poly Haven HDRIs, dedicated
+to the public domain under CC0 1.0 Universal; no attribution is required,
+and the credit is given anyway. Each is the 2K HDRI turned into a
+prefiltered BabylonJS .env (512 px faces, WebP).
+
+  - textures/environments/studio-small-09/           studio_small_09
+      https://polyhaven.com/a/studio_small_09
+  - textures/environments/kloofendal-partly-cloudy/  kloofendal_48d_partly_cloudy_puresky
+      https://polyhaven.com/a/kloofendal_48d_partly_cloudy_puresky
+  - textures/environments/qwantani-sunset/           qwantani_sunset_puresky
+      https://polyhaven.com/a/qwantani_sunset_puresky
+
+License: https://creativecommons.org/publicdomain/zero/1.0/
+
 ===============================================================================
   LICENSE TEXTS
 ===============================================================================
