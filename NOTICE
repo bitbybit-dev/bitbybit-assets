@@ -301,8 +301,9 @@ Poly Haven Environments (CC0)
 -----------------------------
 The following environments are converted from Poly Haven HDRIs, dedicated
 to the public domain under CC0 1.0 Universal; no attribution is required,
-and the credit is given anyway. Each is the 2K HDRI turned into a
-prefiltered BabylonJS .env (512 px faces, WebP).
+and the credit is given anyway. Each folder holds environment.env, the 2K
+HDRI turned into a prefiltered BabylonJS .env (512 px faces, WebP), and
+environment-high.env, the 4K HDRI turned into one with 1024 px faces.
 
   - textures/environments/studio-small-09/           studio_small_09
       https://polyhaven.com/a/studio_small_09
