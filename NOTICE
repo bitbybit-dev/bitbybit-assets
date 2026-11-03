@@ -314,11 +314,22 @@ environment-high.env, the 4K HDRI turned into one with 1024 px faces.
 
 License: https://creativecommons.org/publicdomain/zero/1.0/
 
+Three.js-Sourced Assets
+-----------------------
+The following texture originates from the three.js project's examples and
+is governed by the MIT License, Copyright 2010-2026 three.js authors (see
+component 3 above and the MIT License text below).
+
+  - textures/environments/water/normals.jpg   waternormals.jpg, the tiling
+      normal map the water surface ripples with
+      https://github.com/mrdoob/three.js/blob/dev/examples/textures/waternormals.jpg
+
 ===============================================================================
   LICENSE TEXTS
 ===============================================================================
 
-MIT License text (applies to components 3, 4, 5, 7, 8, 9, 10, 14):
+MIT License text (applies to components 3, 4, 5, 7, 8, 9, 10, 14 and the
+three.js-sourced texture in Part E):
 
   Permission is hereby granted, free of charge, to any person obtaining a
   copy of this software and associated documentation files (the "Software"),
