@@ -311,6 +311,16 @@ environment-high.env, the 4K HDRI turned into one with 1024 px faces.
       https://polyhaven.com/a/kloofendal_48d_partly_cloudy_puresky
   - textures/environments/qwantani-sunset/           qwantani_sunset_puresky
       https://polyhaven.com/a/qwantani_sunset_puresky
+  - textures/environments/autumn-field/              autumn_field_puresky
+      https://polyhaven.com/a/autumn_field_puresky
+  - textures/environments/sunflowers/                sunflowers_puresky
+      https://polyhaven.com/a/sunflowers_puresky
+  - textures/environments/overcast-soil/             overcast_soil_puresky
+      https://polyhaven.com/a/overcast_soil_puresky
+  - textures/environments/kloppenheim-06/            kloppenheim_06_puresky
+      https://polyhaven.com/a/kloppenheim_06_puresky
+  - textures/environments/citrus-orchard-road/       citrus_orchard_road_puresky
+      https://polyhaven.com/a/citrus_orchard_road_puresky
 
 License: https://creativecommons.org/publicdomain/zero/1.0/
 
