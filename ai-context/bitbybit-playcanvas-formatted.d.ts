@@ -390,7 +390,9 @@ declare namespace Bit {
                  */
                 of: number;
                 /**
-                 * The indices of what is cut away, all at once.
+                 * The indices of what is cut away, all at once. A solid tool that ends within the recipe's
+                 * `tolerance` of a side of the solid's bounding box, as the half-spaces before it leave the
+                 * solid, passes through that side.
                  */
                 tools: number[];
             }
@@ -416,6 +418,8 @@ declare namespace Bit {
             /**
                  * A host solid with openings cut through it, such as a wall with its doors' and windows' holes.
                  * The same as a difference, kept apart so an executor can cut openings through flat hosts in 2D.
+                 * An opening that ends within the recipe's `tolerance` of a side of the host's bounding box passes
+                 * through that side, so an opening as deep as its wall cuts through it however its placement rounds.
                  * @beta
                  */
             interface RecipeVoidsNode {
@@ -1044,7 +1048,10 @@ declare namespace Bit {
                 millimetresPerUnit: number;
                 /**
                  * The distance below which two positions count as the same, in the recipe's units, as the
-                 * recipe's source measured it. An executor may use it where it compares positions, or not.
+                 * recipe's source measured it. Every executor applies it to cuts: an opening of a `voids` step,
+                 * or a solid tool of a `difference`, that ends within it of a side of the bounding box of what it
+                 * cuts passes through that side. Elsewhere an executor may use it where it compares positions,
+                 * or not.
                  */
                 tolerance: number;
                 /**
@@ -9280,6 +9287,15 @@ declare namespace Bit {
                  */
                 relativeDeflection?: boolean | undefined;
                 /**
+                 * Raises `precision` to this share of the longest side of each shape's bounding box, so large
+                 * shapes mesh coarser and small ones keep `precision`. Ignored with `relativeDeflection`.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum 1
+                 * @step 0.00001
+                 */
+                precisionShare?: number | undefined;
+                /**
                  * When true, each edge's index is written next to it, handy for picking edges to fillet.
                  * @default false
                  */
@@ -9415,7 +9431,7 @@ declare namespace Bit {
                 /**
                  * Provide options without default values
                  */
-                constructor(shape?: T, faceOpacity?: number, edgeOpacity?: number, edgeColour?: Base.Color, faceMaterial?: Base.Material, faceColour?: Base.Color, edgeWidth?: number, drawEdges?: boolean, drawFaces?: boolean, drawVertices?: boolean, vertexColour?: Base.Color, vertexSize?: number, precision?: number, drawEdgeIndexes?: boolean, edgeIndexHeight?: number, edgeIndexColour?: Base.Color, drawFaceIndexes?: boolean, faceIndexHeight?: number, faceIndexColour?: Base.Color, drawTwoSided?: boolean, backFaceColour?: Base.Color, backFaceOpacity?: number, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, drawIsoCurves?: boolean, isoCurvesU?: number, isoCurvesV?: number, isoCurvesColour?: Base.Color, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3, analysisMin?: number, analysisMax?: number, angularDeflection?: number, relativeDeflection?: boolean);
+                constructor(shape?: T, faceOpacity?: number, edgeOpacity?: number, edgeColour?: Base.Color, faceMaterial?: Base.Material, faceColour?: Base.Color, edgeWidth?: number, drawEdges?: boolean, drawFaces?: boolean, drawVertices?: boolean, vertexColour?: Base.Color, vertexSize?: number, precision?: number, drawEdgeIndexes?: boolean, edgeIndexHeight?: number, edgeIndexColour?: Base.Color, drawFaceIndexes?: boolean, faceIndexHeight?: number, faceIndexColour?: Base.Color, drawTwoSided?: boolean, backFaceColour?: Base.Color, backFaceOpacity?: number, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, drawIsoCurves?: boolean, isoCurvesU?: number, isoCurvesV?: number, isoCurvesColour?: Base.Color, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3, analysisMin?: number, analysisMax?: number, angularDeflection?: number, relativeDeflection?: boolean, precisionShare?: number);
                 /**
                  * The shape to draw; it is meshed at `precision` first.
                  * @default undefined
@@ -9431,7 +9447,7 @@ declare namespace Bit {
                 /**
                  * Provide options without default values
                  */
-                constructor(shapes?: T[], faceOpacity?: number, edgeOpacity?: number, edgeColour?: Base.Color, faceMaterial?: Base.Material, faceColour?: Base.Color, edgeWidth?: number, drawEdges?: boolean, drawFaces?: boolean, drawVertices?: boolean, vertexColour?: Base.Color, vertexSize?: number, precision?: number, drawEdgeIndexes?: boolean, edgeIndexHeight?: number, edgeIndexColour?: Base.Color, drawFaceIndexes?: boolean, faceIndexHeight?: number, faceIndexColour?: Base.Color, drawTwoSided?: boolean, backFaceColour?: Base.Color, backFaceOpacity?: number, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, drawIsoCurves?: boolean, isoCurvesU?: number, isoCurvesV?: number, isoCurvesColour?: Base.Color, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3, analysisMin?: number, analysisMax?: number, angularDeflection?: number, relativeDeflection?: boolean);
+                constructor(shapes?: T[], faceOpacity?: number, edgeOpacity?: number, edgeColour?: Base.Color, faceMaterial?: Base.Material, faceColour?: Base.Color, edgeWidth?: number, drawEdges?: boolean, drawFaces?: boolean, drawVertices?: boolean, vertexColour?: Base.Color, vertexSize?: number, precision?: number, drawEdgeIndexes?: boolean, edgeIndexHeight?: number, edgeIndexColour?: Base.Color, drawFaceIndexes?: boolean, faceIndexHeight?: number, faceIndexColour?: Base.Color, drawTwoSided?: boolean, backFaceColour?: Base.Color, backFaceOpacity?: number, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, drawIsoCurves?: boolean, isoCurvesU?: number, isoCurvesV?: number, isoCurvesColour?: Base.Color, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3, analysisMin?: number, analysisMax?: number, angularDeflection?: number, relativeDeflection?: boolean, precisionShare?: number);
                 /**
                  * The shapes to draw with the same options.
                  * @default undefined
@@ -15193,7 +15209,7 @@ declare namespace Bit {
              * add each face's iso curves and a surface analysis value at every vertex.
              */
             class ShapeToMeshDto<T> {
-                constructor(shape?: T, precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, isoCurvesU?: number, isoCurvesV?: number, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3, angularDeflection?: number, relativeDeflection?: boolean);
+                constructor(shape?: T, precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, isoCurvesU?: number, isoCurvesV?: number, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3, angularDeflection?: number, relativeDeflection?: boolean, precisionShare?: number);
                 /**
                  * The shape to triangulate.
                  * @default undefined
@@ -15224,6 +15240,15 @@ declare namespace Bit {
                  * @default false
                  */
                 relativeDeflection?: boolean | undefined;
+                /**
+                 * Raises `precision` to this share of the longest side of the shape's bounding box, so large
+                 * shapes mesh coarser and small ones keep `precision`. Ignored with `relativeDeflection`.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum 1
+                 * @step 0.00001
+                 */
+                precisionShare?: number | undefined;
                 /**
                  * When true, the mesh is turned so this library's Y-up becomes Z-up, for tools that treat Z as
                  * up.
@@ -15345,7 +15370,7 @@ declare namespace Bit {
              * settings, iso curves and surface analysis included.
              */
             class ShapesToMeshesDto<T> {
-                constructor(shapes?: T[], precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, isoCurvesU?: number, isoCurvesV?: number, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3, angularDeflection?: number, relativeDeflection?: boolean);
+                constructor(shapes?: T[], precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, isoCurvesU?: number, isoCurvesV?: number, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3, angularDeflection?: number, relativeDeflection?: boolean, precisionShare?: number);
                 /**
                  * The shapes to triangulate, one mesh per shape.
                  * @default undefined
@@ -15376,6 +15401,15 @@ declare namespace Bit {
                  * @default false
                  */
                 relativeDeflection?: boolean | undefined;
+                /**
+                 * Raises `precision` to this share of the longest side of each shape's bounding box, so large
+                 * shapes mesh coarser and small ones keep `precision`. Ignored with `relativeDeflection`.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum 1
+                 * @step 0.00001
+                 */
+                precisionShare?: number | undefined;
                 /**
                  * When true, the meshes are turned so this library's Y-up becomes Z-up, for tools that treat Z
                  * as up.
@@ -23987,7 +24021,7 @@ declare namespace Bit {
                 /**
                  * Provide options without default values
                  */
-                constructor(faceOpacity?: number, edgeOpacity?: number, edgeColour?: Base.Color, faceMaterial?: Base.Material, faceColour?: Base.Color, edgeWidth?: number, drawEdges?: boolean, drawFaces?: boolean, drawVertices?: boolean, vertexColour?: Base.Color, vertexSize?: number, precision?: number, drawEdgeIndexes?: boolean, edgeIndexHeight?: number, edgeIndexColour?: Base.Color, drawFaceIndexes?: boolean, faceIndexHeight?: number, faceIndexColour?: Base.Color, drawTwoSided?: boolean, backFaceColour?: Base.Color, backFaceOpacity?: number, edgeArrowSize?: number, edgeArrowAngle?: number, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, drawIsoCurves?: boolean, isoCurvesU?: number, isoCurvesV?: number, isoCurvesColour?: Base.Color, surfaceAnalysis?: Inputs.OCCT.surfaceAnalysisEnum, draftDirection?: Base.Vector3, analysisMin?: number, analysisMax?: number, edgeContrast?: number, angularDeflection?: number, relativeDeflection?: boolean);
+                constructor(faceOpacity?: number, edgeOpacity?: number, edgeColour?: Base.Color, faceMaterial?: Base.Material, faceColour?: Base.Color, edgeWidth?: number, drawEdges?: boolean, drawFaces?: boolean, drawVertices?: boolean, vertexColour?: Base.Color, vertexSize?: number, precision?: number, drawEdgeIndexes?: boolean, edgeIndexHeight?: number, edgeIndexColour?: Base.Color, drawFaceIndexes?: boolean, faceIndexHeight?: number, faceIndexColour?: Base.Color, drawTwoSided?: boolean, backFaceColour?: Base.Color, backFaceOpacity?: number, edgeArrowSize?: number, edgeArrowAngle?: number, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, drawIsoCurves?: boolean, isoCurvesU?: number, isoCurvesV?: number, isoCurvesColour?: Base.Color, surfaceAnalysis?: Inputs.OCCT.surfaceAnalysisEnum, draftDirection?: Base.Vector3, analysisMin?: number, analysisMax?: number, edgeContrast?: number, angularDeflection?: number, relativeDeflection?: boolean, precisionShare?: number, edgeWidthBySize?: boolean, wireColour?: Base.Color);
                 /**
                  * How opaque the faces are, from 0 to 1, multiplied into each look's own opacity. This renderer
                  * shows it on faces drawn in looks only; plain faces stay opaque.
@@ -24023,6 +24057,13 @@ declare namespace Bit {
                  */
                 edgeContrast?: number | undefined;
                 /**
+                 * The color of the edges of a shape drawn without faces (a wire, an edge, or `drawFaces` off), in
+                 * place of `edgeColour` and `edgeContrast`; appearance edge colors still win.
+                 * @default undefined
+                 * @optional true
+                 */
+                wireColour?: Base.Color | undefined;
+                /**
                  * The color of the faces, as a hex string. A `faceMaterial` or a `surfaceAnalysis` takes its
                  * place, and the colors of an appearance win over it.
                  * @default #ff0000
@@ -24048,6 +24089,12 @@ declare namespace Bit {
                  * @step 0.1
                  */
                 edgeWidth?: number | undefined;
+                /**
+                 * When true, `edgeWidth` grows and shrinks with the size of what is drawn. Not honored by this
+                 * renderer, which draws edge and iso curve lines one pixel wide.
+                 * @default false
+                 */
+                edgeWidthBySize?: boolean | undefined;
                 /**
                  * The diameter of the vertex markers, in model units; used with `drawVertices`.
                  * @default 0.03
@@ -24098,6 +24145,15 @@ declare namespace Bit {
                  * @default false
                  */
                 relativeDeflection?: boolean | undefined;
+                /**
+                 * Raises `precision` to this share of the longest side of each shape's bounding box, so large
+                 * shapes mesh coarser and small ones keep `precision`. Ignored with `relativeDeflection`.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum 1
+                 * @step 0.00001
+                 */
+                precisionShare?: number | undefined;
                 /**
                  * When true, each edge's index is written beside the middle of the edge, handy for picking
                  * edges to fillet.
@@ -49073,9 +49129,9 @@ declare namespace Bit {
         /**
          * Builds each root of a recipe as a solid placed by its matrix, in root order.
          *
-         * Shared nodes are built once. An invalid recipe throws before anything is built; a root the
-         * kernel cannot build, such as an open mesh, throws naming its node unless `emptyWhenFailed` is
-         * set. Circles get `circularSegments` sides; `tolerance` and `millimetresPerUnit` are not applied.
+         * Shared nodes are built once. An invalid recipe throws; a root the kernel cannot build, such as
+         * an open mesh, throws unless `emptyWhenFailed` is set. A cut within `tolerance` of a side of the
+         * box of what it cuts goes through it.
          * @param inputs - The recipe, how finely circles are divided, and whether Z turns into Y
          * @returns One solid per root, in root order
          * @group build

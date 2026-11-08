@@ -384,7 +384,16 @@ declare namespace Bit {
                 default = "default",
                 clearSky = "clearSky",
                 city = "city",
-                greyGradient = "greyGradient"
+                greyGradient = "greyGradient",
+                studio = "studio",
+                partlyCloudy = "partlyCloudy",
+                sunset = "sunset",
+                clearDay = "clearDay",
+                fairWeather = "fairWeather",
+                overcast = "overcast",
+                morning = "morning",
+                dusk = "dusk",
+                night = "night"
             }
             enum fogModeEnum {
                 none = "none",
@@ -2513,6 +2522,7 @@ declare namespace Bit {
                 precision?: number | undefined;
                 angularDeflection?: number | undefined;
                 relativeDeflection?: boolean | undefined;
+                precisionShare?: number | undefined;
                 drawEdgeIndexes?: boolean | undefined;
                 edgeIndexHeight?: number | undefined;
                 edgeIndexColour?: Base.Color | undefined;
@@ -2535,11 +2545,11 @@ declare namespace Bit {
                 analysisMax?: number | undefined;
             }
             class DrawShapeDto<T> extends DrawShapeSharedDto {
-                constructor(shape?: T, faceOpacity?: number, edgeOpacity?: number, edgeColour?: Base.Color, faceMaterial?: Base.Material, faceColour?: Base.Color, edgeWidth?: number, drawEdges?: boolean, drawFaces?: boolean, drawVertices?: boolean, vertexColour?: Base.Color, vertexSize?: number, precision?: number, drawEdgeIndexes?: boolean, edgeIndexHeight?: number, edgeIndexColour?: Base.Color, drawFaceIndexes?: boolean, faceIndexHeight?: number, faceIndexColour?: Base.Color, drawTwoSided?: boolean, backFaceColour?: Base.Color, backFaceOpacity?: number, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, drawIsoCurves?: boolean, isoCurvesU?: number, isoCurvesV?: number, isoCurvesColour?: Base.Color, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3, analysisMin?: number, analysisMax?: number, angularDeflection?: number, relativeDeflection?: boolean);
+                constructor(shape?: T, faceOpacity?: number, edgeOpacity?: number, edgeColour?: Base.Color, faceMaterial?: Base.Material, faceColour?: Base.Color, edgeWidth?: number, drawEdges?: boolean, drawFaces?: boolean, drawVertices?: boolean, vertexColour?: Base.Color, vertexSize?: number, precision?: number, drawEdgeIndexes?: boolean, edgeIndexHeight?: number, edgeIndexColour?: Base.Color, drawFaceIndexes?: boolean, faceIndexHeight?: number, faceIndexColour?: Base.Color, drawTwoSided?: boolean, backFaceColour?: Base.Color, backFaceOpacity?: number, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, drawIsoCurves?: boolean, isoCurvesU?: number, isoCurvesV?: number, isoCurvesColour?: Base.Color, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3, analysisMin?: number, analysisMax?: number, angularDeflection?: number, relativeDeflection?: boolean, precisionShare?: number);
                 shape?: T | undefined;
             }
             class DrawShapesDto<T> extends DrawShapeSharedDto {
-                constructor(shapes?: T[], faceOpacity?: number, edgeOpacity?: number, edgeColour?: Base.Color, faceMaterial?: Base.Material, faceColour?: Base.Color, edgeWidth?: number, drawEdges?: boolean, drawFaces?: boolean, drawVertices?: boolean, vertexColour?: Base.Color, vertexSize?: number, precision?: number, drawEdgeIndexes?: boolean, edgeIndexHeight?: number, edgeIndexColour?: Base.Color, drawFaceIndexes?: boolean, faceIndexHeight?: number, faceIndexColour?: Base.Color, drawTwoSided?: boolean, backFaceColour?: Base.Color, backFaceOpacity?: number, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, drawIsoCurves?: boolean, isoCurvesU?: number, isoCurvesV?: number, isoCurvesColour?: Base.Color, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3, analysisMin?: number, analysisMax?: number, angularDeflection?: number, relativeDeflection?: boolean);
+                constructor(shapes?: T[], faceOpacity?: number, edgeOpacity?: number, edgeColour?: Base.Color, faceMaterial?: Base.Material, faceColour?: Base.Color, edgeWidth?: number, drawEdges?: boolean, drawFaces?: boolean, drawVertices?: boolean, vertexColour?: Base.Color, vertexSize?: number, precision?: number, drawEdgeIndexes?: boolean, edgeIndexHeight?: number, edgeIndexColour?: Base.Color, drawFaceIndexes?: boolean, faceIndexHeight?: number, faceIndexColour?: Base.Color, drawTwoSided?: boolean, backFaceColour?: Base.Color, backFaceOpacity?: number, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, drawIsoCurves?: boolean, isoCurvesU?: number, isoCurvesV?: number, isoCurvesColour?: Base.Color, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3, analysisMin?: number, analysisMax?: number, angularDeflection?: number, relativeDeflection?: boolean, precisionShare?: number);
                 shapes: T[];
             }
             class FaceSubdivisionDto<T> {
@@ -3852,11 +3862,12 @@ declare namespace Bit {
                 internal?: boolean | undefined;
             }
             class ShapeToMeshDto<T> {
-                constructor(shape?: T, precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, isoCurvesU?: number, isoCurvesV?: number, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3, angularDeflection?: number, relativeDeflection?: boolean);
+                constructor(shape?: T, precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, isoCurvesU?: number, isoCurvesV?: number, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3, angularDeflection?: number, relativeDeflection?: boolean, precisionShare?: number);
                 shape: T;
                 precision?: number | undefined;
                 angularDeflection?: number | undefined;
                 relativeDeflection?: boolean | undefined;
+                precisionShare?: number | undefined;
                 adjustYtoZ?: boolean | undefined;
                 computeMetadata?: boolean | undefined;
                 keepMeshData?: boolean | undefined;
@@ -3880,11 +3891,12 @@ declare namespace Bit {
                 precision?: number | undefined;
             }
             class ShapesToMeshesDto<T> {
-                constructor(shapes?: T[], precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, isoCurvesU?: number, isoCurvesV?: number, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3, angularDeflection?: number, relativeDeflection?: boolean);
+                constructor(shapes?: T[], precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, isoCurvesU?: number, isoCurvesV?: number, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3, angularDeflection?: number, relativeDeflection?: boolean, precisionShare?: number);
                 shapes: T[];
                 precision?: number | undefined;
                 angularDeflection?: number | undefined;
                 relativeDeflection?: boolean | undefined;
+                precisionShare?: number | undefined;
                 adjustYtoZ?: boolean | undefined;
                 computeMetadata?: boolean | undefined;
                 keepMeshData?: boolean | undefined;
@@ -7265,15 +7277,17 @@ declare namespace Bit {
                 backFaceOpacity?: number | undefined;
             }
             class DrawOcctShapeOptions {
-                constructor(faceOpacity?: number, edgeOpacity?: number, edgeColour?: Base.Color, faceMaterial?: Base.Material, faceColour?: Base.Color, edgeWidth?: number, drawEdges?: boolean, drawFaces?: boolean, drawVertices?: boolean, vertexColour?: Base.Color, vertexSize?: number, precision?: number, drawEdgeIndexes?: boolean, edgeIndexHeight?: number, edgeIndexColour?: Base.Color, drawFaceIndexes?: boolean, faceIndexHeight?: number, faceIndexColour?: Base.Color, drawTwoSided?: boolean, backFaceColour?: Base.Color, backFaceOpacity?: number, edgeArrowSize?: number, edgeArrowAngle?: number, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, drawIsoCurves?: boolean, isoCurvesU?: number, isoCurvesV?: number, isoCurvesColour?: Base.Color, surfaceAnalysis?: Inputs.OCCT.surfaceAnalysisEnum, draftDirection?: Base.Vector3, analysisMin?: number, analysisMax?: number, edgeContrast?: number, angularDeflection?: number, relativeDeflection?: boolean);
+                constructor(faceOpacity?: number, edgeOpacity?: number, edgeColour?: Base.Color, faceMaterial?: Base.Material, faceColour?: Base.Color, edgeWidth?: number, drawEdges?: boolean, drawFaces?: boolean, drawVertices?: boolean, vertexColour?: Base.Color, vertexSize?: number, precision?: number, drawEdgeIndexes?: boolean, edgeIndexHeight?: number, edgeIndexColour?: Base.Color, drawFaceIndexes?: boolean, faceIndexHeight?: number, faceIndexColour?: Base.Color, drawTwoSided?: boolean, backFaceColour?: Base.Color, backFaceOpacity?: number, edgeArrowSize?: number, edgeArrowAngle?: number, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, drawIsoCurves?: boolean, isoCurvesU?: number, isoCurvesV?: number, isoCurvesColour?: Base.Color, surfaceAnalysis?: Inputs.OCCT.surfaceAnalysisEnum, draftDirection?: Base.Vector3, analysisMin?: number, analysisMax?: number, edgeContrast?: number, angularDeflection?: number, relativeDeflection?: boolean, precisionShare?: number, edgeWidthBySize?: boolean, wireColour?: Base.Color);
                 faceOpacity?: number | undefined;
                 edgeOpacity?: number | undefined;
                 edgeColour?: Base.Color | undefined;
                 edgeContrast?: number | undefined;
+                wireColour?: Base.Color | undefined;
                 faceColour?: Base.Color | undefined;
                 vertexColour?: Base.Color | undefined;
                 faceMaterial?: Base.Material | undefined;
                 edgeWidth?: number | undefined;
+                edgeWidthBySize?: boolean | undefined;
                 vertexSize?: number | undefined;
                 drawEdges?: boolean | undefined;
                 drawFaces?: boolean | undefined;
@@ -7281,6 +7295,7 @@ declare namespace Bit {
                 precision?: number | undefined;
                 angularDeflection?: number | undefined;
                 relativeDeflection?: boolean | undefined;
+                precisionShare?: number | undefined;
                 drawEdgeIndexes?: boolean | undefined;
                 edgeIndexHeight?: number | undefined;
                 edgeIndexColour?: Base.Color | undefined;
@@ -7436,6 +7451,14 @@ declare namespace Bit {
                 recipeMeshes = "recipeMeshes",
                 tag = "tag",
                 tags = "tags"
+            }
+            interface DrawDefaults {
+                occt?: Partial<DrawOcctShapeOptions> | undefined;
+                manifold?: Partial<DrawManifoldOrCrossSectionOptions> | undefined;
+                jscad?: Partial<DrawBasicGeometryOptions> | undefined;
+                lines?: Partial<DrawBasicGeometryOptions> | undefined;
+                metallic?: number | undefined;
+                roughness?: number | undefined;
             }
         }
         declare namespace BabylonNode {
@@ -15805,6 +15828,7 @@ declare namespace Bit {
         drawAnyAsync<E extends Inputs.Draw.Entity>(inputs: Inputs.Draw.DrawAny<E>): Promise<Inputs.Draw.Drawn<E, BABYLON.Mesh>>;
         protected drawResolvedAsync(inputs: Inputs.Draw.DrawAny): Promise<Inputs.Draw.DrawnAny<BABYLON.Mesh>>;
         private mergedOcctShapeOptions;
+        private withDefaults;
         private basicOptions;
         private occtOptions;
         private manifoldOptions;
