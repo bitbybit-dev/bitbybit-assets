@@ -87,6 +87,18 @@ declare namespace Bit {
                 number
             ];
             /**
+                 * A rotation as four numbers [x, y, z, w]: the axis scaled by the sine of half the angle, then
+                 * the cosine of half the angle. The order glTF and the renderers store rotations in; a
+                 * quaternion of length 1 is a pure rotation, and one of any other length is scaled to 1 where it
+                 * is read.
+                 */
+            type Quaternion = [
+                number,
+                number,
+                number,
+                number
+            ];
+            /**
                  * An axis in space: an origin point and a direction vector. Used wherever an operation needs both
                  * a position and an orientation - rotating about an arbitrary line, revolving a profile, mirroring
                  * across a line.
@@ -132,6 +144,15 @@ declare namespace Bit {
                 Base.Point3,
                 Base.Point3
             ];
+            /**
+                 * The point of a triangle nearest to another point, with the share of each corner in it:
+                 * `point` is `weights[0]` times the first corner plus `weights[1]` times the second plus
+                 * `weights[2]` times the third, and the weights add up to 1.
+                 */
+            type TrianglePoint3 = {
+                point: Point3;
+                weights: Vector3;
+            };
             /**
                  * A mesh as a flat list of triangles. The simplest possible mesh representation - no shared
                  * vertices and no index buffer - which makes it easy to build and to reason about, at the cost of
@@ -25270,10 +25291,63 @@ declare namespace Bit {
             class HexDto {
                 constructor(color?: Base.Color);
                 /**
-                 * The color as a hex text such as `#ff5733`, with or without the `#`.
+                 * The color as a hex text such as `#ff5733` or `#f53`, with or without the `#`.
                  * @default #0000ff
                  */
                 color?: Base.Color | undefined;
+            }
+            /**
+             * A hex color and an opacity for `color.hexToRgba`.
+             */
+            class HexAlphaDto {
+                constructor(color?: Base.Color, alpha?: number);
+                /**
+                 * The color as a hex text such as `#ff5733` or `#f53`, with or without the `#`.
+                 * @default #0000ff
+                 */
+                color?: Base.Color | undefined;
+                /**
+                 * How opaque the color is, from 0 for fully transparent to 1 for solid; a value outside that is held
+                 * at the nearer end.
+                 * @default 0.5
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                alpha?: number | undefined;
+            }
+            /**
+             * A hue, a saturation and a lightness for `color.hslToHex`.
+             */
+            class HslDto {
+                constructor(hue?: number, saturation?: number, lightness?: number);
+                /**
+                 * The hue in degrees round the color wheel: 0 red, 120 green, 240 blue; any angle is taken
+                 * whole turns aside.
+                 * @default 210
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                hue?: number | undefined;
+                /**
+                 * How strong the color is, from 0 for grey to 1 for the purest hue; a value outside that is held at
+                 * the nearer end.
+                 * @default 0.6
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                saturation?: number | undefined;
+                /**
+                 * How light the color is, from 0 for black through 0.5 for the full hue to 1 for white; a value
+                 * outside that is held at the nearer end.
+                 * @default 0.5
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 0.05
+                 */
+                lightness?: number | undefined;
             }
             /**
              * An `{ r, g, b }` color with channels from 0 to 255, for `color.rgb255Color`.
@@ -27487,7 +27561,8 @@ declare namespace Bit {
             }
             /**
              * One frame, for the methods that read a frame or turn it over: `frame.origin`, `frame.normal`,
-             * `frame.direction`, `frame.yDirection`, `frame.flip` and `frame.toMatrix`.
+             * `frame.direction`, `frame.yDirection`, `frame.flip`, `frame.toMatrix` and
+             * `transforms.quaternionFromFrame`.
              */
             class FrameDto {
                 constructor(frame?: Base.Frame);
@@ -29259,6 +29334,16 @@ declare namespace Bit {
                 degToRad = "degToRad"
             }
             /**
+             * Which way a value moves to reach a step on the 1, 2, 5 scale: `up` to the smallest step at or
+             * above it, `down` to the largest at or below it, `nearest` to the closest by ratio. A value within
+             * a billionth of a step counts as that step.
+             */
+            enum niceStepDirectionEnum {
+                up = "up",
+                down = "down",
+                nearest = "nearest"
+            }
+            /**
              * The easing curve applied when interpolating between two values, in the usual in/out/inOut
              * families - sine, quadratic, cubic, quartic, quintic, exponential and the rest. Governs how an
              * animated or blended value accelerates: easeInOut starts and ends gently, easeIn only starts
@@ -29757,6 +29842,58 @@ declare namespace Bit {
                 maxDelta?: number | undefined;
             }
             /**
+             * Two angles and the size of a whole turn for `math.shortestAngle`.
+             */
+            class ShortestAngleDto {
+                constructor(from?: number, to?: number, fullTurn?: number);
+                /**
+                 * The angle the turn starts from, in the unit `fullTurn` sets.
+                 * @default 10
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                from?: number | undefined;
+                /**
+                 * The angle to arrive at, in the same unit as `from`; any number of whole turns may be added
+                 * to it without changing the answer.
+                 * @default 350
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                to?: number | undefined;
+                /**
+                 * How large a whole turn is in the unit the angles use: 360 for degrees, two pi for radians.
+                 * @default 360
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                fullTurn?: number | undefined;
+            }
+            /**
+             * A positive number and a direction for `math.niceStep`.
+             */
+            class NiceStepDto {
+                constructor(number?: number, direction?: niceStepDirectionEnum);
+                /**
+                 * The rough size to turn into a step, such as a span divided by the number of ticks wanted.
+                 * @default 0.37
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.01
+                 */
+                number?: number | undefined;
+                /**
+                 * Whether the step may be larger than `number`, smaller, or whichever is closer.
+                 * @default up
+                 */
+                direction?: niceStepDirectionEnum | undefined;
+            }
+            /**
              * An expression written as text for `math.evalArithmetic`.
              */
             class EvalArithmeticDto {
@@ -29859,6 +29996,22 @@ declare namespace Bit {
                 constructor(triangle?: Base.Triangle3);
                 /**
                  * The triangle as three points.
+                 * @default undefined
+                 */
+                triangle: Base.Triangle3;
+            }
+            /**
+             * A point and a triangle for `mesh.closestPointOnTriangle`.
+             */
+            class PointTriangleDto {
+                constructor(point?: Base.Point3, triangle?: Base.Triangle3);
+                /**
+                 * The point to measure from.
+                 * @default undefined
+                 */
+                point: Base.Point3;
+                /**
+                 * The corners to search between, in the order the weights come back in.
                  * @default undefined
                  */
                 triangle: Base.Triangle3;
@@ -32029,6 +32182,82 @@ declare namespace Bit {
                  * @step 0.0000001
                  */
                 tolerance?: number | undefined;
+            }
+            /**
+             * An axis and an angle for `transforms.quaternionFromAxisAngle`.
+             */
+            class AxisAngleDto {
+                constructor(axis?: Base.Vector3, angle?: number);
+                /**
+                 * The direction to turn about; any length but 0.
+                 * @default [0, 0, 1]
+                 */
+                axis?: Base.Vector3 | undefined;
+                /**
+                 * How far to turn, in degrees; positive is counter-clockwise when the axis points toward
+                 * you.
+                 * @default 90
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                angle?: number | undefined;
+            }
+            /**
+             * Three angles in degrees, about X, Y and Z in turn, for `transforms.quaternionFromEuler`.
+             */
+            class EulerAnglesDto {
+                constructor(angles?: Base.Vector3);
+                /**
+                 * The turns in degrees about the X, Y and Z axes, applied in that order about the fixed
+                 * world axes.
+                 * @default [0, 0, 0]
+                 */
+                angles?: Base.Vector3 | undefined;
+            }
+            /**
+             * A rotation held as a quaternion, for `transforms.quaternionToEuler` and
+             * `transforms.quaternionToMatrix`.
+             */
+            class QuaternionDto {
+                constructor(quaternion?: Base.Quaternion);
+                /**
+                 * The rotation as [x, y, z, w]; any length but 0 is scaled to 1.
+                 * @default undefined
+                 */
+                quaternion: Base.Quaternion;
+            }
+            /**
+             * Two rotations, applied one after the other, for `transforms.quaternionCombine`.
+             */
+            class TwoQuaternionsDto {
+                constructor(first?: Base.Quaternion, second?: Base.Quaternion);
+                /**
+                 * The rotation applied first, as [x, y, z, w].
+                 * @default undefined
+                 */
+                first: Base.Quaternion;
+                /**
+                 * The rotation applied after it, as [x, y, z, w].
+                 * @default undefined
+                 */
+                second: Base.Quaternion;
+            }
+            /**
+             * A rotation and a vector for `transforms.quaternionRotateVector`.
+             */
+            class QuaternionVectorDto {
+                constructor(quaternion?: Base.Quaternion, vector?: Base.Vector3);
+                /**
+                 * The rotation as [x, y, z, w].
+                 * @default undefined
+                 */
+                quaternion: Base.Quaternion;
+                /**
+                 * The vector or point to turn about the origin.
+                 * @default undefined
+                 */
+                vector: Base.Vector3;
             }
         }
         /**
@@ -64635,8 +64864,9 @@ declare namespace Bit {
         /**
          * Reads a hex color into an `{ r, g, b }` object with channels from 0 to 255.
          *
-         * The text may start with or without `#`; anything else than six hex digits throws an error.
-         * Example: '#FF5733' -> { r: 255, g: 87, b: 51 }
+         * The text holds six hex digits or three, each standing for a pair, with or without `#`;
+         * anything else throws an error.
+         * Example: '#FF5733' -> { r: 255, g: 87, b: 51 }, '#f53' -> { r: 255, g: 85, b: 51 }
          * @param inputs - The hex color
          * @returns The color object with channels from 0 to 255
          * @group convert
@@ -64648,6 +64878,39 @@ declare namespace Bit {
          * ```
          */
         hexToRgb(inputs: Inputs.Color.HexDto): Inputs.Base.ColorRGB;
+        /**
+         * Writes a hex color with an opacity as a CSS `rgba()` color, for a style that needs to see
+         * through.
+         *
+         * Example: '#ff5733' with alpha 0.5 -> 'rgba(255, 87, 51, 0.5)'
+         * @param inputs - The hex color and its opacity
+         * @returns The CSS color text
+         * @group convert
+         * @shortname hex to rgba
+         * @drawable false
+         * @example
+         * ```typescript
+         * const fill = bitbybit.color.hexToRgba({ color: "#ff5733", alpha: 0.5 });
+         * ```
+         */
+        hexToRgba(inputs: Inputs.Color.HexAlphaDto): string;
+        /**
+         * Writes a color given by hue, saturation and lightness as a hex color: a way to pick colors
+         * that differ by hue alone, such as a palette spread round the wheel.
+         *
+         * The hue wraps round; saturation and lightness are held between 0 and 1.
+         * Example: hue 0, saturation 1, lightness 0.5 -> '#ff0000'; hue 210, 0.6, 0.5 -> '#3380cc'
+         * @param inputs - The hue in degrees, the saturation and the lightness
+         * @returns The hex color
+         * @group convert
+         * @shortname hsl to hex
+         * @drawable false
+         * @example
+         * ```typescript
+         * const blue = bitbybit.color.hslToHex({ hue: 210, saturation: 0.6, lightness: 0.5 });
+         * ```
+         */
+        hslToHex(inputs: Inputs.Color.HslDto): Inputs.Base.Color;
         /**
          * Writes three channel values as a hex color.
          *
@@ -67034,6 +67297,23 @@ declare namespace Bit {
         arePointsTheSame(pointA: Inputs.Base.Point3 | Inputs.Base.Point2, pointB: Inputs.Base.Point3 | Inputs.Base.Point2, tolerance: number): boolean;
         private transformCoordinates;
     }
+    declare const HUE_DEGREES_PER_STEP = 30;
+    declare const HUE_STEPS = 12;
+    declare const HUE_RISE_START = 3;
+    declare const HUE_FALL_START = 9;
+    declare const RED_OFFSET = 0;
+    declare const GREEN_OFFSET = 8;
+    declare const BLUE_OFFSET = 4;
+    declare function hexChannels(text: string): [
+        number,
+        number,
+        number
+    ] | undefined;
+    declare function hslChannels(hue: number, saturation: number, lightness: number): [
+        number,
+        number,
+        number
+    ];
     declare function srgbToLinear(channel: number): number;
     declare function linearToSrgb(channel: number): number;
     type Point3 = Inputs.Base.Point3;
@@ -67409,6 +67689,25 @@ declare namespace Bit {
     declare const isInsidePolygon2: (point: Point2, outline: readonly Point2[]) => boolean;
     declare const perimeter2: (points: readonly Point2[]) => number;
     declare const roundedCorners2: (points: readonly Point2[], radii: readonly number[], segmentsFor: (sweep: number) => number) => Point2[];
+    declare const GIMBAL_SINE: number;
+    declare const QUARTER_TURN_DEGREES = 90;
+    declare const QUATERNION_LENGTH = 4;
+    type Quaternion = Inputs.Base.Quaternion;
+    type Vec3 = Inputs.Base.Vector3;
+    declare const isQuaternion: (value: unknown) => value is Quaternion;
+    declare const unitQuaternion: (quaternion: Quaternion) => Quaternion | undefined;
+    declare const quaternionAbout: (unitAxis: Vec3, degrees: number) => Quaternion;
+    declare const quaternionProduct: (a: Quaternion, b: Quaternion) => Quaternion;
+    declare const quaternionOfDegrees: (angles: Vec3) => Quaternion;
+    declare const quaternionTurned: (unit: Quaternion, vector: Vec3) => Vec3;
+    declare const degreesOfQuaternion: (unit: Quaternion) => Vec3;
+    declare const quaternionOfAxes: ({ x, y, z }: Pick<FrameAxes, "x" | "y" | "z">) => Quaternion;
+    declare const quaternionMatrix: ([x, y, z, w]: Quaternion) => Inputs.Base.TransformMatrix;
+    declare const NICE_MANTISSAS: readonly [
+        1,
+        2,
+        5
+    ];
     declare const smoothstep: (value: number) => number;
     declare const roundedTo: (value: number, places: number) => number;
     declare const roundedToMillionths: (value: number) => number;
@@ -67417,6 +67716,8 @@ declare namespace Bit {
     declare const degreesOf: (radians: number) => number;
     declare const angleOfCosine: (cosine: number) => number;
     declare const interpolated: (start: number, end: number, share: number) => number;
+    declare function shortestAngle(from: number, to: number, fullTurn: number): number;
+    declare function niceStep(value: number, direction: `${Inputs.Math.niceStepDirectionEnum}`): number;
     declare function fractionText(value: number, denominator: number): string;
     declare function newellNormal(positions: ArrayLike<number>, loop: readonly number[]): [
         number,
@@ -67635,8 +67936,10 @@ declare namespace Bit {
     declare const FLAT_SHARE = 1e-28;
     declare const WELD_SHARE = 1e-9;
     declare const PRUNE_SLACK: number;
+    declare const TRIANGLE_SIDES = 3;
     type Vec = Inputs.Base.Point3;
     declare function triangleTree(positions: ArrayLike<number>, indices: ArrayLike<number>): TriangleTree;
+    declare function closestOnTriangle(p: Vec, a: Vec, b: Vec, c: Vec): Inputs.Base.TrianglePoint3;
     declare function treesWithin(first: TriangleTree, second: TriangleTree, limit: number): boolean;
     declare function pointInTree(tree: TriangleTree, point: Vec): boolean;
     declare function pointOnTree(tree: TriangleTree): Vec | undefined;
@@ -68722,6 +69025,7 @@ declare namespace Bit {
         /**
          * Rounds a number to a given number of decimal places.
          *
+         * A small negative number rounds to 0, never to -0.
          * Example: 1.32156 to 3 places -> 1.322
          * @param inputs - The number and how many decimal places to keep
          * @returns The rounded number
@@ -69322,6 +69626,40 @@ declare namespace Bit {
          */
         moveTowards(inputs: Inputs.Math.MoveTowardsDto): number;
         /**
+         * Gives the angle that `to` names, whole turns aside, nearest to `from`, so going from `from` to
+         * it is the short way round.
+         *
+         * Animating an angle toward the result never spins the long way. `fullTurn` sets the unit.
+         * Example: 10 to 350 in degrees -> -10, 350 to 10 -> 370
+         * @param inputs - The two angles and the size of a whole turn
+         * @returns The angle to arrive at, at most half a turn from `from`
+         * @group operations
+         * @shortname shortest angle
+         * @drawable false
+         * @example
+         * ```typescript
+         * const target = bitbybit.math.shortestAngle({ from: 10, to: 350, fullTurn: 360 });
+         * ```
+         */
+        shortestAngle(inputs: Inputs.Math.ShortestAngleDto): number;
+        /**
+         * Rounds a positive number to a step on the 1, 2, 5 scale - 0.1, 0.2, 0.5, 1, 2, 5, 10 - the
+         * sizes a grid, a ruler or a slider reads well in.
+         *
+         * A number within a billionth of a step counts as that step.
+         * Example: 0.37 up -> 0.5, down -> 0.2, nearest -> 0.5
+         * @param inputs - The number and which way to round it
+         * @returns The step
+         * @group operations
+         * @shortname nice step
+         * @drawable false
+         * @example
+         * ```typescript
+         * const step = bitbybit.math.niceStep({ number: 0.37, direction: Bit.Inputs.Math.niceStepDirectionEnum.up });
+         * ```
+         */
+        niceStep(inputs: Inputs.Math.NiceStepDto): number;
+        /**
          * Works out a simple arithmetic expression written as text: numbers, +, -, the multiplication
          * sign, /, parentheses and spaces.
          *
@@ -69398,6 +69736,23 @@ declare namespace Bit {
          * ```
          */
         signedDistanceToPlane(inputs: Inputs.Mesh.SignedDistanceFromPlaneToPointDto): number;
+        /**
+         * Finds the point of a triangle nearest to another point, with the weight of each corner in it.
+         *
+         * Each corner times its weight, added up, gives the point; the weights add up to 1. Corners on one
+         * line act as the segment they span.
+         * Example: point [0.25,0.25,2] and triangle [[0,0,0], [1,0,0], [0,1,0]] -> { point: [0.25,0.25,0], weights: [0.5,0.25,0.25] }
+         * @param inputs - The point and the triangle
+         * @returns The nearest point and the weight of each corner in it
+         * @group traingle
+         * @shortname closest point on triangle
+         * @drawable false
+         * @example
+         * ```typescript
+         * const nearest = bitbybit.mesh.closestPointOnTriangle({ point: [0.25, 0.25, 2], triangle: [[0, 0, 0], [1, 0, 0], [0, 1, 0]] });
+         * ```
+         */
+        closestPointOnTriangle(inputs: Inputs.Mesh.PointTriangleDto): Inputs.Base.TrianglePoint3;
         /**
          * Finds the plane a triangle lies in: its unit normal and its distance from the origin along
          * that normal.
@@ -71626,6 +71981,125 @@ declare namespace Bit {
          * @drawable false
          */
         identity(): Base.TransformMatrix;
+        /**
+         * Builds a quaternion that turns about an axis by an angle in degrees, positive
+         * counter-clockwise when the axis points toward you.
+         *
+         * A quaternion holds a rotation as four numbers with none of the gimbal lock of three angles;
+         * glTF and the renderers store rotations this way.
+         * Example: axis [0,0,1], angle 90 -> [0, 0, 0.7071, 0.7071]
+         * @param inputs - The axis and the angle in degrees
+         * @returns The rotation as [x, y, z, w]
+         * @group quaternion
+         * @shortname quaternion axis angle
+         * @drawable false
+         * @example
+         * ```typescript
+         * const quarter = bitbybit.transforms.quaternionFromAxisAngle({ axis: [0, 0, 1], angle: 90 });
+         * ```
+         */
+        quaternionFromAxisAngle(inputs: Inputs.Transforms.AxisAngleDto): Base.Quaternion;
+        /**
+         * Builds a quaternion from three angles in degrees: a turn about the X axis, then about Y, then
+         * about Z, each about the fixed world axes, as `rotationCenterX`, `rotationCenterY` and
+         * `rotationCenterZ` applied in that order.
+         *
+         * Example: [0, 0, 90] -> [0, 0, 0.7071, 0.7071]
+         * @param inputs - The angles about X, Y and Z
+         * @returns The rotation as [x, y, z, w]
+         * @group quaternion
+         * @shortname quaternion from euler
+         * @drawable false
+         * @example
+         * ```typescript
+         * const turn = bitbybit.transforms.quaternionFromEuler({ angles: [30, 0, 90] });
+         * ```
+         */
+        quaternionFromEuler(inputs: Inputs.Transforms.EulerAnglesDto): Base.Quaternion;
+        /**
+         * Reads a quaternion back as the three angles in degrees that `quaternionFromEuler` takes,
+         * about X, then Y, then Z.
+         *
+         * Y stays between -90 and 90. Within a ten-thousandth of a degree of either end, X and Z turn
+         * about one line, so X is 0 and Z takes the whole turn.
+         * Example: [0, 0, 0.7071, 0.7071] -> [0, 0, 90]
+         * @param inputs - The rotation
+         * @returns The angles about X, Y and Z
+         * @group quaternion
+         * @shortname quaternion to euler
+         * @drawable false
+         * @example
+         * ```typescript
+         * const angles = bitbybit.transforms.quaternionToEuler({ quaternion: [0, 0, 0.7071, 0.7071] });
+         * ```
+         */
+        quaternionToEuler(inputs: Inputs.Transforms.QuaternionDto): Base.Vector3;
+        /**
+         * Combines two rotations into the one that turns by `first` and then by `second`.
+         *
+         * Order matters: turning about X then Z differs from turning about Z then X.
+         * Example: a quarter turn about X, then a quarter turn about Z -> one rotation doing both
+         * @param inputs - The rotation applied first and the one applied after it
+         * @returns The combined rotation as [x, y, z, w]
+         * @group quaternion
+         * @shortname quaternion combine
+         * @drawable false
+         * @example
+         * ```typescript
+         * const both = bitbybit.transforms.quaternionCombine({ first: [0.7071, 0, 0, 0.7071], second: [0, 0, 0.7071, 0.7071] });
+         * ```
+         */
+        quaternionCombine(inputs: Inputs.Transforms.TwoQuaternionsDto): Base.Quaternion;
+        /**
+         * Turns a vector, or a point about the origin, by a rotation.
+         *
+         * Example: [1, 0, 0] turned by a quarter turn about Z -> [0, 1, 0]
+         * @param inputs - The rotation and the vector
+         * @returns The turned vector
+         * @group quaternion
+         * @shortname quaternion rotate vector
+         * @drawable false
+         * @example
+         * ```typescript
+         * const turned = bitbybit.transforms.quaternionRotateVector({ quaternion: [0, 0, 0.7071, 0.7071], vector: [1, 0, 0] });
+         * ```
+         */
+        quaternionRotateVector(inputs: Inputs.Transforms.QuaternionVectorDto): Base.Vector3;
+        /**
+         * Gives the rotation that turns the world axes onto a frame's: X onto its direction and Z onto
+         * its normal. The origin is left out.
+         *
+         * The direction is squared to the normal first, so a rough direction is enough.
+         * Example: normal [0,0,1], direction [0,1,0] -> a quarter turn about Z
+         * @param inputs - The frame
+         * @returns The rotation as [x, y, z, w]
+         * @group quaternion
+         * @shortname quaternion from frame
+         * @drawable false
+         * @example
+         * ```typescript
+         * const turn = bitbybit.transforms.quaternionFromFrame({ frame: { origin: [0, 0, 0], normal: [0, 0, 1], direction: [0, 1, 0] } });
+         * ```
+         */
+        quaternionFromFrame(inputs: Inputs.Frame.FrameDto): Base.Quaternion;
+        /**
+         * Writes a rotation as the transformation matrix the other methods here build, so it can be
+         * applied with `point.transformPoints` or combined with moves.
+         *
+         * Example: a quarter turn about Z -> the matrix that takes [1,0,0] to [0,1,0]
+         * @param inputs - The rotation
+         * @returns The matrix, 16 numbers in column-major order
+         * @group quaternion
+         * @shortname quaternion to matrix
+         * @drawable false
+         * @example
+         * ```typescript
+         * const matrix = bitbybit.transforms.quaternionToMatrix({ quaternion: [0, 0, 0.7071, 0.7071] });
+         * const points = bitbybit.point.transformPoints({ points: [[1, 0, 0]], transformation: [matrix] });
+         * ```
+         */
+        quaternionToMatrix(inputs: Inputs.Transforms.QuaternionDto): Base.TransformMatrix;
+        private unitQuaternionOf;
         private translation;
         private scaling;
         private rotationAxis;
@@ -71633,7 +72107,6 @@ declare namespace Bit {
         private rotationY;
         private rotationZ;
         private rotationYawPitchRoll;
-        private rotationMatrixFromQuat;
         private stretchDirection;
         private matricesOf;
     }

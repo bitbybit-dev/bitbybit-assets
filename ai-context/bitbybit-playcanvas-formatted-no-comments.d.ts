@@ -32,6 +32,12 @@ declare namespace Bit {
                 number,
                 number
             ];
+            type Quaternion = [
+                number,
+                number,
+                number,
+                number
+            ];
             type Axis3 = {
                 origin: Base.Point3;
                 direction: Base.Vector3;
@@ -57,6 +63,10 @@ declare namespace Bit {
                 Base.Point3,
                 Base.Point3
             ];
+            type TrianglePoint3 = {
+                point: Point3;
+                weights: Vector3;
+            };
             type Mesh3 = Triangle3[];
             type IndexedMesh = {
                 positions: number[];
@@ -5930,6 +5940,17 @@ declare namespace Bit {
                 constructor(color?: Base.Color);
                 color?: Base.Color | undefined;
             }
+            class HexAlphaDto {
+                constructor(color?: Base.Color, alpha?: number);
+                color?: Base.Color | undefined;
+                alpha?: number | undefined;
+            }
+            class HslDto {
+                constructor(hue?: number, saturation?: number, lightness?: number);
+                hue?: number | undefined;
+                saturation?: number | undefined;
+                lightness?: number | undefined;
+            }
             class Rgb255Dto {
                 constructor(colorRgb?: Base.ColorRGB);
                 colorRgb?: Base.ColorRGB | undefined;
@@ -6980,6 +7001,11 @@ declare namespace Bit {
                 radToDeg = "radToDeg",
                 degToRad = "degToRad"
             }
+            enum niceStepDirectionEnum {
+                up = "up",
+                down = "down",
+                nearest = "nearest"
+            }
             enum easeEnum {
                 easeInSine = "easeInSine",
                 easeOutSine = "easeOutSine",
@@ -7108,6 +7134,17 @@ declare namespace Bit {
                 target?: number | undefined;
                 maxDelta?: number | undefined;
             }
+            class ShortestAngleDto {
+                constructor(from?: number, to?: number, fullTurn?: number);
+                from?: number | undefined;
+                to?: number | undefined;
+                fullTurn?: number | undefined;
+            }
+            class NiceStepDto {
+                constructor(number?: number, direction?: niceStepDirectionEnum);
+                number?: number | undefined;
+                direction?: niceStepDirectionEnum | undefined;
+            }
             class EvalArithmeticDto {
                 constructor(expression?: string);
                 expression?: string | undefined;
@@ -7136,6 +7173,11 @@ declare namespace Bit {
             }
             class TriangleDto {
                 constructor(triangle?: Base.Triangle3);
+                triangle: Base.Triangle3;
+            }
+            class PointTriangleDto {
+                constructor(point?: Base.Point3, triangle?: Base.Triangle3);
+                point: Base.Point3;
                 triangle: Base.Triangle3;
             }
             class TriangleToleranceDto {
@@ -7664,6 +7706,29 @@ declare namespace Bit {
                 constructor(transformation?: Base.TransformMatrixes, tolerance?: number);
                 transformation: Base.TransformMatrixes;
                 tolerance?: number | undefined;
+            }
+            class AxisAngleDto {
+                constructor(axis?: Base.Vector3, angle?: number);
+                axis?: Base.Vector3 | undefined;
+                angle?: number | undefined;
+            }
+            class EulerAnglesDto {
+                constructor(angles?: Base.Vector3);
+                angles?: Base.Vector3 | undefined;
+            }
+            class QuaternionDto {
+                constructor(quaternion?: Base.Quaternion);
+                quaternion: Base.Quaternion;
+            }
+            class TwoQuaternionsDto {
+                constructor(first?: Base.Quaternion, second?: Base.Quaternion);
+                first: Base.Quaternion;
+                second: Base.Quaternion;
+            }
+            class QuaternionVectorDto {
+                constructor(quaternion?: Base.Quaternion, vector?: Base.Vector3);
+                quaternion: Base.Quaternion;
+                vector: Base.Vector3;
             }
         }
         declare namespace Vector {
@@ -13545,6 +13610,8 @@ declare namespace Bit {
         rgbAtomic255Color(inputs: Inputs.Color.RgbAttomic255Dto): Inputs.Base.ColorRGB;
         rgbAtomic1Color(inputs: Inputs.Color.RgbAttomic1Dto): Inputs.Base.ColorRGB;
         hexToRgb(inputs: Inputs.Color.HexDto): Inputs.Base.ColorRGB;
+        hexToRgba(inputs: Inputs.Color.HexAlphaDto): string;
+        hslToHex(inputs: Inputs.Color.HslDto): Inputs.Base.Color;
         rgbToHex(inputs: Inputs.Color.RGBMinMaxDto): Inputs.Base.Color;
         rgbObjToHex(inputs: Inputs.Color.RGBObjectMaxDto): Inputs.Base.Color;
         hexToRgbMapped(inputs: Inputs.Color.HexDtoMapped): Inputs.Base.ColorRGB;
@@ -13806,6 +13873,23 @@ declare namespace Bit {
         arePointsTheSame(pointA: Inputs.Base.Point3 | Inputs.Base.Point2, pointB: Inputs.Base.Point3 | Inputs.Base.Point2, tolerance: number): boolean;
         private transformCoordinates;
     }
+    declare const HUE_DEGREES_PER_STEP = 30;
+    declare const HUE_STEPS = 12;
+    declare const HUE_RISE_START = 3;
+    declare const HUE_FALL_START = 9;
+    declare const RED_OFFSET = 0;
+    declare const GREEN_OFFSET = 8;
+    declare const BLUE_OFFSET = 4;
+    declare function hexChannels(text: string): [
+        number,
+        number,
+        number
+    ] | undefined;
+    declare function hslChannels(hue: number, saturation: number, lightness: number): [
+        number,
+        number,
+        number
+    ];
     declare function srgbToLinear(channel: number): number;
     declare function linearToSrgb(channel: number): number;
     type Point3 = Inputs.Base.Point3;
@@ -14079,6 +14163,25 @@ declare namespace Bit {
     declare const isInsidePolygon2: (point: Point2, outline: readonly Point2[]) => boolean;
     declare const perimeter2: (points: readonly Point2[]) => number;
     declare const roundedCorners2: (points: readonly Point2[], radii: readonly number[], segmentsFor: (sweep: number) => number) => Point2[];
+    declare const GIMBAL_SINE: number;
+    declare const QUARTER_TURN_DEGREES = 90;
+    declare const QUATERNION_LENGTH = 4;
+    type Quaternion = Inputs.Base.Quaternion;
+    type Vec3 = Inputs.Base.Vector3;
+    declare const isQuaternion: (value: unknown) => value is Quaternion;
+    declare const unitQuaternion: (quaternion: Quaternion) => Quaternion | undefined;
+    declare const quaternionAbout: (unitAxis: Vec3, degrees: number) => Quaternion;
+    declare const quaternionProduct: (a: Quaternion, b: Quaternion) => Quaternion;
+    declare const quaternionOfDegrees: (angles: Vec3) => Quaternion;
+    declare const quaternionTurned: (unit: Quaternion, vector: Vec3) => Vec3;
+    declare const degreesOfQuaternion: (unit: Quaternion) => Vec3;
+    declare const quaternionOfAxes: ({ x, y, z }: Pick<FrameAxes, "x" | "y" | "z">) => Quaternion;
+    declare const quaternionMatrix: ([x, y, z, w]: Quaternion) => Inputs.Base.TransformMatrix;
+    declare const NICE_MANTISSAS: readonly [
+        1,
+        2,
+        5
+    ];
     declare const smoothstep: (value: number) => number;
     declare const roundedTo: (value: number, places: number) => number;
     declare const roundedToMillionths: (value: number) => number;
@@ -14087,6 +14190,8 @@ declare namespace Bit {
     declare const degreesOf: (radians: number) => number;
     declare const angleOfCosine: (cosine: number) => number;
     declare const interpolated: (start: number, end: number, share: number) => number;
+    declare function shortestAngle(from: number, to: number, fullTurn: number): number;
+    declare function niceStep(value: number, direction: `${Inputs.Math.niceStepDirectionEnum}`): number;
     declare function fractionText(value: number, denominator: number): string;
     declare function newellNormal(positions: ArrayLike<number>, loop: readonly number[]): [
         number,
@@ -14257,8 +14362,10 @@ declare namespace Bit {
     declare const FLAT_SHARE = 1e-28;
     declare const WELD_SHARE = 1e-9;
     declare const PRUNE_SLACK: number;
+    declare const TRIANGLE_SIDES = 3;
     type Vec = Inputs.Base.Point3;
     declare function triangleTree(positions: ArrayLike<number>, indices: ArrayLike<number>): TriangleTree;
+    declare function closestOnTriangle(p: Vec, a: Vec, b: Vec, c: Vec): Inputs.Base.TrianglePoint3;
     declare function treesWithin(first: TriangleTree, second: TriangleTree, limit: number): boolean;
     declare function pointInTree(tree: TriangleTree, point: Vec): boolean;
     declare function pointOnTree(tree: TriangleTree): Vec | undefined;
@@ -14398,6 +14505,8 @@ declare namespace Bit {
         wrap(inputs: Inputs.Math.WrapDto): number;
         pingPong(inputs: Inputs.Math.PingPongDto): number;
         moveTowards(inputs: Inputs.Math.MoveTowardsDto): number;
+        shortestAngle(inputs: Inputs.Math.ShortestAngleDto): number;
+        niceStep(inputs: Inputs.Math.NiceStepDto): number;
         evalArithmetic(inputs: Inputs.Math.EvalArithmeticDto): number;
         private easeInSine;
         private easeOutSine;
@@ -14435,6 +14544,7 @@ declare namespace Bit {
         private readonly polyline;
         constructor(vector: Vector, polyline: Polyline);
         signedDistanceToPlane(inputs: Inputs.Mesh.SignedDistanceFromPlaneToPointDto): number;
+        closestPointOnTriangle(inputs: Inputs.Mesh.PointTriangleDto): Inputs.Base.TrianglePoint3;
         calculateTrianglePlane(inputs: Inputs.Mesh.TriangleToleranceDto): Inputs.Base.TrianglePlane3 | undefined;
         triangleTriangleIntersection(inputs: Inputs.Mesh.TriangleTriangleToleranceDto): Inputs.Base.Segment3 | undefined;
         meshMeshIntersectionSegments(inputs: Inputs.Mesh.MeshMeshToleranceDto): Inputs.Base.Segment3[];
@@ -14610,6 +14720,14 @@ declare namespace Bit {
         translationXYZ(inputs: Inputs.Transforms.TranslationXYZDto): Base.TransformMatrixes;
         translationsXYZ(inputs: Inputs.Transforms.TranslationsXYZDto): Base.TransformMatrixes[];
         identity(): Base.TransformMatrix;
+        quaternionFromAxisAngle(inputs: Inputs.Transforms.AxisAngleDto): Base.Quaternion;
+        quaternionFromEuler(inputs: Inputs.Transforms.EulerAnglesDto): Base.Quaternion;
+        quaternionToEuler(inputs: Inputs.Transforms.QuaternionDto): Base.Vector3;
+        quaternionCombine(inputs: Inputs.Transforms.TwoQuaternionsDto): Base.Quaternion;
+        quaternionRotateVector(inputs: Inputs.Transforms.QuaternionVectorDto): Base.Vector3;
+        quaternionFromFrame(inputs: Inputs.Frame.FrameDto): Base.Quaternion;
+        quaternionToMatrix(inputs: Inputs.Transforms.QuaternionDto): Base.TransformMatrix;
+        private unitQuaternionOf;
         private translation;
         private scaling;
         private rotationAxis;
@@ -14617,7 +14735,6 @@ declare namespace Bit {
         private rotationY;
         private rotationZ;
         private rotationYawPitchRoll;
-        private rotationMatrixFromQuat;
         private stretchDirection;
         private matricesOf;
     }
