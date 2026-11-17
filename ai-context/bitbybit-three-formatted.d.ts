@@ -412,8 +412,9 @@ declare namespace Bit {
                 of: number;
                 /**
                  * The indices of what is cut away, all at once. A solid tool that ends within the recipe's
-                 * `tolerance` of a side of the solid's bounding box, as the half-spaces before it leave the
-                 * solid, passes through that side.
+                 * `tolerance` of a face of the solid, as the half-spaces before it leave the solid, passes
+                 * through that face: a side of the solid's bounding box, or a face inside it that the tool's end
+                 * lies wholly on.
                  */
                 tools: number[];
             }
@@ -439,8 +440,9 @@ declare namespace Bit {
             /**
                  * A host solid with openings cut through it, such as a wall with its doors' and windows' holes.
                  * The same as a difference, kept apart so an executor can cut openings through flat hosts in 2D.
-                 * An opening that ends within the recipe's `tolerance` of a side of the host's bounding box passes
-                 * through that side, so an opening as deep as its wall cuts through it however its placement rounds.
+                 * An opening that ends within the recipe's `tolerance` of a face of the host passes through that
+                 * face, a side of the host's bounding box or a face inside it that the opening's end lies wholly on,
+                 * so an opening as deep as its wall cuts through it however its placement rounds.
                  * @beta
                  */
             interface RecipeVoidsNode {
@@ -1070,9 +1072,11 @@ declare namespace Bit {
                 /**
                  * The distance below which two positions count as the same, in the recipe's units, as the
                  * recipe's source measured it. Every executor applies it to cuts: an opening of a `voids` step,
-                 * or a solid tool of a `difference`, that ends within it of a side of the bounding box of what it
-                 * cuts passes through that side. Elsewhere an executor may use it where it compares positions,
-                 * or not.
+                 * or a solid tool of a `difference`, that ends within it of a face of what it cuts passes through
+                 * that face, whether a side of the bounding box of what it cuts or a face inside it that the cut's
+                 * end lies wholly on. An executor that cannot move such an end out without moving more of the
+                 * cut, as beside a shallow chamfer of it, or with a part of what it cuts just beyond the end,
+                 * leaves it as drawn. Elsewhere an executor may use it where it compares positions, or not.
                  */
                 tolerance: number;
                 /**
@@ -1143,6 +1147,15 @@ declare namespace Bit {
                 centimetre = "cm",
                 metre = "m",
                 inch = "in"
+            }
+            /**
+                 * The coordinate system the numbers of a model are in: left-handed, as a default Babylon.js
+                 * scene is, or right-handed, as three.js, PlayCanvas and CAD files are. Y is up in both. It
+                 * decides how a file, a drawing or a shape that names a hand maps to those numbers.
+                 */
+            enum coordinateSystemEnum {
+                leftHanded = "leftHanded",
+                rightHanded = "rightHanded"
             }
             /**
                  * Defines how colors are mapped to entities when there are more entities than colors.
@@ -11544,7 +11557,8 @@ declare namespace Bit {
                  */
                 radiusList: number[];
                 /**
-                 * Positions along the edge as fractions from 0 at its start to 1 at its end, one per radius.
+                 * Where each radius applies: the first position is the curve's start, the last its end, those
+                 * between fractions of its parameter, which match its length only on lines and arcs.
                  * @default undefined
                  */
                 paramsU: number[];
@@ -11572,8 +11586,8 @@ declare namespace Bit {
                  */
                 radiusLists: number[][];
                 /**
-                 * One list per edge of positions as fractions from 0 to 1 along it, each pairing with the
-                 * matching list in `radiusLists`.
+                 * One list per edge of positions, read as in `filletEdgeVariableRadius` (first and last at the
+                 * ends of the edge's curve), each pairing with the matching list in `radiusLists`.
                  * @default undefined
                  */
                 paramsULists: number[][];
@@ -11600,7 +11614,8 @@ declare namespace Bit {
                  */
                 radiusList: number[];
                 /**
-                 * Positions along each edge as fractions from 0 at its start to 1 at its end, one per radius.
+                 * Where each radius applies on every edge, read as for `filletEdgeVariableRadius`: first and
+                 * last positions at the curve's ends, those between along its parameter.
                  * @default undefined
                  */
                 paramsU: number[];
@@ -15271,8 +15286,8 @@ declare namespace Bit {
                  */
                 precisionShare?: number | undefined;
                 /**
-                 * When true, the mesh is turned so this library's Y-up becomes Z-up, for tools that treat Z as
-                 * up.
+                 * When true, the mesh is made Z-up for tools that treat Z as up: turned a quarter about X under
+                 * right-handed conventions, with Y and Z swapped otherwise.
                  * @default false
                  */
                 adjustYtoZ?: boolean | undefined;
@@ -15352,8 +15367,8 @@ declare namespace Bit {
                  */
                 precision?: number | undefined;
                 /**
-                 * When true, the points are turned so this library's Y-up becomes Z-up, for tools that treat Z
-                 * as up.
+                 * When true, the points are made Z-up for tools that treat Z as up: turned a quarter about X under
+                 * right-handed conventions, with Y and Z swapped otherwise.
                  * @default false
                  */
                 adjustYtoZ?: boolean | undefined;
@@ -15432,8 +15447,8 @@ declare namespace Bit {
                  */
                 precisionShare?: number | undefined;
                 /**
-                 * When true, the meshes are turned so this library's Y-up becomes Z-up, for tools that treat Z
-                 * as up.
+                 * When true, the meshes are made Z-up for tools that treat Z as up: turned a quarter about X under
+                 * right-handed conventions, with Y and Z swapped otherwise.
                  * @default false
                  */
                 adjustYtoZ?: boolean | undefined;
@@ -15529,8 +15544,8 @@ declare namespace Bit {
                  */
                 relativeDeflection?: boolean | undefined;
                 /**
-                 * When true, the mesh is turned so this library's Y-up becomes Z-up, for tools that treat Z as
-                 * up.
+                 * When true, the mesh is made Z-up for tools that treat Z as up: turned a quarter about X under
+                 * right-handed conventions, with Y and Z swapped otherwise.
                  * @default false
                  */
                 adjustYtoZ?: boolean | undefined;
@@ -15597,8 +15612,8 @@ declare namespace Bit {
                  */
                 relativeDeflection?: boolean | undefined;
                 /**
-                 * When true, the meshes are turned so this library's Y-up becomes Z-up, for tools that treat Z
-                 * as up.
+                 * When true, the meshes are made Z-up for tools that treat Z as up: turned a quarter about X under
+                 * right-handed conventions, with Y and Z swapped otherwise.
                  * @default false
                  */
                 adjustYtoZ?: boolean | undefined;
@@ -15644,14 +15659,16 @@ declare namespace Bit {
                  */
                 fileName?: string | undefined;
                 /**
-                 * When true, Y and Z swap so Y-up becomes STEP's Z-up, which mirrors the shape. To keep it as
-                 * built, turn it 90 degrees about X with `transforms.rotate` instead.
+                 * When true, the file is written Z-up for CAD programs. With the conventions set, the file shows
+                 * what the screen shows either way; without them this swaps Y and Z.
                  * @default false
                  */
                 adjustYtoZ?: boolean | undefined;
                 /**
-                 * When true, the swap of `adjustYtoZ` becomes a turn of -90 degrees about X: the shape is not
-                 * mirrored but stands upside down in a Z-up tool.
+                 * When true, `adjustYtoZ` turns the shape 90 degrees about X instead of swapping, for a
+                 * right-handed scene.
+                 * @deprecated Set the conventions once instead, `bitbybit.setConventions(1)`, which maps
+                 * every file for the engine in use.
                  * @default false
                  */
                 fromRightHanded?: boolean | undefined;
@@ -15691,8 +15708,8 @@ declare namespace Bit {
                  */
                 precision?: number | undefined;
                 /**
-                 * When true, Y and Z swap so Y-up becomes Z-up, which mirrors the shape. To keep it as built,
-                 * turn it 90 degrees about X with `transforms.rotate` instead.
+                 * When true, the file is written Z-up for CAD programs. With the conventions set, the file shows
+                 * what the screen shows either way; without them this swaps Y and Z.
                  * @default false
                  */
                 adjustYtoZ?: boolean | undefined;
@@ -15714,9 +15731,10 @@ declare namespace Bit {
              * path records.
              */
             class ShapeToDxfPathsDto<T> {
-                constructor(shape?: T, angularDeflection?: number, curvatureDeflection?: number, minimumOfPoints?: number, uTolerance?: number, minimumLength?: number);
+                constructor(shape?: T, angularDeflection?: number, curvatureDeflection?: number, minimumOfPoints?: number, uTolerance?: number, minimumLength?: number, exactCurves?: boolean);
                 /**
-                 * The shape whose wires are traced; it must lie flat on the XZ ground plane.
+                 * The shape whose wires are traced, seen along Y: X stays X and Z becomes the drawing's Y (-Z
+                 * under right-handed conventions), so a flat shape keeps its size.
                  * @default undefined
                  */
                 shape: T;
@@ -15762,18 +15780,24 @@ declare namespace Bit {
                  * @step 1.0e-7
                  */
                 minimumLength?: number | undefined;
+                /**
+                 * When true, ellipses and splines stay exact, and other curves become cubic splines within
+                 * `curvatureDeflection`; when false, curves other than lines and circles are traced as points.
+                 * @default true
+                 */
+                exactCurves?: boolean | undefined;
             }
             /**
              * DXF paths, a layer and a color for `io.dxfPathsWithLayer`, which makes them one part of a DXF
              * drawing.
              */
             class DxfPathsWithLayerDto {
-                constructor(paths?: IO.DxfPathDto[], layer?: string, color?: Base.Color);
+                constructor(paths?: IO.DrawingPathDto[], layer?: string, color?: Base.Color, lineType?: IO.lineTypeEnum);
                 /**
                  * The paths from `io.shapeToDxfPaths`.
                  * @default undefined
                  */
-                paths: IO.DxfPathDto[];
+                paths: IO.DrawingPathDto[];
                 /**
                  * The name of the DXF layer the paths go on.
                  * @default Default
@@ -15784,27 +15808,42 @@ declare namespace Bit {
                  * @default #000000
                  */
                 color?: Base.Color | undefined;
+                /**
+                 * Whether the lines are whole or dashed, such as `hidden` for edges a view cannot see.
+                 * @default continuous
+                 */
+                lineType?: IO.lineTypeEnum | undefined;
             }
             /**
              * Layered DXF parts and file options for `io.dxfCreate`, which writes them into one DXF file.
              */
             class DxfPathsPartsListDto {
-                constructor(pathsParts?: IO.DxfPathsPartDto[], colorFormat?: dxfColorFormatEnum, acadVersion?: dxfAcadVersionEnum, tryDownload?: boolean, unit?: Base.unitOfLengthEnum);
+                constructor(pathsParts?: IO.DrawingPartDto[], colorFormat?: dxfColorFormatEnum, acadVersion?: dxfAcadVersionEnum, tryDownload?: boolean, unit?: Base.unitOfLengthEnum, curveTolerance?: number);
                 /**
                  * The parts from `io.dxfPathsWithLayer`, each with its own layer and color.
                  * @default undefined
                  */
-                pathsParts: IO.DxfPathsPartDto[];
+                pathsParts: IO.DrawingPartDto[];
                 /**
-                 * How colors are written: `aci` as AutoCAD's indexed colors, `truecolor` as RGB.
+                 * How colors are written: `aci`, the nearest of AutoCAD's 255 indexed colors, or `truecolor`,
+                 * the exact color beside that index (`AC1015` only).
                  * @default aci
                  */
                 colorFormat?: dxfColorFormatEnum | undefined;
                 /**
-                 * The DXF version to write: `AC1009` is R12, the most widely readable, `AC1015` is 2000.
-                 * @default AC1009
+                 * The DXF version: `AC1015` (AutoCAD 2000) keeps splines and ellipses exact; `AC1009` (R12), for
+                 * old software, writes them as polylines within `curveTolerance`.
+                 * @default AC1015
                  */
                 acadVersion?: dxfAcadVersionEnum | undefined;
+                /**
+                 * The largest distance, in model units, between a curve and the polyline that stands in for it
+                 * where the version cannot hold the curve exactly.
+                 * @default 0.01
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 */
+                curveTolerance?: number | undefined;
                 /**
                  * The unit the drawing is in, written into its header so CAD programs open it at true size;
                  * `AC1015` only. Left out, no unit is stated.
@@ -15815,6 +15854,87 @@ declare namespace Bit {
                 /**
                  * The name the downloaded file gets.
                  * @default bitbybit-dev.dxf
+                 */
+                fileName?: string | undefined;
+                /**
+                 * When true, a browser download of the file is started where that is possible; the kernel
+                 * itself only returns the text.
+                 * @default true
+                 */
+                tryDownload?: boolean | undefined;
+            }
+            /**
+             * Shapes, a layer name, a color and a line type for `io.svgLayer`, which makes them one layer of an
+             * SVG drawing.
+             */
+            class SvgLayerDto<T> {
+                constructor(shapes?: T[], layer?: string, color?: Base.Color, lineType?: IO.lineTypeEnum);
+                /**
+                 * The shapes whose wires are drawn on this layer.
+                 * @default undefined
+                 */
+                shapes: T[];
+                /**
+                 * The name of the layer, the group Inkscape shows for it.
+                 * @default Default
+                 */
+                layer?: string | undefined;
+                /**
+                 * The color of the lines as a hex string such as `#000000`.
+                 * @default #000000
+                 */
+                color?: Base.Color | undefined;
+                /**
+                 * Whether the lines are whole or dashed, such as `hidden` for edges a view cannot see.
+                 * @default continuous
+                 */
+                lineType?: IO.lineTypeEnum | undefined;
+            }
+            /**
+             * Layers of shapes and file options for `io.svgCreate`, which draws them into one SVG file.
+             */
+            class SvgLayersDto<T> {
+                constructor(layers?: SvgLayerDto<T>[], unit?: Base.unitOfLengthEnum, strokeWidth?: number, margin?: number, tolerance?: number, fileName?: string, tryDownload?: boolean);
+                /**
+                 * The layers from `io.svgLayer`; each becomes a group Inkscape reads as a layer.
+                 * @default undefined
+                 */
+                layers: SvgLayerDto<T>[];
+                /**
+                 * The unit the shapes are modelled in, which gives the file its true width and height. Left out,
+                 * the file states no size and viewers fit it to the window.
+                 * @default undefined
+                 * @optional true
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+                /**
+                 * How wide the lines are, in model units. Left out, a five-hundredth of the drawing's larger
+                 * side.
+                 * @default undefined
+                 * @optional true
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 */
+                strokeWidth?: number | undefined;
+                /**
+                 * The empty border around the drawing, in model units. Left out, a fortieth of the drawing's
+                 * larger side.
+                 * @default undefined
+                 * @optional true
+                 * @minimum 0
+                 */
+                margin?: number | undefined;
+                /**
+                 * The largest distance, in model units, between a curve SVG cannot draw exactly and the cubic
+                 * curves that stand in for it.
+                 * @default 0.01
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 */
+                tolerance?: number | undefined;
+                /**
+                 * The name the downloaded file gets.
+                 * @default bitbybit-dev.svg
                  */
                 fileName?: string | undefined;
                 /**
@@ -18573,16 +18693,16 @@ declare namespace Bit {
              * keep, whether to build faces, and how to scale and place the drawing.
              */
             class LoadSVGDto {
-                constructor(svg?: string, faceStrategy?: svgFaceStrategyEnum, makeRibbons?: boolean, includeInvisible?: boolean, joinSegments?: boolean, tolerance?: number, scale?: number, flipY?: boolean, alignment?: Base.basicAlignmentEnum, direction?: Base.Vector3, center?: Base.Point3);
+                constructor(svg?: string, faceStrategy?: svgFaceStrategyEnum, makeRibbons?: boolean, includeInvisible?: boolean, joinSegments?: boolean, tolerance?: number, scale?: number, flipY?: boolean, alignment?: Base.basicAlignmentEnum, direction?: Base.Vector3, center?: Base.Point3, unit?: Base.unitOfLengthEnum, keepOrigin?: boolean);
                 /**
                  * The text of the SVG document.
                  * @default <svg width="19.125pt" height="19.125pt" viewBox="0 0 19.125 19.125" overflow="visible" version="1.1" xmlns="http://www.w3.org/2000/svg"><path d="M11.122705,15.698935 L15.272235,15.698935 C15.57419,15.729545 15.91649,15.387245 15.88588,15.08529 L15.88588,4.039708 C15.91649,3.737754 15.57419,3.395453 15.272235,3.426065 L9.572815,3.426065 C9.27086,3.395453 8.92856,3.737754 8.95917,4.039708 L8.95917,6.945415 C8.95604,7.118435 9.042725,7.30507 9.17695,7.414295 C9.30713,7.528305 9.50566,7.58247 9.675705,7.55037 C10.575375,7.32287 11.76631,8.055895 11.96849,8.96159 C12.311025,9.824045 11.739055,11.10017 10.86733,11.418385 C10.660165,11.503245 10.50001,11.752675 10.509065,11.976365 L10.509065,15.08529 C10.47845,15.387245 10.82075,15.729545 11.122705,15.698935 z" stroke="#f0cebb" stroke-width="0.5" fill-opacity="0" /><path d="M8.913155,15.698935 L4.226653,15.698935 C3.924699,15.729545 3.582398,15.387245 3.613009,15.08529 L3.613009,4.039708 C3.582398,3.737754 3.924699,3.395453 4.226653,3.426065 L7.36326,3.426065 C7.665215,3.395453 8.00752,3.737754 7.976905,4.039708 L7.976905,9.5625 C7.9468,10.306505 8.479485,11.13613 9.16853,11.418385 C9.375695,11.503245 9.53585,11.752675 9.5268,11.976365 L9.5268,15.08529 C9.55741,15.387245 9.21511,15.729545 8.913155,15.698935 z" stroke="#f0cebb" stroke-width="0.5" fill-opacity="0" /></svg>
                  */
                 svg?: string | undefined;
                 /**
-                 * How filled shapes become faces: `none` keeps only wires, `auto` follows each element's fill
-                 * rule, `nonzero` and `evenOdd` force a rule, `perSubpath` makes one face per closed subpath
-                 * without holes.
+                 * How filled shapes become faces: `none` keeps wires, `auto` follows each element's fill rule,
+                 * `nonzero` and `evenOdd` force one, `perSubpath` faces each closed subpath alone. Open subpaths
+                 * stay wires.
                  * @default none
                  */
                 faceStrategy?: svgFaceStrategyEnum | undefined;
@@ -18603,12 +18723,14 @@ declare namespace Bit {
                  */
                 joinSegments?: boolean | undefined;
                 /**
-                 * How far apart segment ends may be and still join, in model units.
+                 * How far apart segment ends may be and still join, in model units; a subpath that ends this
+                 * close to its start counts as closed.
                  * @default 1e-7
                  */
                 tolerance?: number | undefined;
                 /**
-                 * A factor applied to the SVG coordinates; 1 keeps the size.
+                 * A factor applied to the SVG coordinates, or to the true size when `unit` is set; 1 keeps the
+                 * size.
                  * @default 1
                  */
                 scale?: number | undefined;
@@ -18618,7 +18740,8 @@ declare namespace Bit {
                  */
                 flipY?: boolean | undefined;
                 /**
-                 * Which point of the drawing's bounding box sits on `center`; `midMid` centers it.
+                 * Which point of the drawing's bounding box sits on `center`; `midMid` centers it. Not used
+                 * when `keepOrigin` is true.
                  * @default midMid
                  */
                 alignment?: Base.basicAlignmentEnum | undefined;
@@ -18632,6 +18755,19 @@ declare namespace Bit {
                  * @default [0, 0, 0]
                  */
                 center?: Base.Point3 | undefined;
+                /**
+                 * Imports at true size in this unit, read from the page's `width`, `height` and view box at 96
+                 * pixels an inch. Left out, SVG user units become model units.
+                 * @default undefined
+                 * @optional true
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+                /**
+                 * When true, the origin of the imported coordinates lands on `center`, ignoring `alignment`: the
+                 * SVG's own origin, or the page's top left corner when `unit` is set.
+                 * @default false
+                 */
+                keepOrigin?: boolean | undefined;
             }
             /**
              * One imported SVG element as `svg.loadSVGStructured` returns it: the built shape and the style
@@ -18643,7 +18779,8 @@ declare namespace Bit {
                  */
                 shape: T;
                 /**
-                 * True when `shape` is a face, false when it is a wire.
+                 * True when `shape` holds faces: one face, or a compound of faces that also carries any
+                 * subpaths that stayed wires. False when it holds only wires.
                  */
                 isFace: boolean;
                 /**
@@ -18651,7 +18788,8 @@ declare namespace Bit {
                  */
                 elementType: string;
                 /**
-                 * Whether the element's outline was closed.
+                 * Whether every subpath of the element's outline was closed, by a close command or by ending
+                 * within `tolerance` of its start.
                  */
                 closed: boolean;
                 /**
@@ -18665,12 +18803,14 @@ declare namespace Bit {
                  */
                 stroke?: string | undefined;
                 /**
-                 * The stroke width that applied to the element, if any.
+                 * The stroke width that applied to the element, scaled by its transforms, in SVG user units or
+                 * in `unit` when one is set; `scale` is not applied to it.
                  * @optional true
                  */
                 strokeWidth?: number | undefined;
                 /**
-                 * The combined opacity of the element from 0 to 1, if any was set.
+                 * The opacity of the element from 0 to 1, multiplied by the opacity of every group around it,
+                 * if any was set.
                  * @optional true
                  */
                 opacity?: number | undefined;
@@ -18704,6 +18844,24 @@ declare namespace Bit {
                     number,
                     number
                 ] | undefined;
+                /**
+                 * The page's width in millimetres, present when the page's width and height are both known, from
+                 * `width` and `height` or from the view box.
+                 * @optional true
+                 */
+                documentWidth?: number | undefined;
+                /**
+                 * The page's height in millimetres, present when the page's width and height are both known, from
+                 * `width` and `height` or from the view box.
+                 * @optional true
+                 */
+                documentHeight?: number | undefined;
+                /**
+                 * How many millimetres one SVG user unit stands for, across the page; 25.4 / 96 when the
+                 * document gives no size.
+                 * @optional true
+                 */
+                millimetresPerUserUnit?: number | undefined;
                 /**
                  * Problems met while parsing or building that did not stop the import.
                  */
@@ -21390,6 +21548,94 @@ declare namespace Bit {
                 brepData: ArrayBuffer | Uint8Array | File | Blob;
             }
             /**
+             * A DXF file for `io.loadDxf` and `io.loadDxfStructured`, which build its lines, arcs, circles,
+             * ellipses, polylines and splines as exact edges joined into wires, and faces where asked.
+             */
+            class LoadDxfDto {
+                constructor(dxf?: string | File | Blob, makeFaces?: boolean, joinTolerance?: number, includeHiddenLayers?: boolean, unit?: Base.unitOfLengthEnum);
+                /**
+                 * The DXF file's text, or a File or Blob holding it (ASCII DXF, R12 or later). Older bytes not
+                 * in UTF-8 are read in the header's code page, or Windows-1252.
+                 * @default undefined
+                 */
+                dxf: string | File | Blob;
+                /**
+                 * When true, closed outlines that lie flat in the drawing become faces, an outline inside
+                 * another cutting a hole in it as an even-odd fill does; open outlines stay wires.
+                 * @default false
+                 */
+                makeFaces?: boolean | undefined;
+                /**
+                 * How far apart, in file units, two entities' ends may lie and still join into one wire: at most
+                 * 0.001 or a hundredth of the drawing's span, whichever is larger.
+                 * @default 0.001
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.001
+                 */
+                joinTolerance?: number | undefined;
+                /**
+                 * When true, entities on frozen and switched-off layers are read too.
+                 * @default false
+                 */
+                includeHiddenLayers?: boolean | undefined;
+                /**
+                 * The unit to give the shapes in, scaled from the unit the file states; a file stating none is
+                 * read as drawn. Left out, the numbers stay as drawn.
+                 * @default undefined
+                 * @optional true
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+            }
+            /**
+             * One layer, color and line type of a DXF file that `io.loadDxfStructured` read, with its shape.
+             * An output, not an input.
+             */
+            class DxfShapePart<T> {
+                /**
+                 * The layer the entities lie on.
+                 */
+                layer: string;
+                /**
+                 * Their color as hex, such as `#ff0000`.
+                 */
+                color: string;
+                /**
+                 * Their line type.
+                 */
+                lineType: IO.lineTypeEnum;
+                /**
+                 * A compound of their wires, and of faces when `makeFaces` asked for them.
+                 */
+                shape: T;
+            }
+            /**
+             * What `io.loadDxfStructured` returns: one shape per layer, color and line type, the file's unit
+             * and version, and any warnings. An output, not an input.
+             */
+            class DxfShapesResult<T> {
+                /**
+                 * One entry per layer, color and line type, in the order the file first uses each; one with
+                 * nothing that could be drawn has no entry.
+                 */
+                parts: DxfShapePart<T>[];
+                /**
+                 * The unit the shapes are in: the one asked for, or the file's when none was asked; left out
+                 * when the file states none it knows.
+                 * @optional true
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+                /**
+                 * The file's DXF version, such as `AC1015` for AutoCAD 2000; empty when it states none.
+                 */
+                version: string;
+                /**
+                 * What the file held that was left out or changed, such as text, hatches or entities on hidden
+                 * layers.
+                 */
+                warnings: string[];
+            }
+            /**
              * A shape, a file name and meshing options for `io.saveShapeObj`, which triangulates the shape and
              * writes it as an OBJ file with the material library its `mtllib` line names.
              */
@@ -21416,8 +21662,8 @@ declare namespace Bit {
                  */
                 precision?: number | undefined;
                 /**
-                 * When true, Y and Z swap so Y-up becomes Z-up, which mirrors the shape. To keep it as built,
-                 * turn it 90 degrees about X with `transforms.rotate` instead.
+                 * When true, the file is written Z-up for CAD programs. With the conventions set, the file shows
+                 * what the screen shows either way; without them this swaps Y and Z.
                  * @default false
                  */
                 adjustYtoZ?: boolean | undefined;
@@ -21454,8 +21700,8 @@ declare namespace Bit {
                  */
                 precision?: number | undefined;
                 /**
-                 * When true, Y and Z swap so Y-up becomes Z-up, which mirrors the shape. To keep it as built,
-                 * turn it 90 degrees about X with `transforms.rotate` instead.
+                 * When true, the file is written Z-up for CAD programs. With the conventions set, the file shows
+                 * what the screen shows either way; without them this swaps Y and Z.
                  * @default false
                  */
                 adjustYtoZ?: boolean | undefined;
@@ -21489,8 +21735,8 @@ declare namespace Bit {
                  */
                 drawHidden?: boolean | undefined;
                 /**
-                 * How far the straight segments that trace a curved edge may stray from it, in model units;
-                 * a smaller value follows curves more closely and makes a bigger file.
+                 * How far the view may stray from the shape, in model units: the tolerance of hidden-line
+                 * removal and of the cubics that stand in for curves SVG cannot draw.
                  * @default 0.01
                  * @minimum 0
                  * @exclusiveMinimum true
@@ -21508,6 +21754,64 @@ declare namespace Bit {
                 /**
                  * The name the downloaded file gets.
                  * @default shape.svg
+                 */
+                fileName?: string | undefined;
+                /**
+                 * When true, a browser download of the file is started where that is possible; the kernel
+                 * itself only returns the text.
+                 * @default true
+                 */
+                tryDownload?: boolean | undefined;
+            }
+            /**
+             * A shape, a view and file options for `io.saveShapeDxf`, which draws the edges the view sees as a
+             * DXF drawing, and the edges other faces cover on a hidden layer when asked.
+             */
+            class SaveDxfDto<T> {
+                constructor(shape?: T, frame?: Base.Frame, drawHidden?: boolean, precision?: number, fileName?: string, tryDownload?: boolean, unit?: Base.unitOfLengthEnum, acadVersion?: dxfAcadVersionEnum);
+                /**
+                 * The shape to draw.
+                 * @default undefined
+                 */
+                shape: T;
+                /**
+                 * The view, as in `operations.hiddenLines`: the eye sits on the side the normal points to and
+                 * looks back along it, and the drawing's x runs along the direction.
+                 * @default undefined
+                 */
+                frame: Base.Frame;
+                /**
+                 * When true, the edges other faces cover are drawn too, on the layer `hidden` with the
+                 * `HIDDEN` line type.
+                 * @default false
+                 */
+                drawHidden?: boolean | undefined;
+                /**
+                 * How far the view may stray from the shape, in model units: the tolerance of the hidden-line
+                 * removal, and of the polylines that stand in for curves in `AC1009`.
+                 * @default 0.01
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.001
+                 */
+                precision?: number | undefined;
+                /**
+                 * The unit the shape is modelled in, written into the file so CAD programs open it at true
+                 * size; `AC1015` only.
+                 * @default undefined
+                 * @optional true
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+                /**
+                 * The DXF version: `AC1015` (AutoCAD 2000) keeps every curve exact; `AC1009` (R12) writes
+                 * splines and ellipses as polylines.
+                 * @default AC1015
+                 */
+                acadVersion?: dxfAcadVersionEnum | undefined;
+                /**
+                 * The name the downloaded file gets.
+                 * @default shape.dxf
                  */
                 fileName?: string | undefined;
                 /**
@@ -28078,164 +28382,337 @@ declare namespace Bit {
          */
         declare namespace IO {
             /**
-             * Line segment defined by start and end points
+             * How the lines of a drawing part are drawn: whole, or broken into dashes, the dashes scaled to
+             * the drawing's size. DXF writes the matching line type, SVG a dash pattern.
              */
-            class DxfLineSegmentDto {
-                constructor(start?: Base.Point2, end?: Base.Point2);
-                /**
-                 * Start point of the line
-                 * @default undefined
-                 */
-                start: Base.Point2;
-                /**
-                 * End point of the line
-                 * @default undefined
-                 */
-                end: Base.Point2;
+            enum lineTypeEnum {
+                continuous = "continuous",
+                dashed = "dashed",
+                hidden = "hidden",
+                center = "center",
+                dotted = "dotted"
             }
             /**
-             * Arc segment defined by center, radius, and start/end angles in degrees
+             * A straight line in a drawing path, from `start` to `end`. Points may carry a Z coordinate; one
+             * without it lies at Z 0.
              */
-            class DxfArcSegmentDto {
-                constructor(center?: Base.Point2, radius?: number, startAngle?: number, endAngle?: number);
+            class DrawingLineSegmentDto {
+                constructor(start?: Base.Point2 | Base.Point3, end?: Base.Point2 | Base.Point3);
                 /**
-                 * Center point of the arc
+                 * Where the line starts.
                  * @default undefined
                  */
-                center: Base.Point2;
+                start: Base.Point2 | Base.Point3;
+                /**
+                 * Where the line ends.
+                 * @default undefined
+                 */
+                end: Base.Point2 | Base.Point3;
+            }
+            /**
+             * A circular arc in a drawing path, running counterclockwise from `startAngle` to `endAngle`
+             * about its `center`, in the XY plane unless a `normal` tilts it.
+             */
+            class DrawingArcSegmentDto {
+                constructor(center?: Base.Point2 | Base.Point3, radius?: number, startAngle?: number, endAngle?: number, normal?: Base.Vector3);
+                /**
+                 * The center of the arc's circle.
+                 * @default undefined
+                 */
+                center: Base.Point2 | Base.Point3;
                 /**
                  * Distance from the center to the arc, in drawing units.
                  * @default undefined
+                 * @minimum 0
+                 * @exclusiveMinimum true
                  */
                 radius: number;
                 /**
-                 * Start angle in degrees
+                 * Where the arc starts, in degrees counterclockwise from the X axis (the X axis CAD programs
+                 * derive from the `normal` when one is given).
                  * @default undefined
                  */
                 startAngle: number;
                 /**
-                 * End angle in degrees (counter-clockwise from start angle)
+                 * Where the arc ends, in degrees; the arc runs counterclockwise from the start, through 0
+                 * when the end is below the start.
                  * @default undefined
                  */
                 endAngle: number;
+                /**
+                 * The direction the arc's plane faces, counterclockwise seen from its tip. Leave it out for an
+                 * arc in the XY plane facing +Z.
+                 * @default undefined
+                 * @optional true
+                 */
+                normal?: Base.Vector3 | undefined;
             }
             /**
-             * A full circle in a DXF path, given by its center and radius.
+             * A full circle in a drawing path, given by its center and radius, in the XY plane unless a
+             * `normal` tilts it.
              */
-            class DxfCircleSegmentDto {
-                constructor(center?: Base.Point2, radius?: number);
+            class DrawingCircleSegmentDto {
+                constructor(center?: Base.Point2 | Base.Point3, radius?: number, normal?: Base.Vector3);
                 /**
-                 * Center point of the circle
+                 * Where the circle's center lies; without a Z it lies at Z 0.
                  * @default undefined
                  */
-                center: Base.Point2;
+                center: Base.Point2 | Base.Point3;
                 /**
                  * Distance from the center to the circle, in drawing units.
                  * @default undefined
+                 * @minimum 0
+                 * @exclusiveMinimum true
                  */
                 radius: number;
+                /**
+                 * The direction the circle's plane faces. Leave it out for a circle in the XY plane.
+                 * @default undefined
+                 * @optional true
+                 */
+                normal?: Base.Vector3 | undefined;
             }
             /**
-             * Polyline segment defined by multiple points
-             * Can include bulge values to create arc segments between vertices
+             * Connected straight segments through `points`, each of which a bulge can bend into an arc. A
+             * polyline whose points do not all share one Z is written as a 3D polyline, which takes no bulges.
              */
-            class DxfPolylineSegmentDto {
-                constructor(points?: Base.Point2[], closed?: boolean, bulges?: number[]);
+            class DrawingPolylineSegmentDto {
+                constructor(points?: (Base.Point2 | Base.Point3)[], closed?: boolean, bulges?: number[]);
                 /**
-                 * Points defining the polyline vertices
+                 * The vertices, in order. A last point equal to the first closes the polyline as `closed`
+                 * does.
                  * @default undefined
                  */
-                points: Base.Point2[];
+                points: (Base.Point2 | Base.Point3)[];
                 /**
-                 * Whether the polyline is closed
+                 * Whether a segment joins the last vertex back to the first.
                  * @default false
                  */
                 closed?: boolean | undefined;
                 /**
-                 * One bulge per vertex to bend the segment after it into an arc: 0 keeps it straight,
-                 * positive bends counter-clockwise, negative clockwise. Leave it out for straight segments
-                 * only.
+                 * One per vertex, bending the segment after it into an arc: the tangent of a quarter of its
+                 * turn, 0 for straight, positive counterclockwise. Left out, every segment is straight.
                  * @default undefined
                  * @optional true
                  */
                 bulges?: number[] | undefined;
             }
             /**
-             * Spline/B-spline segment defined by control points and degree
+             * A B-spline or NURBS curve in a drawing path, given by its control points, degree and
+             * optionally its knots and weights. Without knots the curve starts and ends at its end points.
              */
-            class DxfSplineSegmentDto {
-                constructor(controlPoints?: Base.Point2[], degree?: number, closed?: boolean);
+            class DrawingSplineSegmentDto {
+                constructor(controlPoints?: (Base.Point2 | Base.Point3)[], degree?: number, closed?: boolean, knots?: number[], weights?: number[]);
                 /**
-                 * Control points defining the spline
+                 * The control points the curve is pulled towards; there must be more of them than the
+                 * degree.
                  * @default undefined
                  */
-                controlPoints: Base.Point2[];
+                controlPoints: (Base.Point2 | Base.Point3)[];
                 /**
-                 * Degree of the spline (typically 2 or 3)
+                 * The degree of the curve: 1 draws the control polygon, 2 and 3 smooth curves.
                  * @default 3
+                 * @minimum 1
+                 * @maximum Infinity
+                 * @step 1
                  */
                 degree?: number | undefined;
                 /**
-                 * Whether the spline is closed
+                 * Without `knots`, whether the curve wraps around its control points into a smooth closed
+                 * loop. With `knots`, the knots decide, and this is ignored.
                  * @default false
                  */
                 closed?: boolean | undefined;
+                /**
+                 * The full knot vector: never decreasing, one more value than the control points and the
+                 * degree together. Left out, the curve starts and ends at its end points.
+                 * @default undefined
+                 * @optional true
+                 */
+                knots?: number[] | undefined;
+                /**
+                 * One positive weight per control point, which makes the curve rational (a NURBS curve). Leave
+                 * it out for a weight of 1 everywhere.
+                 * @default undefined
+                 * @optional true
+                 */
+                weights?: number[] | undefined;
             }
             /**
-             * A path can contain multiple segments of different types (lines, arcs, polylines, circles, splines)
-             * Similar to OCCT wires that can combine different edge types
+             * An ellipse or an arc of one in a drawing path: its center, the vector to the end of its major
+             * axis and the minor to major ratio, in the XY plane unless `normal` tilts it.
              */
-            class DxfPathDto {
-                constructor(segments?: (DxfLineSegmentDto | DxfArcSegmentDto | DxfCircleSegmentDto | DxfPolylineSegmentDto | DxfSplineSegmentDto)[]);
+            class DrawingEllipseSegmentDto {
+                constructor(center?: Base.Point2 | Base.Point3, majorAxis?: Base.Vector2 | Base.Vector3, ratio?: number, startParameter?: number, endParameter?: number, normal?: Base.Vector3);
                 /**
-                 * Array of segments that make up this path
-                 * Can include lines, arcs, circles, polylines, and splines
+                 * Where the ellipse's center lies; without a Z it lies at Z 0.
                  * @default undefined
                  */
-                segments: (DxfLineSegmentDto | DxfArcSegmentDto | DxfCircleSegmentDto | DxfPolylineSegmentDto | DxfSplineSegmentDto)[];
+                center: Base.Point2 | Base.Point3;
+                /**
+                 * The vector from the center to one end of the major axis; its length is the major radius,
+                 * in drawing units.
+                 * @default undefined
+                 */
+                majorAxis: Base.Vector2 | Base.Vector3;
+                /**
+                 * The minor radius divided by the major radius.
+                 * @default undefined
+                 * @minimum 0
+                 * @maximum 1
+                 * @exclusiveMinimum true
+                 */
+                ratio: number;
+                /**
+                 * Where the arc starts, as the ellipse's parameter t in radians (the point center +
+                 * cos(t) `majorAxis` + sin(t) minor axis), the angle only when `ratio` is 1.
+                 * @default 0
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 */
+                startParameter?: number | undefined;
+                /**
+                 * Where the arc ends, as the same parameter in radians; the arc runs counterclockwise from the
+                 * start, through 0 when the end is below the start.
+                 * @default 6.283185307179586
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 */
+                endParameter?: number | undefined;
+                /**
+                 * The direction the ellipse's plane faces, perpendicular to `majorAxis`. Leave it out for an
+                 * ellipse in the XY plane facing +Z.
+                 * @default undefined
+                 * @optional true
+                 */
+                normal?: Base.Vector3 | undefined;
             }
             /**
-             * A part containing multiple paths on the same layer with the same color
+             * A path of a drawing: segments of any kind (lines, arcs, circles, polylines, splines and
+             * ellipses), in the order they are drawn, like the edges of a wire.
              */
-            class DxfPathsPartDto {
-                constructor(layer?: string, color?: Base.Color, paths?: DxfPathDto[]);
+            class DrawingPathDto {
+                constructor(segments?: (DrawingLineSegmentDto | DrawingArcSegmentDto | DrawingCircleSegmentDto | DrawingPolylineSegmentDto | DrawingSplineSegmentDto | DrawingEllipseSegmentDto)[]);
                 /**
-                 * Layer name for all paths in this part
+                 * The segments of the path, in order; where one ends at the next one's start, SVG draws them
+                 * as one stroke.
+                 * @default undefined
+                 */
+                segments: (DrawingLineSegmentDto | DrawingArcSegmentDto | DrawingCircleSegmentDto | DrawingPolylineSegmentDto | DrawingSplineSegmentDto | DrawingEllipseSegmentDto)[];
+            }
+            /**
+             * A part of a drawing: paths drawn on one layer with one color and one line type, which
+             * `io.dxf.dxfCreate` writes as DXF and `io.svg.svgCreate` as SVG.
+             */
+            class DrawingPartDto {
+                constructor(layer?: string, color?: Base.Color, paths?: DrawingPathDto[], lineType?: lineTypeEnum);
+                /**
+                 * The layer the paths go on. Parts may share a layer, which takes the first part's color and
+                 * line type; every part's paths keep their own.
                  * @default Default
                  */
                 layer?: string | undefined;
                 /**
-                 * Color for all paths in this part, as a hex string such as `#000000`
+                 * The color of every path in the part, as a hex string such as `#000000`.
                  * @default #000000
                  */
                 color?: Base.Color | undefined;
                 /**
-                 * Array of paths, each containing multiple segments
+                 * The paths of the part, each a run of segments.
                  * @default undefined
                  */
-                paths: DxfPathDto[];
+                paths: DrawingPathDto[];
+                /**
+                 * Whether the lines are whole or dashed, such as `hidden` for edges a view cannot see.
+                 * @default continuous
+                 */
+                lineType?: lineTypeEnum | undefined;
             }
             /**
-             * A whole DXF drawing: its path parts by layer and color, and the color and version format to
-             * write.
+             * A straight line in a drawing path, under its former DXF name.
+             *
+             * @deprecated Use `DrawingLineSegmentDto`, the same DTO under the drawing's own name; this one is removed
+             * in the next major version.
+             */
+            class DxfLineSegmentDto extends DrawingLineSegmentDto {
+            }
+            /**
+             * A circular arc in a drawing path, under its former DXF name.
+             *
+             * @deprecated Use `DrawingArcSegmentDto`, the same DTO under the drawing's own name; this one is removed
+             * in the next major version.
+             */
+            class DxfArcSegmentDto extends DrawingArcSegmentDto {
+            }
+            /**
+             * A full circle in a drawing path, under its former DXF name.
+             *
+             * @deprecated Use `DrawingCircleSegmentDto`, the same DTO under the drawing's own name; this one is removed
+             * in the next major version.
+             */
+            class DxfCircleSegmentDto extends DrawingCircleSegmentDto {
+            }
+            /**
+             * Connected straight segments in a drawing path, under its former DXF name.
+             *
+             * @deprecated Use `DrawingPolylineSegmentDto`, the same DTO under the drawing's own name; this one is removed
+             * in the next major version.
+             */
+            class DxfPolylineSegmentDto extends DrawingPolylineSegmentDto {
+            }
+            /**
+             * A B-spline or NURBS curve in a drawing path, under its former DXF name.
+             *
+             * @deprecated Use `DrawingSplineSegmentDto`, the same DTO under the drawing's own name; this one is removed
+             * in the next major version.
+             */
+            class DxfSplineSegmentDto extends DrawingSplineSegmentDto {
+            }
+            /**
+             * An ellipse or an arc of one in a drawing path, under its former DXF name.
+             *
+             * @deprecated Use `DrawingEllipseSegmentDto`, the same DTO under the drawing's own name; this one is removed
+             * in the next major version.
+             */
+            class DxfEllipseSegmentDto extends DrawingEllipseSegmentDto {
+            }
+            /**
+             * A path of a drawing, under its former DXF name.
+             *
+             * @deprecated Use `DrawingPathDto`, the same DTO under the drawing's own name; this one is removed
+             * in the next major version.
+             */
+            class DxfPathDto extends DrawingPathDto {
+            }
+            /**
+             * A part of a drawing: paths on one layer with one color and one line type, under its former DXF name.
+             *
+             * @deprecated Use `DrawingPartDto`, the same DTO under the drawing's own name; this one is removed
+             * in the next major version.
+             */
+            class DxfPathsPartDto extends DrawingPartDto {
+            }
+            /**
+             * A whole DXF drawing for `io.dxf.dxfCreate`: its path parts by layer and color, and the color
+             * format, the version and the unit to write.
              */
             class DxfModelDto {
-                constructor(dxfPathsParts?: DxfPathsPartDto[], colorFormat?: "aci" | "truecolor", acadVersion?: "AC1009" | "AC1015", unit?: Base.unitOfLengthEnum);
+                constructor(dxfPathsParts?: DrawingPartDto[], colorFormat?: "aci" | "truecolor", acadVersion?: "AC1009" | "AC1015", unit?: Base.unitOfLengthEnum, curveTolerance?: number);
                 /**
                  * Array of path parts, each containing paths with segments
                  * @default undefined
                  */
-                dxfPathsParts: DxfPathsPartDto[];
+                dxfPathsParts: DrawingPartDto[];
                 /**
-                 * How colors are written: `aci`, the AutoCAD color index from 1 to 255 that older
-                 * software reads, or `truecolor`, full 24-bit RGB for newer software.
+                 * How colors are written: `aci`, the nearest of AutoCAD's 255 index colors, or `truecolor`,
+                 * the exact color beside that index (`AC1015` only; `AC1009` writes the index).
                  * @default aci
                  */
                 colorFormat?: "aci" | "truecolor" | undefined;
                 /**
-                 * The DXF version to write: `AC1009` (AutoCAD R12) for the widest compatibility, or
-                 * `AC1015` (AutoCAD 2000) for the newer features.
-                 * @default AC1009
+                 * The DXF version: `AC1015` (AutoCAD 2000), which keeps splines and ellipses exact, or `AC1009`
+                 * (AutoCAD R12) for old software, where they become polylines within `curveTolerance`.
+                 * @default AC1015
                  */
                 acadVersion?: "AC1009" | "AC1015" | undefined;
                 /**
@@ -28245,6 +28722,301 @@ declare namespace Bit {
                  * @optional true
                  */
                 unit?: Base.unitOfLengthEnum | undefined;
+                /**
+                 * The largest distance, in drawing units, between a curve and the polyline that stands in for
+                 * it where the version cannot hold the curve exactly.
+                 * @default 0.01
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 */
+                curveTolerance?: number | undefined;
+            }
+            /**
+             * The text of a DXF file for `io.dxf.dxfRead`, which reads its drawing into path parts, and
+             * whether layers that are switched off or frozen are read too.
+             */
+            class DxfReadDto {
+                constructor(dxf?: string | Uint8Array, includeHiddenLayers?: boolean);
+                /**
+                 * An ASCII DXF file from R12 on, as text or bytes; older bytes not in UTF-8 are read in the
+                 * header's code page, or as Windows-1252.
+                 * @default undefined
+                 */
+                dxf: string | Uint8Array;
+                /**
+                 * When true, layers the file has switched off or frozen are read as well.
+                 * @default false
+                 */
+                includeHiddenLayers?: boolean | undefined;
+            }
+            /**
+             * A drawing read from a DXF file by `io.dxf.dxfRead`: its parts by layer, color and line type, in
+             * the shape `io.dxf.dxfCreate` and `io.svg.svgCreate` write, with the unit and what was left out.
+             */
+            class DxfDrawingDto {
+                /**
+                 * The parts, one for each layer, color and line type that holds anything, each entity one path.
+                 * @default undefined
+                 */
+                parts: DrawingPartDto[];
+                /**
+                 * The unit the file states, when it is one of millimetres, centimetres, metres or inches.
+                 * @default undefined
+                 * @optional true
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+                /**
+                 * The DXF version the file states, such as `AC1015`, or an empty text when it states none.
+                 * @default undefined
+                 */
+                version: string;
+                /**
+                 * What was left out and why, each kind once with its count.
+                 * @default undefined
+                 */
+                warnings: string[];
+            }
+            /**
+             * A whole SVG drawing for `io.svg.svgCreate`: its path parts by layer, color and line type, the
+             * unit that gives it its true size, and how wide the lines and the border are.
+             */
+            class SvgModelDto {
+                constructor(parts?: DrawingPartDto[], unit?: Base.unitOfLengthEnum, strokeWidth?: number, margin?: number, tolerance?: number);
+                /**
+                 * The parts of the drawing; each layer becomes a group that Inkscape reads as a layer.
+                 * @default undefined
+                 */
+                parts: DrawingPartDto[];
+                /**
+                 * The unit the drawing is in, which gives the file its true width and height. Left out, the
+                 * file states no size and viewers fit it to the window.
+                 * @default undefined
+                 * @optional true
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+                /**
+                 * How wide the lines are, in drawing units. Left out, a five-hundredth of the drawing's larger
+                 * side.
+                 * @default undefined
+                 * @optional true
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 */
+                strokeWidth?: number | undefined;
+                /**
+                 * The empty border around the drawing, in drawing units. Left out, a fortieth of the
+                 * drawing's larger side.
+                 * @default undefined
+                 * @optional true
+                 * @minimum 0
+                 */
+                margin?: number | undefined;
+                /**
+                 * The largest distance, in drawing units, between a curve SVG cannot draw exactly (a rational
+                 * or higher degree spline) and the cubic curves that stand in for it.
+                 * @default 0.01
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 */
+                tolerance?: number | undefined;
+            }
+            /**
+             * One drawing path for `io.svg.pathData`, and how its coordinates are written.
+             */
+            class SvgPathDataDto {
+                constructor(path?: DrawingPathDto, flipY?: boolean, tolerance?: number);
+                /**
+                 * The path to write as SVG path data.
+                 * @default undefined
+                 */
+                path: DrawingPathDto;
+                /**
+                 * Whether Y is negated, as an SVG file needs (its Y runs down); leave it off for data drawn
+                 * inside a group that flips Y itself.
+                 * @default true
+                 */
+                flipY?: boolean | undefined;
+                /**
+                 * The largest distance, in drawing units, between a curve SVG cannot draw exactly and the
+                 * cubic curves that stand in for it.
+                 * @default 0.01
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 */
+                tolerance?: number | undefined;
+            }
+            /**
+             * The text of an SVG file for `io.svg.svgRead`, which reads its drawing into path parts, with the
+             * unit that brings it in at true size and whether hidden elements are read too.
+             */
+            class SvgReadDto {
+                constructor(svg?: string, unit?: Base.unitOfLengthEnum, includeInvisible?: boolean);
+                /**
+                 * The whole text of an SVG file.
+                 * @default undefined
+                 */
+                svg: string;
+                /**
+                 * The unit to read the drawing in at its true size, with the page's top left corner at the
+                 * origin. Left out, coordinates stay in the file's own user units.
+                 * @default undefined
+                 * @optional true
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+                /**
+                 * When true, elements hidden by `display` or `visibility` are read as well.
+                 * @default false
+                 */
+                includeInvisible?: boolean | undefined;
+            }
+            /**
+             * A drawing read from an SVG file by `io.svg.svgRead`: its parts by layer, color and line type, in
+             * the shape `io.dxf.dxfCreate` and `io.svg.svgCreate` write, with the unit, the view box and what
+             * was left out.
+             */
+            class SvgDrawingDto {
+                /**
+                 * The parts, one for each layer, color and line type that holds anything, each subpath one path.
+                 * @default undefined
+                 */
+                parts: DrawingPartDto[];
+                /**
+                 * The unit the drawing was read in, when one was asked for.
+                 * @default undefined
+                 * @optional true
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+                /**
+                 * The view box the file gives its root, as x, y, width and height in the file's own
+                 * coordinates, where Y runs down.
+                 * @default undefined
+                 * @optional true
+                 */
+                viewBox?: number[] | undefined;
+                /**
+                 * What was left out or read differently and why, each kind once with its count.
+                 * @default undefined
+                 */
+                warnings: string[];
+            }
+            /**
+             * An SVG file for `io.drawing.svgToDxf`, which reads it as `io.svg.svgRead` does and writes it as
+             * `io.dxf.dxfCreate` does, with the options of both.
+             */
+            class SvgToDxfDto {
+                constructor(svg?: string, unit?: Base.unitOfLengthEnum, includeInvisible?: boolean, colorFormat?: "aci" | "truecolor", acadVersion?: "AC1009" | "AC1015", curveTolerance?: number);
+                /**
+                 * The whole text of an SVG file.
+                 * @default undefined
+                 */
+                svg: string;
+                /**
+                 * The unit to read the drawing in at true size, also stated in the DXF (`AC1015` only). Left
+                 * out, user units are written and no unit is stated.
+                 * @default undefined
+                 * @optional true
+                 */
+                unit?: Base.unitOfLengthEnum | undefined;
+                /**
+                 * When true, elements hidden by `display` or `visibility` are written as well.
+                 * @default false
+                 */
+                includeInvisible?: boolean | undefined;
+                /**
+                 * How colors are written: `aci`, the nearest of AutoCAD's 255 index colors, or `truecolor`,
+                 * the exact color beside that index (`AC1015` only; `AC1009` writes the index).
+                 * @default aci
+                 */
+                colorFormat?: "aci" | "truecolor" | undefined;
+                /**
+                 * The DXF version: `AC1015` (AutoCAD 2000), which keeps splines and ellipses exact, or `AC1009`
+                 * (AutoCAD R12) for old software, where they become polylines within `curveTolerance`.
+                 * @default AC1015
+                 */
+                acadVersion?: "AC1009" | "AC1015" | undefined;
+                /**
+                 * The largest distance, in drawing units, between a curve and the polyline that stands in for
+                 * it where the version cannot hold the curve exactly.
+                 * @default 0.01
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 */
+                curveTolerance?: number | undefined;
+            }
+            /**
+             * What `io.drawing.svgToDxf` returns: the DXF file it wrote from an SVG file, and what the
+             * reading left out or read differently.
+             */
+            class SvgToDxfResultDto {
+                /**
+                 * The DXF file as text.
+                 * @default undefined
+                 */
+                dxf: string;
+                /**
+                 * What was left out or read differently and why, each kind once with its count.
+                 * @default undefined
+                 */
+                warnings: string[];
+            }
+            /**
+             * A DXF file for `io.drawing.dxfToSvg`, which reads it as `io.dxf.dxfRead` does and writes it as
+             * `io.svg.svgCreate` does, with the options of both.
+             */
+            class DxfToSvgDto {
+                constructor(dxf?: string | Uint8Array, includeHiddenLayers?: boolean, strokeWidth?: number, margin?: number, tolerance?: number);
+                /**
+                 * An ASCII DXF file from R12 on, as text or bytes; older bytes not in UTF-8 are read in the
+                 * header's code page, or as Windows-1252.
+                 * @default undefined
+                 */
+                dxf: string | Uint8Array;
+                /**
+                 * When true, layers the file has switched off or frozen are written as well.
+                 * @default false
+                 */
+                includeHiddenLayers?: boolean | undefined;
+                /**
+                 * How wide the lines are, in drawing units. Left out, a five-hundredth of the drawing's larger
+                 * side.
+                 * @default undefined
+                 * @optional true
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 */
+                strokeWidth?: number | undefined;
+                /**
+                 * The empty border around the drawing, in drawing units. Left out, a fortieth of the
+                 * drawing's larger side.
+                 * @default undefined
+                 * @optional true
+                 * @minimum 0
+                 */
+                margin?: number | undefined;
+                /**
+                 * The largest distance, in drawing units, between a curve SVG cannot draw exactly (a rational
+                 * or higher degree spline) and the cubic curves that stand in for it.
+                 * @default 0.01
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 */
+                tolerance?: number | undefined;
+            }
+            /**
+             * What `io.drawing.dxfToSvg` returns: the SVG file it wrote from a DXF file, and what the reading
+             * left out.
+             */
+            class DxfToSvgResultDto {
+                /**
+                 * The SVG file as text.
+                 * @default undefined
+                 */
+                svg: string;
+                /**
+                 * What was left out and why, each kind once with its count.
+                 * @default undefined
+                 */
+                warnings: string[];
             }
         }
         /**
@@ -28475,6 +29247,23 @@ declare namespace Bit {
                  * @step 0.1
                  */
                 tolerance?: number | undefined;
+            }
+            /**
+             * A line and a point for `line.distanceToPoint`, which measures from the point to the nearest
+             * point of the line between its start and its end.
+             */
+            class LinePointDistanceDto {
+                constructor(line?: LinePointsDto, point?: Base.Point3);
+                /**
+                 * The line to measure to; nothing past its start or its end counts.
+                 * @default undefined
+                 */
+                line: LinePointsDto;
+                /**
+                 * The point to measure from.
+                 * @default undefined
+                 */
+                point: Base.Point3;
             }
             /**
              * A line and a fraction along it for `line.getPointOnLine`.
@@ -49458,9 +50247,9 @@ declare namespace Bit {
         /**
          * Builds each root of a recipe as a solid placed by its matrix, in root order.
          *
-         * Shared nodes are built once. An invalid recipe throws; a root the kernel cannot build, such as
-         * an open mesh, throws unless `emptyWhenFailed` is set. A cut within `tolerance` of a side of the
-         * box of what it cuts goes through it.
+         * Shared nodes are built once. An invalid recipe throws; a root the kernel cannot build throws
+         * unless `emptyWhenFailed` is set. A cut ending within `tolerance` of a side of the bounding box,
+         * or of a face its end lies wholly on, goes through.
          * @param inputs - The recipe, how finely circles are divided, and whether Z turns into Y
          * @returns One solid per root, in root order
          * @group build
@@ -53454,9 +54243,9 @@ declare namespace Bit {
         /**
          * Rounds one edge of a shape with a radius that changes along it.
          *
-         * `paramsU` are positions along the edge as fractions from 0 at its start to 1 at its end, and
-         * `radiusList` gives the radius at each; the kernel blends smoothly between them. The two lists
-         * must have the same length, or an error is thrown.
+         * `radiusList` holds the radius at each `paramsU` position; the first and last stand for the
+         * start and end of the edge's curve, whatever its orientation, and the radius may overshoot
+         * between positions. The lists must be equally long, or an error is thrown.
          * @param inputs - The shape, its edge, the radii and the positions along the edge they apply at
          * @returns The shape with the rounded edge
          * @group 3d fillets
@@ -53486,8 +54275,8 @@ declare namespace Bit {
         /**
          * Rounds several edges of a shape, each with the same radius profile that changes along it.
          *
-         * `paramsU` are positions along each edge as fractions from 0 to 1 and `radiusList` the radius
-         * at each; the lists must have the same length, or an error is thrown.
+         * `radiusList` holds the radius at each `paramsU` position on every edge, read as
+         * `filletEdgeVariableRadius` reads them. The lists must be equally long, or an error is thrown.
          * @param inputs - The shape, its edges, the radii and the positions along each edge they apply at
          * @returns The shape with the rounded edges
          * @group 3d fillets
@@ -53518,8 +54307,8 @@ declare namespace Bit {
          * Rounds several edges of a shape, each with its own radius profile that changes along it.
          *
          * `radiusLists` and `paramsULists` hold one list per edge, in edge order; within each pair the
-         * positions are fractions from 0 to 1 along the edge and the radii apply there. All three lists
-         * must have the same length, or an error is thrown.
+         * radii apply at the positions as `filletEdgeVariableRadius` reads them. All three lists must
+         * have the same length, or an error is thrown.
          * @param inputs - The shape, its edges, one radius list per edge and one position list per edge
          * @returns The shape with the rounded edges
          * @group 3d fillets
@@ -54077,11 +54866,12 @@ declare namespace Bit {
         surfaceFromFace(inputs: Inputs.OCCT.ShapeDto<Inputs.OCCT.TopoDSFacePointer>): Promise<Inputs.OCCT.GeomSurfacePointer>;
     }
     /**
-     * Reading and writing OpenCascade shapes in exchange formats: STEP, IGES, STL and BREP in; STEP, STL,
-     * BREP, OBJ, PLY, SVG and DXF out; STEP to glTF conversion with the assembly tree, colors and names
+     * Reading and writing OpenCascade shapes in exchange formats: STEP, IGES, STL, BREP and DXF in; STEP,
+     * STL, BREP, OBJ, PLY, SVG and DXF out; STEP to glTF conversion with the assembly tree, colors and names
      * preserved, and a STEP assembly structure as JSON. Files travel as text or binary data, never as
-     * paths. OpenCascade treats Z as up while this library treats Y as up, so the `adjustYtoZ` and
-     * `adjustZtoY` flags swap the axes on the way out and in.
+     * paths. CAD files stand Z up while this library models Y up, so the `adjustYtoZ` and `adjustZtoY`
+     * flags turn a shape between the two. With the conventions set every file shows what the screen
+     * shows; without them the flags swap Y and Z, which mirrors the shape.
      */
     declare class OCCTIO {
         readonly occWorkerManager: OCCTWorkerManager;
@@ -54089,9 +54879,9 @@ declare namespace Bit {
          * Writes a shape as STEP, the exchange format for exact CAD geometry, and starts a browser
          * download of the file.
          *
-         * With `adjustYtoZ` true, Y and Z swap, mirroring the shape; turn it 90 degrees about X with
-         * `transforms.rotate` first to keep it as built. The file is in millimetres, another `unit`
-         * scaled to them; `saveShapeSTEPAndReturn` returns the text.
+         * With `adjustYtoZ` true the file is Z-up: with the conventions set it shows what the screen
+         * shows, without them Y and Z are swapped. The file is in millimetres;
+         * `saveShapeSTEPAndReturn` returns the text.
          * @param inputs - The shape, the file name, the axis adjustment, the unit and the download options
          * @returns Nothing; the download starts when the file is ready
          * @group io
@@ -54106,8 +54896,8 @@ declare namespace Bit {
         /**
          * Writes a shape as STEP, the exchange format for exact CAD geometry, and returns its text.
          *
-         * With `adjustYtoZ` true, Y and Z swap so Y-up becomes STEP's Z-up, mirroring the shape; turn it
-         * 90 degrees about X with `transforms.rotate` first to keep it as built. The file is in
+         * With `adjustYtoZ` true the file is Z-up, as CAD programs expect: with the conventions set it
+         * shows what the screen shows, and without them Y and Z are swapped. The file is in
          * millimetres, a shape in another `unit` scaled to them.
          * @param inputs - The shape, the file name, the axis adjustment, the unit and the download options
          * @returns The STEP file as text
@@ -54124,9 +54914,9 @@ declare namespace Bit {
          * Triangulates a shape, writes it as STL, the mesh format 3D printers read, and starts a browser
          * download of the file.
          *
-         * `precision` is the meshing tolerance in model units, `adjustYtoZ` swaps Y and Z, which
-         * mirrors the shape, and `binary` writes the smaller binary form. `fileName` names the
-         * download, `tryDownload` false skips it. `saveShapeStlAndReturn` gives the file instead.
+         * `precision` is the meshing tolerance in model units and `binary` writes the smaller binary
+         * form. With the conventions set the file shows what the screen shows, Z-up with `adjustYtoZ`.
+         * `saveShapeStlAndReturn` gives the file instead.
          * @param inputs - The shape, the file name, the meshing precision, the axis adjustment, the form and the download options
          * @returns Nothing; the download starts when the file is ready
          * @group io
@@ -54139,12 +54929,12 @@ declare namespace Bit {
          */
         saveShapeStl(inputs: Inputs.OCCT.SaveStlDto<Inputs.OCCT.TopoDSShapePointer>): Promise<void>;
         /**
-         * Triangulates a shape and writes it as STL, the mesh format 3D printers and slicers read,
-         * returning the file's text, or its bytes when `binary` is true.
+         * Triangulates a shape and writes it as STL, the mesh format 3D printers read, returning its
+         * text, or its bytes when `binary` is true.
          *
-         * `precision` is the meshing tolerance in model units; smaller values follow curved surfaces
-         * more closely. `adjustYtoZ` swaps Y and Z, which mirrors the shape. `fileName` and
-         * `tryDownload` matter only for a download.
+         * `precision` is the meshing tolerance in model units, smaller following curves more closely.
+         * With the conventions set the file shows what the screen shows, Z-up with `adjustYtoZ`.
+         * `fileName` and `tryDownload` matter only for a download.
          * @param inputs - The shape, the file name, the meshing precision, the axis adjustment, the form and the download options
          * @returns The STL file as text, or as bytes when `binary` is true
          * @group io
@@ -54233,9 +55023,9 @@ declare namespace Bit {
          * Triangulates a shape, writes it as OBJ, the mesh format most 3D programs read, and starts a
          * browser download of the file.
          *
-         * `precision` is the meshing tolerance in model units and `adjustYtoZ` swaps Y and Z, which
-         * mirrors the shape. The file name may hold no spaces or slashes; `tryDownload` false skips the
-         * download, and `saveShapeObjAndReturn` gives the text instead.
+         * `precision` is the meshing tolerance in model units. With the conventions set the file shows
+         * what the screen shows, Z-up with `adjustYtoZ`. The file name may hold no spaces or slashes;
+         * `saveShapeObjAndReturn` gives the text instead.
          * @param inputs - The shape, the file name, the meshing precision, the axis adjustment and the download option
          * @returns Nothing; the download starts when the file is ready
          * @group io
@@ -54251,9 +55041,10 @@ declare namespace Bit {
          * Triangulates a shape and writes it as OBJ, the mesh format most 3D programs read, returning
          * the file's text.
          *
-         * `precision` is the meshing tolerance in model units, `adjustYtoZ` swaps Y and Z, which
-         * mirrors the shape, and coordinates keep six decimals. `mtl` stays empty, since a shape
-         * carries no colors; `assembly.manager.exportDocumentToObj` writes colored parts.
+         * `precision` is the meshing tolerance in model units and coordinates keep six decimals. With
+         * the conventions set the file shows what the screen shows, Z-up with `adjustYtoZ`. `mtl` stays
+         * empty, since a shape carries no colors; `assembly.manager.exportDocumentToObj` writes colored
+         * parts.
          * @param inputs - The shape, the file name, the meshing precision, the axis adjustment and the download option
          * @returns The OBJ text, with an empty material library text
          * @group io
@@ -54270,9 +55061,9 @@ declare namespace Bit {
          * Triangulates a shape, writes it as ASCII PLY with a normal per vertex, and starts a browser
          * download of the file.
          *
-         * `precision` is the meshing tolerance in model units and `adjustYtoZ` swaps Y and Z, which
-         * mirrors the shape. `fileName` names the download and `tryDownload` false skips it;
-         * `saveShapePlyAndReturn` gives the text instead.
+         * `precision` is the meshing tolerance in model units. With the conventions set the file shows
+         * what the screen shows, Z-up with `adjustYtoZ`. `fileName` names the download and
+         * `tryDownload` false skips it; `saveShapePlyAndReturn` gives the text instead.
          * @param inputs - The shape, the file name, the meshing precision, the axis adjustment and the download option
          * @returns Nothing; the download starts when the file is ready
          * @group io
@@ -54289,8 +55080,8 @@ declare namespace Bit {
          * scanning tools read, returning the file's text.
          *
          * Coordinates keep six significant digits, so past 1000 units they keep two decimals.
-         * `precision` is the meshing tolerance in model units and `adjustYtoZ` swaps Y and Z, which
-         * mirrors the shape.
+         * `precision` is the meshing tolerance in model units. With the conventions set the file shows
+         * what the screen shows, Z-up with `adjustYtoZ`.
          * @param inputs - The shape, the file name, the meshing precision, the axis adjustment and the download option
          * @returns The PLY file as text
          * @group io
@@ -54306,8 +55097,8 @@ declare namespace Bit {
          * Draws the edges a view of a shape sees as an SVG drawing, with the hidden edges dashed when
          * asked, and starts a browser download of the file.
          *
-         * The drawing shows the view from the frame's normal side, x along its direction; with the shape's
-         * `unit`, it states its true width and height. `saveShapeSvgAndReturn` gives the text instead.
+         * The drawing shows the view from the frame's normal side, x along its direction; curves stay
+         * exact where SVG can draw them. `saveShapeSvgAndReturn` gives the text instead.
          * @param inputs - The shape, the view, whether to draw hidden edges, the precision, the unit and the download options
          * @returns Nothing; the download starts when the file is ready
          * @group io
@@ -54324,9 +55115,9 @@ declare namespace Bit {
          * Draws the edges a view of a shape sees as SVG, hidden ones dashed when asked, and returns the
          * file's text.
          *
-         * The view looks from the frame's normal side, x along the frame's direction and y up, so each
-         * point is written as x and minus y. With the shape's `unit`, it states its true width and
-         * height.
+         * The view looks from the frame's normal side, x along the frame's direction. Curves stay exact
+         * where SVG can draw them, others become cubics within `precision`; with the shape's `unit`, the
+         * file states its true size.
          * @param inputs - The shape, the view, whether to draw hidden edges, the precision, the unit and the download options
          * @returns The SVG file as text
          * @group io
@@ -54341,6 +55132,76 @@ declare namespace Bit {
         saveShapeSvgAndReturn(inputs: Inputs.OCCT.SaveSvgDto<Inputs.OCCT.TopoDSShapePointer>): Promise<string>;
         private downloadObj;
         private downloadFile;
+        /**
+         * Puts shapes on a named layer with a color and a line type, making one layer of an SVG drawing.
+         *
+         * The shapes are kept as they are; `svgCreate` draws their wires when it writes the file.
+         * @param inputs - The shapes, the layer name, the color and the line type
+         * @returns The shapes as one styled layer
+         * @group svg
+         * @shortname svg layer
+         * @drawable false
+         * @example
+         * ```typescript
+         * const cut = await bitbybit.occt.io.svgLayer({ shapes: [outline], layer: "cut", color: "#ff0000" });
+         * ```
+         */
+        svgLayer(inputs: Inputs.OCCT.SvgLayerDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.SvgLayerDto<Inputs.OCCT.TopoDSShapePointer>>;
+        /**
+         * Draws layers of shapes into one SVG file and returns its text.
+         *
+         * Each layer becomes an Inkscape layer. The shapes are seen along Y: X stays X and Z becomes the
+         * drawing's Y (-Z under right-handed conventions). Curves stay exact where SVG can draw them and
+         * become cubics within `tolerance` elsewhere; with `unit` the file has its true size.
+         * @param inputs - The layers, the unit, the line width, the border, the tolerance and the download options
+         * @returns The SVG file as text
+         * @group svg
+         * @shortname svg create
+         * @drawable false
+         * @example
+         * ```typescript
+         * const cut = await bitbybit.occt.io.svgLayer({ shapes: [outline], layer: "cut", color: "#ff0000" });
+         * const engrave = await bitbybit.occt.io.svgLayer({ shapes: [lettering], layer: "engrave", color: "#0000ff" });
+         * const svg = await bitbybit.occt.io.svgCreate({ layers: [cut, engrave], unit: Bit.Inputs.Base.unitOfLengthEnum.millimetre, fileName: "panel.svg", tryDownload: false });
+         * ```
+         */
+        svgCreate(inputs: Inputs.OCCT.SvgLayersDto<Inputs.OCCT.TopoDSShapePointer>): Promise<string>;
+        /**
+         * Draws the edges a view of a shape sees as a DXF drawing, hidden ones on their own layer when
+         * asked, and starts a browser download of the file.
+         *
+         * The drawing shows the view from the frame's normal side, x along its direction, with every
+         * curve exact. `saveShapeDxfAndReturn` gives the text instead.
+         * @param inputs - The shape, the view, whether to draw hidden edges, the precision, the unit, the version and the download options
+         * @returns Nothing; the download starts when the file is ready
+         * @group io
+         * @shortname save dxf
+         * @drawable false
+         * @example
+         * ```typescript
+         * const view = { origin: [0, 0, 0], normal: [0, 1, 0], direction: [1, 0, 0] };
+         * await bitbybit.occt.io.saveShapeDxf({ shape: part, frame: view, drawHidden: true, precision: 0.01, fileName: "top.dxf", tryDownload: true });
+         * ```
+         */
+        saveShapeDxf(inputs: Inputs.OCCT.SaveDxfDto<Inputs.OCCT.TopoDSShapePointer>): Promise<void>;
+        /**
+         * Draws the edges a view of a shape sees as DXF, hidden ones on their own layer when asked, and
+         * returns the file's text.
+         *
+         * The view looks from the frame's normal side, x along the frame's direction. Curves stay exact;
+         * hidden edges go on the layer `hidden` with the `HIDDEN` line type.
+         * @param inputs - The shape, the view, whether to draw hidden edges, the precision, the unit, the version and the download options
+         * @returns The DXF file as text
+         * @group io
+         * @shortname save dxf and return
+         * @drawable false
+         * @example
+         * ```typescript
+         * const view = { origin: [0, 0, 0], normal: [0, 1, 0], direction: [1, 0, 0] };
+         * const dxf = await bitbybit.occt.io.saveShapeDxfAndReturn({ shape: box, frame: view, drawHidden: true, precision: 0.01, fileName: "top.dxf", tryDownload: false });
+         * ```
+         */
+        saveShapeDxfAndReturn(inputs: Inputs.OCCT.SaveDxfDto<Inputs.OCCT.TopoDSShapePointer>): Promise<string>;
         /**
          * Reads the unit a STEP or IGES file writes its lengths in, without building its geometry.
          *
@@ -54414,11 +55275,11 @@ declare namespace Bit {
          */
         loadBrepBinary(inputs: Inputs.OCCT.LoadBrepBinaryDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
         /**
-         * Turns the wires of a shape into DXF path records, the first step of a 2D DXF export.
+         * Turns the wires of a shape into drawing paths, the first step of a 2D DXF export.
          *
-         * The shape must lie flat on the XZ ground plane, since DXF drawings are two-dimensional. The
-         * deflection settings say how closely curved edges are followed. Give the paths a layer with
-         * `dxfPathsWithLayer` and write the file with `dxfCreate`.
+         * The shape is seen along Y: X stays X and Z becomes the drawing's Y (-Z under right-handed
+         * conventions). Curves stay exact unless `exactCurves` is off. Give the paths a layer with
+         * `dxfPathsWithLayer` and write them with `dxfCreate`.
          * @param inputs - The shape and the deflection settings
          * @returns The DXF paths
          * @group dxf
@@ -54433,16 +55294,17 @@ declare namespace Bit {
          *     minimumOfPoints: 2,
          *     uTolerance: 1e-9,
          *     minimumLength: 1e-7,
+         *     exactCurves: true,
          * });
          * ```
          */
-        shapeToDxfPaths(inputs: Inputs.OCCT.ShapeToDxfPathsDto<Inputs.OCCT.TopoDSShapePointer>): Promise<IO.DxfPathDto[]>;
+        shapeToDxfPaths(inputs: Inputs.OCCT.ShapeToDxfPathsDto<Inputs.OCCT.TopoDSShapePointer>): Promise<IO.DrawingPathDto[]>;
         /**
-         * Puts DXF paths on a named layer with a color, making one part of a DXF drawing.
+         * Puts drawing paths on a named layer with a color and a line type, making one part of a drawing.
          *
-         * A drawing may hold several parts, each with its own layer and color; `dxfCreate` writes them
-         * into one file.
-         * @param inputs - The paths, the layer name and the color
+         * A drawing may hold several parts, each with its own layer, color and line type; `dxfCreate`
+         * writes them into one file.
+         * @param inputs - The paths, the layer name, the color and the line type
          * @returns The paths as one layered part
          * @group dxf
          * @shortname dxf paths with layer
@@ -54452,14 +55314,14 @@ declare namespace Bit {
          * const part = await bitbybit.occt.io.dxfPathsWithLayer({ paths, layer: "cut", color: "#ff0000" });
          * ```
          */
-        dxfPathsWithLayer(inputs: Inputs.OCCT.DxfPathsWithLayerDto): Promise<IO.DxfPathsPartDto>;
+        dxfPathsWithLayer(inputs: Inputs.OCCT.DxfPathsWithLayerDto): Promise<IO.DrawingPartDto>;
         /**
-         * Writes DXF parts into one DXF file and returns its text.
+         * Writes drawing parts into one DXF file and returns its text.
          *
-         * `colorFormat` chooses AutoCAD's indexed colors or true color, `acadVersion` the DXF version:
-         * AC1009 is R12, the most widely readable, AC1015 is 2000, which can also state the drawing's
-         * `unit`. `fileName` and `tryDownload` matter only where a browser download can be started.
-         * @param inputs - The layered parts, the color format, the DXF version, the unit and the download options
+         * `acadVersion` AC1015 (AutoCAD 2000) keeps every curve exact and can state the drawing's `unit`;
+         * AC1009 (R12) suits old software and writes splines and ellipses as polylines within
+         * `curveTolerance`. `fileName` and `tryDownload` matter only where a browser download can start.
+         * @param inputs - The layered parts, the color format, the DXF version, the unit, the curve tolerance and the download options
          * @returns The DXF file as text
          * @group dxf
          * @shortname dxf create
@@ -54469,13 +55331,51 @@ declare namespace Bit {
          * const dxf = await bitbybit.occt.io.dxfCreate({
          *     pathsParts: [part],
          *     colorFormat: Bit.Inputs.OCCT.dxfColorFormatEnum.aci,
-         *     acadVersion: Bit.Inputs.OCCT.dxfAcadVersionEnum.AC1009,
+         *     acadVersion: Bit.Inputs.OCCT.dxfAcadVersionEnum.AC1015,
+         *     unit: Bit.Inputs.Base.unitOfLengthEnum.millimetre,
          *     fileName: "drawing.dxf",
          *     tryDownload: false,
          * });
          * ```
          */
         dxfCreate(inputs: Inputs.OCCT.DxfPathsPartsListDto): Promise<string>;
+        /**
+         * Reads a DXF file into one compound of exact wires, fit-point splines interpolated and block
+         * inserts expanded.
+         *
+         * It lies on the ground, Y along Z (-Z under right-handed conventions) and elevations along Y.
+         * Ends within `joinTolerance` join; `makeFaces` makes faces with holes. A very large file is
+         * read up to its limits; `loadDxfStructured` lists what was left out.
+         * @param inputs - The DXF file and the reading options
+         * @returns One compound holding every layer's wires, and faces when asked
+         * @group dxf
+         * @shortname load dxf
+         * @drawable true
+         * @example
+         * ```typescript
+         * const drawing = await bitbybit.occt.io.loadDxf({ dxf: dxfText, makeFaces: true, joinTolerance: 0.001, includeHiddenLayers: false, unit: Bit.Inputs.Base.unitOfLengthEnum.millimetre });
+         * const plate = await bitbybit.occt.operations.extrude({ shape: drawing, direction: [0, 3, 0] });
+         * ```
+         */
+        loadDxf(inputs: Inputs.OCCT.LoadDxfDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        /**
+         * Reads a DXF file as `loadDxf` does, into one shape per layer, color and line type, each with
+         * its layer name, color and line type, plus the file's unit, its version and what was left out.
+         *
+         * Use it to treat the layers apart, such as outlines to cut on one layer and lines to engrave on
+         * another.
+         * @param inputs - The DXF file and the reading options
+         * @returns The shapes with their layers, colors and line types, the unit, the version and the warnings
+         * @group dxf
+         * @shortname load dxf structured
+         * @drawable false
+         * @example
+         * ```typescript
+         * const result = await bitbybit.occt.io.loadDxfStructured({ dxf: dxfText, makeFaces: true });
+         * const cuts = result.parts.filter(part => part.layer === "cut").map(part => part.shape);
+         * ```
+         */
+        loadDxfStructured(inputs: Inputs.OCCT.LoadDxfDto): Promise<Inputs.OCCT.DxfShapesResult<Inputs.OCCT.TopoDSShapePointer>>;
         /**
          * Converts a STEP file into a binary glTF (GLB), keeping the assembly tree as glTF nodes along
          * with part names, colors, materials and placements.
@@ -54623,8 +55523,8 @@ declare namespace Bit {
          * faces.
          *
          * `precision` is the meshing tolerance in model units: smaller values follow curved surfaces
-         * more closely and give more triangles. `adjustYtoZ` swaps the Y and Z axes for tools that
-         * treat Z as up, and `reversedPoints` flips the winding of each triangle.
+         * more closely and give more triangles. `adjustYtoZ` makes the points Z-up for tools that treat
+         * Z as up, and `reversedPoints` flips the winding of each triangle.
          * @param inputs - The shape, the meshing precision and the axis and winding options
          * @returns One list of three points per triangle
          * @group convert
@@ -63693,20 +64593,19 @@ declare namespace Bit {
     }
     /**
      * Importing SVG drawings as OpenCascade shapes. The importer parses the document (paths, basic
-     * shapes, transforms and the style cascade), reduces every element to the generic path vocabulary
-     * of `path` and builds wires, and faces where it can, laid on the ground plane and placed by the
-     * import options. `loadSVG` gives one compound for the whole drawing; `loadSVGStructured` gives one
-     * shape per element with its fill and stroke.
+     * shapes, transforms, reused elements, nested viewports, units and the style cascade with CSS),
+     * reduces every element to the generic path vocabulary of `path` and builds wires, and faces where
+     * it can, laid on the ground plane and placed by the import options. `loadSVG` gives one compound
+     * for the whole drawing; `loadSVGStructured` gives one shape per element with its fill and stroke.
      */
     declare class OCCTSVG {
         private readonly occWorkerManager;
         /**
-         * Parses an SVG document and builds every drawable element into one compound shape on the
-         * ground plane, ready to draw, extrude or transform as a whole.
+         * Parses an SVG document into one compound on the ground, ready to draw, extrude or transform.
          *
-         * `faceStrategy` decides whether closed outlines become faces, `scale` and `flipY` map SVG
-         * units and its downward Y axis, and `alignment`, `direction` and `center` place the result.
-         * Invisible elements are skipped unless asked for.
+         * `faceStrategy` decides which closed outlines become faces; `unit`, `scale` and `flipY` map SVG
+         * units and its downward Y; `alignment`, `direction`, `center` and `keepOrigin` place it. A very
+         * large file is read up to its limits; `loadSVGStructured` lists what was left out.
          * @param inputs - The SVG text and the import and placement options
          * @returns One compound holding every element
          * @group io
@@ -63732,12 +64631,13 @@ declare namespace Bit {
         loadSVG(inputs: Inputs.OCCT.LoadSVGDto): Promise<Inputs.OCCT.TopoDSCompoundPointer>;
         /**
          * Parses an SVG document and builds one shape per drawable element, each bundled with its
-         * resolved fill, stroke and stroke width, plus the parse warnings and the SVG view box.
+         * resolved fill, stroke and stroke width, plus the warnings, the view box and the page size in
+         * millimetres.
          *
          * Use it when the elements need their own colors or separate handling; `loadSVG` gives the
-         * whole drawing as one shape. Faces are built where the outline allows it.
+         * whole drawing as one shape.
          * @param inputs - The SVG text and the import and placement options
-         * @returns The shapes with their styles, the warnings and the view box
+         * @returns The shapes with their styles, the warnings, the view box and the page size
          * @group io
          * @shortname load svg structured
          * @drawable false
@@ -63745,7 +64645,7 @@ declare namespace Bit {
          * ```typescript
          * const options = new Bit.Inputs.OCCT.LoadSVGDto();
          * options.svg = svgText;
-         * options.scale = 0.1;
+         * options.unit = Bit.Inputs.Base.unitOfLengthEnum.millimetre;
          * const result = await bitbybit.occt.svg.loadSVGStructured(options);
          * result.shapes.forEach(s => console.log(s.fill, s.stroke));
          * ```
@@ -64909,6 +65809,17 @@ declare namespace Bit {
         readonly dates: Dates;
         readonly engineering: Engineering;
         readonly recipes: Recipes;
+        private checked;
+        /**
+         * The settings this instance works by, such as the coordinate system its numbers are in, set by
+         * whoever owns this object: the renderer for its scene, a worker when it is told them, a
+         * program in Node for itself. A setting left out keeps the behaviour from before it existed.
+         * Settings are checked as they are set: a name that is no setting, or a value its setting does
+         * not take, is refused as an `InputError` and the earlier settings stay. The settings read back
+         * are frozen, so they change only by assigning new ones.
+         */
+        get settings(): BitbybitSettings;
+        set settings(settings: BitbybitSettings);
         constructor();
     }
     /**
@@ -67452,11 +68363,19 @@ declare namespace Bit {
     declare const RED_OFFSET = 0;
     declare const GREEN_OFFSET = 8;
     declare const BLUE_OFFSET = 4;
+    declare const HEX_LEAD = 16777216;
+    declare const RED_PLACE = 65536;
+    declare const GREEN_PLACE = 256;
     declare function hexChannels(text: string): [
         number,
         number,
         number
     ] | undefined;
+    declare function hexOfChannels(channels: readonly [
+        number,
+        number,
+        number
+    ]): string;
     declare function hslChannels(hue: number, saturation: number, lightness: number): [
         number,
         number,
@@ -67464,7 +68383,93 @@ declare namespace Bit {
     ];
     declare function srgbToLinear(channel: number): number;
     declare function linearToSrgb(channel: number): number;
+    declare const CHANNEL_MAX = 255;
+    declare const PERCENT = 100;
+    declare const RGB_CHANNELS = 3;
+    declare const RGB_WITH_ALPHA = 4;
+    declare const SHORT_HEX_DIGITS = 3;
+    declare const SHORT_HEX_WITH_ALPHA_DIGITS = 4;
+    declare const LONG_HEX_DIGITS = 6;
+    declare const LONG_HEX_WITH_ALPHA_DIGITS = 8;
+    declare const CSS_NAMED_COLORS: ReadonlyMap<string, string>;
+    declare function cssColorHex(text: string): string | undefined;
+    declare const HERMITE_THIRD: number;
+    declare const FIT_SAMPLES = 8;
+    declare const FLATNESS_SHARES: number[];
+    declare const DEEPEST_SPLIT = 18;
+    declare const HALF = 0.5;
     type Point3 = Inputs.Base.Point3;
+    interface CubicPiece {
+        readonly start: Point3;
+        readonly control1: Point3;
+        readonly control2: Point3;
+        readonly end: Point3;
+    }
+    interface PointAndTangent {
+        readonly point: Point3;
+        readonly tangent: Point3;
+    }
+    interface PiecesBounds {
+        readonly min: Point3;
+        readonly max: Point3;
+    }
+    declare const bezierPointAndTangent: (piece: BezierPiece, parameter: number) => PointAndTangent;
+    declare const bezierPoint: (piece: BezierPiece, parameter: number) => Point3;
+    declare const cubicsOfPiece: (piece: BezierPiece, tolerance: number, budget?: WorkBudget) => CubicPiece[];
+    declare const samplesOfPiece: (piece: BezierPiece, tolerance: number, budget?: WorkBudget) => Point3[];
+    declare const bezierPiecesBounds: (pieces: readonly BezierPiece[], tolerance: number, budget?: WorkBudget) => PiecesBounds;
+    declare const QUARTER_TURN: number;
+    declare const BULGE_TURN_SHARE = 4;
+    declare const PIECE_SLACK = 1e-9;
+    declare const LEAST_RELATIVE_TOLERANCE = 1e-9;
+    declare const FRAME_AXES: readonly number[];
+    type Point3 = Inputs.Base.Point3;
+    type Vec3 = Inputs.Base.Vector3;
+    interface EllipseFrame {
+        readonly center: Point3;
+        readonly xAxis: Vec3;
+        readonly yAxis: Vec3;
+    }
+    interface ConicArc {
+        readonly frame: EllipseFrame;
+        readonly start: number;
+        readonly sweep: number;
+    }
+    declare const angleWithinTurn: (angle: number, turn: number) => number;
+    declare const ellipseFramePoint: (frame: EllipseFrame, angle: number) => Point3;
+    declare const conicArcOfEllipseArc: (arc: EllipseArc2) => ConicArc;
+    declare const conicArcSamples: (arc: ConicArc, tolerance: number) => Point3[];
+    declare const conicArcAsNurbs: (arc: ConicArc) => NurbsCurveForm;
+    declare const bulgeArcOf: (start: Point3, end: Point3, bulge: number) => ConicArc;
+    declare const conicArcExtremes: (arc: ConicArc, axes?: readonly number[]) => Point3[];
+    declare const principalArcOf: (arc: ConicArc) => ConicArc;
+    type Point3 = Inputs.Base.Point3;
+    interface NurbsCurveForm {
+        readonly degree: number;
+        readonly points: readonly Point3[];
+        readonly weights: readonly number[];
+        readonly knots: readonly number[];
+    }
+    interface BezierPiece {
+        readonly points: readonly Point3[];
+        readonly weights: readonly number[];
+    }
+    declare const clampedUniformKnots: (pointCount: number, degree: number) => number[];
+    declare const periodicUniformForm: (points: readonly Point3[], weights: readonly number[], degree: number) => NurbsCurveForm;
+    declare const insertKnot: (form: NurbsCurveForm, parameter: number, times?: number) => NurbsCurveForm;
+    declare const clampedForm: (form: NurbsCurveForm) => NurbsCurveForm;
+    declare const bezierPiecesOf: (form: NurbsCurveForm, budget?: WorkBudget) => BezierPiece[];
+    declare const isRationalPiece: (piece: BezierPiece) => boolean;
+    type Point3 = Inputs.Base.Point3;
+    type Homogeneous = [
+        number,
+        number,
+        number,
+        number
+    ];
+    declare const liftedPoint: (point: Point3, weight: number) => Homogeneous;
+    declare const projectedPoint: (point: Homogeneous) => Point3;
+    declare const blendedPoint: (from: Homogeneous, to: Homogeneous, share: number) => Homogeneous;
     declare const expandedKnots: (knots: readonly number[], multiplicities: readonly number[]) => number[];
     declare const knotDomain: (degree: number, knots: readonly number[]) => [
         number,
@@ -67482,133 +68487,430 @@ declare namespace Bit {
     type Point3 = Inputs.Base.Point3;
     declare const refinedSurfaceMesh: (uv: readonly Point2[], positions: readonly Point3[], loops: readonly (readonly number[])[], pointAt: (u: number, v: number) => Point3) => RefinedSurfaceMesh;
     declare function crc32(data: Uint8Array): number;
-    declare class DxfGenerator {
-        private entityHandle;
-        private colorFormat;
-        private acadVersion;
-        /**
-         * Generate a complete DXF file content from path-based entities
-         */
-        generateDxf(dxfInputs: Inputs.IO.DxfModelDto): string;
-        private generateHeader;
-        private unitHeader;
-        private generateTables;
-        private generateLineTypeTable;
-        private generateStyleTable;
-        private generateVportTable;
-        private generateViewTable;
-        private generateUcsTable;
-        private generateAppidTable;
-        private generateDimstyleTable;
-        private generateBlocks;
-        private generateLayerTable;
-        private generateEntities;
-        private generateSegmentEntity;
-        private isLineSegment;
-        private isArcSegment;
-        private isCircleSegment;
-        private isPolylineSegment;
-        private isSplineSegment;
-        private generateLineEntity;
-        private generateCircleEntity;
-        private generateArcEntity;
-        private generatePolylineEntity;
-        private generateSplineEntity;
-        private isClosedPolyline;
-        private getNextHandle;
-        private convertColorToDxf;
-        private rgbToAciColorIndex;
+    declare const writerBudgetOf: (parts: readonly DrawingPart[]) => WorkBudget;
+    type Point3 = Inputs.Base.Point3;
+    type Vec3 = Inputs.Base.Vector3;
+    declare const ocsAxesOf: (normal: Vec3) => FrameAxes;
+    declare const circleArcOf: (segment: DrawingCircle | DrawingArc) => ConicArc;
+    declare const ellipseArcOf: (segment: DrawingEllipse) => ConicArc;
+    declare const polylineSpans: (polyline: DrawingPolyline) => number;
+    declare const polylineSpanEnd: (polyline: DrawingPolyline, span: number) => Point3;
+    declare const bulgeArcOfSpan: (polyline: DrawingPolyline, span: number) => ConicArc | undefined;
+    declare const segmentSamples: (segment: DrawingSpline | DrawingEllipse, tolerance: number, budget?: WorkBudget) => readonly Point3[];
+    declare const drawingBounds: (parts: readonly DrawingPart[], tolerance: number, budget?: WorkBudget) => DrawingBounds | undefined;
+    declare const drawingSize: (bounds: DrawingBounds | undefined, axes?: number) => number;
+    declare const patternUnitOf: (bounds: DrawingBounds | undefined) => number;
+    declare const positiveNumber: (value: unknown, property: string) => number;
+    declare const drawingPathOf: (path: Inputs.IO.DrawingPathDto | undefined, property: string) => DrawingPath;
+    declare const drawingPartsOf: (parts: readonly unknown[] | undefined, property: string) => DrawingPart[];
+    type Point3 = Inputs.Base.Point3;
+    type Vec3 = Inputs.Base.Vector3;
+    interface DrawingLine {
+        readonly kind: "line";
+        readonly start: Point3;
+        readonly end: Point3;
     }
-    declare const DXF_FIRST_ENTITY_HANDLE = 256;
+    interface DrawingCircle {
+        readonly kind: "circle";
+        readonly center: Point3;
+        readonly radius: number;
+        readonly normal: Vec3;
+    }
+    interface DrawingArc {
+        readonly kind: "arc";
+        readonly center: Point3;
+        readonly radius: number;
+        readonly startAngle: number;
+        readonly endAngle: number;
+        readonly startDegrees: number;
+        readonly endDegrees: number;
+        readonly normal: Vec3;
+    }
+    interface DrawingPolyline {
+        readonly kind: "polyline";
+        readonly points: readonly Point3[];
+        readonly bulges: readonly number[];
+        readonly closed: boolean;
+        readonly planar: boolean;
+    }
+    interface DrawingEllipse {
+        readonly kind: "ellipse";
+        readonly center: Point3;
+        readonly majorAxis: Vec3;
+        readonly ratio: number;
+        readonly start: number;
+        readonly end: number;
+        readonly normal: Vec3;
+    }
+    interface DrawingSpline {
+        readonly kind: "spline";
+        readonly curve: NurbsCurveForm;
+    }
+    type DrawingSegment = DrawingLine | DrawingCircle | DrawingArc | DrawingPolyline | DrawingEllipse | DrawingSpline;
+    interface DrawingPath {
+        readonly segments: readonly DrawingSegment[];
+    }
+    interface DrawingPart {
+        readonly layer: string;
+        readonly color: string;
+        readonly lineType: Inputs.IO.lineTypeEnum;
+        readonly paths: readonly DrawingPath[];
+    }
+    interface DrawingBounds {
+        readonly min: Point3;
+        readonly max: Point3;
+    }
+    declare const SAME_POINT = 1e-10;
+    declare const PERPENDICULAR_COSINE = 1e-9;
+    declare const FULL_TURN_DEGREES = 360;
+    declare const ARBITRARY_AXIS_LIMIT: number;
+    declare const FORBIDDEN_LAYER_CHARACTERS: RegExp;
+    declare const FIRST_PRINTABLE_CODE = 32;
+    declare const DEFAULT_LAYER = "0";
+    declare const POINT_SIZES: number[];
+    declare const DEFAULT_SPLINE_DEGREE = 3;
+    declare const HIGHEST_SPLINE_DEGREE = 25;
+    declare const LARGEST_NUMBER = 1e+100;
+    declare const LEAST_WEIGHT = 1e-100;
+    declare const PATTERN_UNIT_SHARE: number;
+    declare const LEAST_TOLERANCE_SHARE = 0.000001;
+    declare const PLAN_AXES = 2;
+    declare const SPACE_AXES = 3;
+    declare const WRITER_WORK_PER_NUMBER: number;
+    declare const WRITER_WORK_FLOOR: number;
+    declare const WRITER_WORK_CEILING: number;
+    declare const NUMBERS_PER_PART = 1;
+    declare const NUMBERS_PER_VERTEX = 4;
+    declare const NUMBERS_PER_CURVE: Readonly<Record<"line" | "circle" | "arc" | "ellipse", number>>;
+    interface LineTypePattern {
+        readonly name: string;
+        readonly description: string;
+        readonly elements: readonly number[];
+    }
+    declare const LINE_TYPE_PATTERNS: Readonly<Record<string, LineTypePattern>>;
+    type Rgb = readonly [
+        number,
+        number,
+        number
+    ];
+    declare const ACI_PALETTE: readonly Rgb[];
+    declare const nearestAciIndex: (hex: string) => number;
+    declare const trueColorOf: (hex: string) => number;
+    interface DxfEntityStyle {
+        readonly layer: string;
+        readonly color: string;
+        readonly lineType: Inputs.IO.lineTypeEnum | undefined;
+    }
+    interface DxfEntityContext {
+        readonly text: DxfText;
+        readonly version: DxfVersion;
+        readonly owner: string;
+        readonly colorFormat: "aci" | "truecolor";
+        readonly curveTolerance: number;
+    }
+    declare const writeSegment: (context: DxfEntityContext, segment: DrawingSegment, style: DxfEntityStyle) => void;
+    declare const dxfTextOf: (data: unknown, property: string) => string;
+    declare class DxfGenerator {
+        generateDxf(model: Resolved.IO.DxfModelDto): string;
+    }
+    type DxfSegment = Inputs.IO.DrawingPathDto["segments"][number];
+    declare const conicSegmentDto: (conic: ReadConic) => DxfSegment | undefined;
+    declare const drawingDtoOf: (drawing: ReadDrawing) => Inputs.IO.DxfDrawingDto;
+    type Point3 = Inputs.Base.Point3;
+    type Vec3 = Inputs.Base.Vector3;
+    interface PrincipalConic {
+        readonly center: Point3;
+        readonly normal: Vec3;
+        readonly major: Vec3;
+        readonly minor: number;
+        readonly start: number;
+        readonly end: number;
+    }
+    declare const translation: (offset: Vec3) => FrameAxes;
+    declare const scaling: (x: number, y: number, z: number) => FrameAxes;
+    declare const rotationAboutZ: (radians: number) => FrameAxes;
+    declare const positiveConic: (conic: ReadConic) => ReadConic;
+    declare const polylineSegments: (polyline: ReadPolyline) => ReadSegment[];
+    declare const mappedSegments: (map: FrameAxes, segment: ReadSegment) => ReadSegment[];
+    declare const principalConicOf: (conic: ReadConic) => PrincipalConic | undefined;
+    type Point3 = Inputs.Base.Point3;
+    type Vec3 = Inputs.Base.Vector3;
+    interface DxfGroup {
+        readonly code: number;
+        readonly value: string;
+        readonly line: number;
+    }
+    interface DxfEntityRecord {
+        readonly type: string;
+        readonly groups: readonly DxfGroup[];
+        readonly vertices: readonly DxfEntityRecord[];
+    }
+    interface ReadLine {
+        readonly kind: "line";
+        readonly start: Point3;
+        readonly end: Point3;
+    }
+    interface ReadConic {
+        readonly kind: "conic";
+        readonly center: Point3;
+        readonly xAxis: Vec3;
+        readonly yAxis: Vec3;
+        readonly start: number;
+        readonly sweep: number;
+    }
+    interface ReadPolyline {
+        readonly kind: "polyline";
+        readonly points: readonly Point3[];
+        readonly bulges: readonly number[];
+        readonly closed: boolean;
+        readonly normal: Vec3;
+    }
+    interface ReadSpline {
+        readonly kind: "spline";
+        readonly curve: NurbsCurveForm;
+    }
+    interface ReadFitSpline {
+        readonly kind: "fit";
+        readonly points: readonly Point3[];
+        readonly startTangent: Vec3 | undefined;
+        readonly endTangent: Vec3 | undefined;
+        readonly closed: boolean;
+    }
+    type ReadSegment = ReadLine | ReadConic | ReadPolyline | ReadSpline | ReadFitSpline;
+    interface ReadStyle {
+        readonly layer: string;
+        readonly color: string;
+        readonly lineType: Inputs.IO.lineTypeEnum;
+    }
+    interface ReadEntity {
+        readonly style: ReadStyle;
+        readonly segments: readonly ReadSegment[];
+    }
+    interface ReadLayer {
+        readonly name: string;
+        readonly color: string;
+        readonly lineType: Inputs.IO.lineTypeEnum;
+        readonly hidden: boolean;
+    }
+    interface ReadDrawing {
+        readonly version: string;
+        readonly unit: Inputs.Base.unitOfLengthEnum | undefined;
+        readonly layers: readonly ReadLayer[];
+        readonly entities: readonly ReadEntity[];
+        readonly warnings: readonly string[];
+    }
+    declare const BINARY_SENTINEL = "AutoCAD Binary DXF";
+    declare const QUOTED_LENGTH = 40;
+    declare const MAX_INSERT_DEPTH = 16;
+    declare const INSERT_WORK_PER_CHARACTER = 16;
+    declare const INSERT_WORK_FLOOR = 500000;
+    declare const INSERT_WORK_CEILING = 1000000;
+    declare const ENTITY_WORK = 2;
+    declare const COPY_WORK = 1;
+    declare const LINE_WORK = 2;
+    declare const CONIC_WORK = 2;
+    declare const MAX_SPLINE_DEGREE = 25;
+    declare const MAX_FIT_POINTS = 10000;
+    declare const MAX_LISTED_NAMES = 5;
+    declare const PAPER_SPACE = "1";
+    declare const FROZEN_FLAG = 1;
+    declare const XREF_FLAGS: number;
+    declare const PERIODIC_FLAG = 2;
+    declare const POLYFACE_FLAG = 64;
+    declare const MESH_FLAG = 16;
+    declare const SPLINE_FRAME_VERTEX_FLAG = 16;
+    declare const BY_BLOCK = 0;
+    declare const BY_LAYER = 256;
+    declare const BLACK = "#000000";
+    declare const BYTE = 255;
+    declare const RED_SHIFT = 16;
+    declare const GREEN_SHIFT = 8;
+    declare const DEGREES_PER_TURN = 360;
+    declare const SAME_SCALE = 1e-9;
+    declare const UNIT_CODES: ReadonlyMap<number, Inputs.Base.unitOfLengthEnum>;
+    declare const UNIT_NAMES: ReadonlyMap<number, string>;
+    declare const DRAWN_ENTITIES: Set<string>;
+    declare const Y_OFFSET = 10;
+    declare const Z_OFFSET = 20;
+    declare const GROUP: {
+        readonly name: 2;
+        readonly variable: 9;
+        readonly x: 10;
+        readonly y: 20;
+        readonly elevationZ: 30;
+        readonly otherX: 11;
+        readonly fitX: 11;
+        readonly startTangentX: 12;
+        readonly endTangentX: 13;
+        readonly controlX: 10;
+        readonly radius: 40;
+        readonly ratio: 40;
+        readonly knot: 40;
+        readonly weight: 41;
+        readonly startParameter: 41;
+        readonly endParameter: 42;
+        readonly bulge: 42;
+        readonly scaleX: 41;
+        readonly scaleY: 42;
+        readonly scaleZ: 43;
+        readonly columnStep: 44;
+        readonly rowStep: 45;
+        readonly startAngle: 50;
+        readonly rotation: 50;
+        readonly endAngle: 51;
+        readonly lineType: 6;
+        readonly layer: 8;
+        readonly color: 62;
+        readonly trueColor: 420;
+        readonly flags: 70;
+        readonly columns: 70;
+        readonly degree: 71;
+        readonly rows: 71;
+        readonly elevation: 38;
+        readonly space: 67;
+    };
+    declare const readDxfDrawing: (text: string, includeHidden: boolean) => ReadDrawing;
+    type DxfVersion = "AC1009" | "AC1015";
+    interface DxfLayerRow {
+        readonly name: string;
+        readonly color: string;
+        readonly lineType: Inputs.IO.lineTypeEnum;
+    }
+    interface DxfLayout {
+        readonly version: DxfVersion;
+        readonly colorFormat: "aci" | "truecolor";
+        readonly unit: string | undefined;
+        readonly bounds: DrawingBounds | undefined;
+        readonly layers: readonly DxfLayerRow[];
+        readonly lineTypes: readonly Inputs.IO.lineTypeEnum[];
+        readonly patternUnit: number;
+    }
+    interface DxfOwners {
+        readonly modelSpace: string;
+        readonly paperSpace: string;
+    }
+    declare const writeHeader: (text: DxfText, layout: DxfLayout) => number | undefined;
+    declare const writeClasses: (text: DxfText, layout: DxfLayout) => void;
+    declare const writeTables: (text: DxfText, layout: DxfLayout) => DxfOwners;
+    declare const writeBlocks: (text: DxfText, layout: DxfLayout, owners: DxfOwners) => void;
+    declare const writeObjects: (text: DxfText, layout: DxfLayout) => void;
+    interface DxfTextLimit {
+        readonly budget: WorkBudget;
+        readonly property: string;
+    }
+    declare const realText: (value: number) => string;
+    declare const encodedText: (value: string) => string;
+    declare class DxfText {
+        private readonly limit;
+        private readonly pieces;
+        private readonly encodedNames;
+        private handle;
+        constructor(firstHandle: number, limit?: DxfTextLimit);
+        get budget(): WorkBudget;
+        refuseWhenSpent(): void;
+        pair(code: string, value: string): void;
+        real(code: string, value: number): void;
+        point(codes: readonly [
+            number,
+            number,
+            number
+        ], point: readonly [
+            number,
+            number,
+            number
+        ]): void;
+        name(code: string, value: string): void;
+        nextHandle(): string;
+        peekHandle(): string;
+        reserve(code: string): number;
+        fill(slot: number, value: string): void;
+        joined(): string;
+        private tooLarge;
+    }
+    declare const dxfGroupsOf: (text: string) => DxfGroup[];
+    declare const recordsOf: (groups: readonly DxfGroup[]) => DxfEntityRecord[];
+    declare const numberIn: (group: DxfGroup) => number;
+    declare const valueOf: (record: DxfEntityRecord, code: number) => string | undefined;
+    declare const textOf: (record: DxfEntityRecord, code: number, fallback?: string) => string;
+    declare const numberOf: (record: DxfEntityRecord, code: number, fallback: number) => number;
+    declare const numbersOf: (record: DxfEntityRecord, code: number) => number[];
+    declare const decodedText: (value: string) => string;
+    declare const DXF_FIRST_HANDLE = 32;
     declare const DXF_INSUNITS: Readonly<Record<string, string>>;
     declare const DXF_IMPERIAL_MEASUREMENT = "0";
     declare const DXF_METRIC_MEASUREMENT = "1";
-    declare class Dxf {
-        private dxfGenerator;
-        /**
-         * Creates a line segment definition for DXF export (pass-through for validation).
-         * Example: start=[0,0], end=[10,5] → DXF line segment from origin to [10,5]
-         * @param inputs Line segment definition
-         * @returns Line segment DTO
-         * @group dxf
-         * @shortname line segment
-         * @drawable false
-         */
-        lineSegment(inputs: Inputs.IO.DxfLineSegmentDto): Inputs.IO.DxfLineSegmentDto;
-        /**
-         * Creates an arc segment definition for DXF export (curved path between two points).
-         * Example: center=[5,5], radius=5, startAngle=0°, endAngle=90° → quarter circle arc
-         * @param inputs Arc segment definition
-         * @returns Arc segment DTO
-         * @group dxf
-         * @shortname arc segment
-         * @drawable false
-         */
-        arcSegment(inputs: Inputs.IO.DxfArcSegmentDto): Inputs.IO.DxfArcSegmentDto;
-        /**
-         * Creates a circle segment definition for DXF export (closed circular path).
-         * Example: center=[10,10], radius=5 → full circle with diameter 10 centered at [10,10]
-         * @param inputs Circle segment definition
-         * @returns Circle segment DTO
-         * @group dxf
-         * @shortname circle segment
-         * @drawable false
-         */
-        circleSegment(inputs: Inputs.IO.DxfCircleSegmentDto): Inputs.IO.DxfCircleSegmentDto;
-        /**
-         * Creates a polyline segment definition for DXF export (connected line segments through points).
-         * Example: points=[[0,0], [5,0], [5,5], [0,5]] → rectangular polyline path
-         * @param inputs Polyline segment definition
-         * @returns Polyline segment DTO
-         * @group dxf
-         * @shortname polyline segment
-         * @drawable false
-         */
-        polylineSegment(inputs: Inputs.IO.DxfPolylineSegmentDto): Inputs.IO.DxfPolylineSegmentDto;
-        /**
-         * Creates a spline segment definition for DXF export (smooth curve through control points).
-         * Example: controlPoints=[[0,0], [5,10], [10,0]] → smooth curved path through points
-         * @param inputs Spline segment definition
-         * @returns Spline segment DTO
-         * @group dxf
-         * @shortname spline segment
-         * @drawable false
-         */
-        splineSegment(inputs: Inputs.IO.DxfSplineSegmentDto): Inputs.IO.DxfSplineSegmentDto;
-        /**
-         * Creates a path from multiple segments (combines lines, arcs, circles, polylines, splines).
-         * Similar to OCCT wires - segments are connected to form a continuous or multi-part path.
-         * Example: segments=[lineSegment, arcSegment, polylineSegment] → combined path entity
-         * @param inputs Path definition with segments
-         * @returns Path DTO
-         * @group dxf
-         * @shortname path
-         * @drawable false
-         */
-        path(inputs: Inputs.IO.DxfPathDto): Inputs.IO.DxfPathDto;
-        /**
-         * Creates a paths part with layer and color assignment for DXF organization.
-         * Groups multiple paths into a single layer with consistent styling.
-         * Example: paths=[path1, path2], layer="Outlines", color=red → grouped geometry
-         * @param inputs Paths part definition
-         * @returns Paths part DTO
-         * @group dxf
-         * @shortname paths part
-         * @drawable false
-         */
-        pathsPart(inputs: Inputs.IO.DxfPathsPartDto): Inputs.IO.DxfPathsPartDto;
-        /**
-         * Generates a complete DXF file from paths parts (exports 2D CAD drawing format).
-         * Supports lines, arcs, circles, polylines, and splines organized in layered paths.
-         * Example: model with 3 parts on different layers → valid DXF file string for CAD software
-         * @param inputs DXF model definition
-         * @returns DXF file content as string
-         * @group dxf
-         * @shortname dxf create
-         * @drawable false
-         */
-        dxfCreate(inputs: Inputs.IO.DxfModelDto): string;
-    }
+    declare const DXF_HIGHEST_ASCII = 126;
+    declare const DXF_HEX_WIDTH = 4;
+    declare const DXF_VIEW_MARGIN = 1.1;
+    declare const DXF_VIEW_ASPECT = 1.5;
+    declare const DXF_KNOT_TOLERANCE = "0.0000001";
+    declare const DXF_FIXED_COLORS: readonly (readonly [
+        number,
+        number,
+        number
+    ])[];
+    declare const DXF_SHADES: number[];
+    declare const DXF_GRAYS: number[];
+    declare const DXF_HUE_STEP_DEGREES = 15;
+    declare const DXF_PURE_HUE_LIGHTNESS = 0.5;
+    declare const DXF_HUES = 24;
+    declare const DXF_PASTEL_SHARE: number;
+    declare const DXF_WHITE_OR_BLACK = 7;
+    declare const DXF_TRUE_COLOR_RED = 65536;
+    declare const DXF_TRUE_COLOR_GREEN = 256;
+    declare const DXF_LENS_LENGTH = 50;
+    declare const DXF_HEX_RADIX = 16;
+    declare const DXF_TURN_SLACK = 1e-9;
+    declare const DXF_POINT_CODES: readonly [
+        10,
+        20,
+        30
+    ];
+    declare const DXF_OTHER_POINT_CODES: readonly [
+        11,
+        21,
+        31
+    ];
+    declare const DXF_EXTRUSION_CODES: readonly [
+        210,
+        220,
+        230
+    ];
+    declare const DXF_VIEW_CENTER_CODES: readonly [
+        12,
+        22,
+        32
+    ];
+    declare const DXF_SNAP_BASE_CODES: readonly [
+        13,
+        23,
+        33
+    ];
+    declare const DXF_SNAP_SPACING_CODES: readonly [
+        14,
+        24,
+        34
+    ];
+    declare const DXF_GRID_SPACING_CODES: readonly [
+        15,
+        25,
+        35
+    ];
+    declare const DXF_VIEW_DIRECTION_CODES: readonly [
+        16,
+        26,
+        36
+    ];
+    declare const DXF_VIEW_TARGET_CODES: readonly [
+        17,
+        27,
+        37
+    ];
+    declare const DXF_CLOSED_FLAG = 1;
+    declare const DXF_RATIONAL_FLAG = 4;
+    declare const DXF_POLYLINE_3D_FLAG = 8;
+    declare const DXF_MAX_NAME_LENGTH = 255;
+    declare const bytesOfData: (data: unknown) => Uint8Array | undefined;
     declare const GLB_MAGIC = 1179937895;
     declare const GLB_VERSION = 2;
     declare const GLB_HEADER_SIZE = 12;
@@ -67621,6 +68923,7 @@ declare namespace Bit {
     declare const GLB_JSON_PADDING = 32;
     declare const GLB_SCALE_NODE_NAME = "unit scale";
     declare function glbWithRootScale(glb: Uint8Array, scale: number): Uint8Array;
+    declare function pointOnGround(x: number, y: number, coordinateSystem: Base.coordinateSystemEnum | undefined): Base.Point3;
     declare const GZIP_MAGIC_FIRST = 31;
     declare const GZIP_MAGIC_SECOND = 139;
     declare const GZIP_DEFLATE_METHOD = 8;
@@ -67689,6 +68992,403 @@ declare namespace Bit {
     declare const STORED_LENGTH_BYTES = 2;
     declare function huffmanTable(lengths: ArrayLike<number>): HuffmanTable;
     declare function inflateRaw(data: Uint8Array, expectedSize?: number, limit?: number): Uint8Array;
+    declare function meshMatrixInFile(coordinateSystem: Base.coordinateSystemEnum.leftHanded, zUp: boolean): Base.TransformMatrix;
+    declare function meshMatrixInFile(coordinateSystem: Base.coordinateSystemEnum, zUp: true): Base.TransformMatrix;
+    declare function meshMatrixInFile(coordinateSystem: Base.coordinateSystemEnum, zUp: boolean): Base.TransformMatrix | undefined;
+    declare function meshMatrixInModel(coordinateSystem: Base.coordinateSystemEnum.leftHanded, zUp: boolean): Base.TransformMatrix;
+    declare function meshMatrixInModel(coordinateSystem: Base.coordinateSystemEnum, zUp: true): Base.TransformMatrix;
+    declare function meshMatrixInModel(coordinateSystem: Base.coordinateSystemEnum, zUp: boolean): Base.TransformMatrix | undefined;
+    declare function stlAxesInFile(coordinateSystem: Base.coordinateSystemEnum, zUp: boolean): StlAxes;
+    declare function stlAxesInModel(coordinateSystem: Base.coordinateSystemEnum, zUp: boolean): StlAxes;
+    type StlAxis = readonly [
+        source: 0 | 1 | 2,
+        negated: boolean
+    ];
+    interface StlAxes {
+        readonly x: StlAxis;
+        readonly y: StlAxis;
+        readonly z: StlAxis;
+        readonly mirrors: boolean;
+    }
+    declare const BINARY_HEADER_BYTES = 80;
+    declare const BINARY_COUNT_BYTES = 4;
+    declare const BINARY_TRIANGLE_BYTES = 50;
+    declare const BINARY_POINT_BYTES = 12;
+    declare const BINARY_NUMBER_BYTES = 4;
+    declare const COMPONENTS_OF_A_POINT = 3;
+    declare const POINTS_OF_A_FACET = 4;
+    declare const SECOND_VERTEX_SLOT = 2;
+    declare const THIRD_VERTEX_SLOT = 3;
+    declare const CORNERS_OF_A_TRIANGLE = 3;
+    declare const NUMBERS_OF_A_TRIANGLE = 9;
+    declare function stlOfTriangles(parts: readonly ArrayLike<number>[]): Uint8Array<ArrayBuffer>;
+    declare function stlWithAxes(bytes: Uint8Array, axes: StlAxes): Uint8Array<ArrayBuffer>;
+    interface CssDeclaration {
+        property: string;
+        value: string;
+        important: boolean;
+    }
+    type AttributeOperator = "" | "=" | "~=" | "|=" | "^=" | "$=" | "*=";
+    type Combinator = "descendant" | "child";
+    interface AttributeTest {
+        name: string;
+        operator: AttributeOperator;
+        value: string;
+    }
+    interface CompoundSelector {
+        tag?: string;
+        id?: string;
+        classes: string[];
+        attributes: AttributeTest[];
+    }
+    interface ComplexSelector {
+        compounds: CompoundSelector[];
+        combinators: Combinator[];
+    }
+    interface CssRule {
+        selector: ComplexSelector;
+        specificity: number;
+        order: number;
+        declarations: CssDeclaration[];
+    }
+    interface Stylesheet {
+        rules: CssRule[];
+        unsupported: string[];
+    }
+    interface CssMatch {
+        declaration: CssDeclaration;
+        specificity: number;
+        order: number;
+    }
+    type CssMatches = Map<XmlNode, CssMatch[]>;
+    interface CssMatching {
+        matches: CssMatches;
+        exhausted: boolean;
+    }
+    declare function parseDeclarations(text: string | undefined): CssDeclaration[];
+    declare function parseStylesheets(texts: string[], properties: ReadonlySet<string>): Stylesheet;
+    declare function matchStylesheet(root: XmlNode, sheet: Stylesheet, budget: WorkBudget): CssMatching;
+    declare const lineTypeOfDashes: (dashes: readonly number[], patternUnit: () => number | undefined) => Inputs.IO.lineTypeEnum | undefined;
+    type ViewBox = [
+        number,
+        number,
+        number,
+        number
+    ];
+    interface DocumentFrame {
+        viewBox?: ViewBox;
+        width?: number;
+        height?: number;
+        pageTransform: AffineMatrix2;
+        pageInverse: AffineMatrix2;
+        contentViewport: ViewportSize;
+        millimetresPerUserUnit: number;
+    }
+    type AxisAlignment = "min" | "mid" | "max";
+    interface AspectRatio {
+        stretch: boolean;
+        x: AxisAlignment;
+        y: AxisAlignment;
+        slice: boolean;
+    }
+    declare function parseViewBox(text: string | undefined): ViewBox | undefined;
+    declare function parseAspectRatio(preserveAspectRatio: string | undefined): AspectRatio;
+    declare function fittedViewBox(box: ViewBox, width: number, height: number, aspect: AspectRatio): AffineMatrix2;
+    declare function viewBoxTransform(box: ViewBox, width: number, height: number, preserveAspectRatio: string | undefined): AffineMatrix2;
+    declare function documentFrame(root: XmlNode): DocumentFrame;
+    declare function remembered<K, V>(known: Map<K, V>, key: K, read: (key: K) => V): V;
+    interface NormalizeOptions {
+        unit?: `${Base.unitOfLengthEnum}` | undefined;
+    }
+    declare function normalizeSvg(svg: string, options?: NormalizeOptions): SvgScene;
+    interface ViewportSize {
+        width: number;
+        height: number;
+    }
+    type LengthAxis = "x" | "y" | "other";
+    interface SvgLength {
+        value: number;
+        unit: string;
+    }
+    declare const NO_VIEWPORT: ViewportSize;
+    declare function millimetresPerPixel(): number;
+    declare function percentReference(viewport: ViewportSize, axis: LengthAxis): number;
+    declare function readLength(text: string): SvgLength | undefined;
+    declare function pixelsOf(length: SvgLength, viewport: ViewportSize, axis: LengthAxis): number;
+    declare function lengthInPixels(text: string | undefined, viewport: ViewportSize, axis: LengthAxis): number | undefined;
+    declare const ARGUMENTS_PER_PATH_COMMAND: ReadonlyMap<string, number>;
+    declare const ARC_COMMAND = "a";
+    declare const MOVE_COMMAND = "m";
+    declare const ARC_FLAG_ARGUMENTS: ReadonlySet<number>;
+    declare const CUBIC_END_ARGUMENT = 4;
+    declare const ARC_END_ARGUMENT = 5;
+    declare const QUADRATIC_TO_CUBIC_SHARE: number;
+    declare const QUARTER_TURN: number;
+    type Point2 = Inputs.Base.Point2;
+    type Read = readonly [
+        number,
+        number
+    ];
+    declare const svgNumberAt: (text: string, at: number) => Read | undefined;
+    declare const scanSvgNumbers: (text: string | undefined) => ScannedSvgNumbers;
+    declare const parseSvgPathData: (d: string) => SvgSubpath[];
+    declare const svgSubpathPoints: (subpath: SvgSubpath, perCurve: number, perQuarterTurn: number) => Point2[];
+    type Point2 = Inputs.Base.Point2;
+    interface SvgLineSegment {
+        type: "line";
+        to: Point2;
+    }
+    interface SvgQuadSegment {
+        type: "quad";
+        c: Point2;
+        to: Point2;
+    }
+    interface SvgCubicSegment {
+        type: "cubic";
+        c1: Point2;
+        c2: Point2;
+        to: Point2;
+    }
+    interface SvgArcSegment extends EllipseArc2 {
+        type: "arc";
+        to: Point2;
+    }
+    type SvgSegment = SvgLineSegment | SvgQuadSegment | SvgCubicSegment | SvgArcSegment;
+    interface SvgSubpath {
+        start: Point2;
+        segments: SvgSegment[];
+        closed: boolean;
+    }
+    interface ScannedSvgNumbers {
+        numbers: number[];
+        malformed: boolean;
+    }
+    declare const PIXELS_PER_INCH = 96;
+    declare const POINTS_PER_INCH = 72;
+    declare const PICAS_PER_INCH = 6;
+    declare const FONT_SIZE_PIXELS = 16;
+    declare const EX_PER_EM = 0.5;
+    declare const PERCENT = 100;
+    declare const COLOR_PARTS_WITH_ALPHA = 4;
+    declare const MAX_XML_NESTING = 256;
+    declare const ENTITY_EXPANSION_FLOOR = 65536;
+    declare const ENTITY_EXPANSION_PER_INPUT_CHARACTER = 8;
+    declare const ENTITY_EXPANSION_CEILING = 134217728;
+    declare const LAST_CODE_POINT = 1114111;
+    declare const REPLACEMENT_CHARACTER = "\uFFFD";
+    declare const MAX_WALK_DEPTH = 512;
+    declare const MAX_USE_DEPTH = 16;
+    declare const MAX_VISITED_ELEMENTS = 500000;
+    declare const SEGMENTS_PER_INPUT_CHARACTER = 2;
+    declare const SEGMENT_FLOOR = 25000;
+    declare const SEGMENT_CEILING = 120000;
+    declare const MAX_LISTED_SELECTORS = 5;
+    declare const MAX_LISTED_TAGS = 5;
+    declare const MAX_DASH_VALUES = 64;
+    declare const MAX_AT_RULE_NESTING = 32;
+    declare const SELECTOR_MATCH_STEPS_PER_INPUT_CHARACTER = 64;
+    declare const SELECTOR_MATCH_STEP_FLOOR = 2000000;
+    declare const SELECTOR_MATCH_STEP_CEILING = 64000000;
+    declare const STEPS_PER_ANCESTOR_TABLE = 8;
+    declare const STEPS_PER_MATCHED_DECLARATION = 8;
+    declare const SPECIFICITY_ID = 1000000;
+    declare const SPECIFICITY_CLASS = 1000;
+    declare const SPECIFICITY_TYPE = 1;
+    declare const MATRIX_ARGUMENTS = 6;
+    declare const ROTATE_ABOUT_POINT_ARGUMENTS = 3;
+    declare const HEX_RADIX = 16;
+    declare const DECIMAL_RADIX = 10;
+    declare const FULL_TURN: number;
+    declare const SAME_CONIC_SHARE = 0.000001;
+    declare const NUMBER_PRECISION_SLACK = 0.00001;
+    declare const LEAST_ARC_SWEEP = 1e-9;
+    declare const POINT_NOISE_SHARE = 1e-12;
+    declare const DASH_MATCH_SHARE = 0.001;
+    declare const LAYER_STAND_IN = "_";
+    declare const UNREAD_PAINT = "#000000";
+    declare const HIGH_SURROGATE_AT_END: RegExp;
+    interface SvgReadingOptions {
+        readonly unit: Inputs.Base.unitOfLengthEnum | undefined;
+        readonly includeInvisible: boolean;
+    }
+    declare const readSvgDrawing: (svg: string, options: SvgReadingOptions) => Inputs.IO.SvgDrawingDto;
+    /**
+     * Presentation metadata resolved for an element through the style cascade.
+     * Values are normalized but kept close to SVG semantics so callers can use them
+     * directly (e.g. colour a 3D shape by `fill`, or use `strokeWidth` as extrusion
+     * or ribbon thickness, the "strength" of a stroke).
+     */
+    interface SvgStyle {
+        /** Resolved fill colour (e.g. "#ff0000", "none"), or undefined if not set. */
+        fill?: string;
+        /** Resolved stroke colour, or undefined if not set. */
+        stroke?: string;
+        /** Stroke width in the root's user units, scaled by the element's transforms. */
+        strokeWidth?: number;
+        /** Dash and gap lengths of a dashed stroke, scaled as `strokeWidth` is; an odd list is repeated once, as SVG draws it. Left out for a solid stroke. */
+        strokeDashArray?: number[];
+        /** Opacity in [0,1], multiplied down from every ancestor that sets one. */
+        opacity?: number;
+        fillOpacity?: number;
+        strokeOpacity?: number;
+        /** SVG fill rule that governs how holes are determined. */
+        fillRule?: "nonzero" | "evenodd";
+        /** True when the element or an ancestor has display:none, or the element resolves to visibility:hidden. */
+        hidden?: boolean;
+    }
+    /** A single drawable SVG element, normalized to subpaths + resolved style. */
+    interface SvgElement {
+        /** SVG tag name: "path" | "rect" | "circle" | "ellipse" | "line" | "polyline" | "polygon". */
+        tag: string;
+        /** `id` attribute, if any. */
+        id?: string;
+        /** `class` attribute, verbatim, if any. */
+        className?: string;
+        /** The Inkscape layer the element is drawn on: the label, else the id, of the nearest enclosing group Inkscape marks as a layer. */
+        layer?: string;
+        /** Resolved presentation style. */
+        style: SvgStyle;
+        /** Geometry as subpaths in SVG user space (transforms already baked in). */
+        subpaths: SvgSubpath[];
+    }
+    /** The whole parsed document reduced to drawable elements + frame info. */
+    interface SvgScene {
+        elements: SvgElement[];
+        /** viewBox as [minX, minY, width, height] if present. */
+        viewBox?: [
+            number,
+            number,
+            number,
+            number
+        ];
+        /** The page's width and height in CSS pixels, 96 to the inch, when both are known, from `width` and `height` or from the view box. */
+        width?: number;
+        height?: number;
+        /** Millimetres one root user unit stands for horizontally, from the page size and the view box. */
+        millimetresPerUserUnit?: number;
+        /** Non-fatal issues encountered while parsing (unsupported features, etc.). */
+        warnings: string[];
+    }
+    type LengthOf = (name: string, axis: LengthAxis) => number | undefined;
+    declare function lengthsIn(attrs: XmlAttributes, viewport: ViewportSize): LengthOf;
+    declare function shapeToSubpaths(tag: string, attrs: XmlAttributes, lengthOf?: LengthOf): SvgSubpath[];
+    type Point2 = Inputs.Base.Point2;
+    interface SvgLineMove {
+        readonly kind: "L";
+        readonly to: Point2;
+    }
+    interface SvgArcMove {
+        readonly kind: "A";
+        readonly radiusX: number;
+        readonly radiusY: number;
+        readonly rotation: number;
+        readonly large: boolean;
+        readonly counterclockwise: boolean;
+        readonly to: Point2;
+    }
+    interface SvgQuadraticMove {
+        readonly kind: "Q";
+        readonly control: Point2;
+        readonly to: Point2;
+    }
+    interface SvgCubicMove {
+        readonly kind: "C";
+        readonly control1: Point2;
+        readonly control2: Point2;
+        readonly to: Point2;
+    }
+    type SvgMove = SvgLineMove | SvgArcMove | SvgQuadraticMove | SvgCubicMove;
+    interface SvgStroke {
+        readonly start: Point2;
+        readonly moves: readonly SvgMove[];
+        readonly closed: boolean;
+    }
+    declare const strokeOf: (segment: DrawingSegment, tolerance: number, budget?: WorkBudget) => SvgStroke;
+    declare const reversedStroke: (stroke: SvgStroke) => SvgStroke;
+    declare const strokeEnd: (stroke: SvgStroke) => Point2;
+    type StyleProps = Record<string, string>;
+    interface StyleState {
+        props: StyleProps;
+        opacity: number;
+        opacitySet: boolean;
+        displayNone: boolean;
+    }
+    interface StyleReadings {
+        opacity: (text: string | undefined) => number | undefined;
+        length: (text: string | undefined) => SvgLength | undefined;
+        dashes: (text: string | undefined) => readonly SvgLength[] | undefined;
+        paintsNothing: (paint: string) => boolean;
+    }
+    declare const STYLE_PROPERTIES: ReadonlySet<string>;
+    declare const INITIAL_STYLE: StyleState;
+    declare const isKeyword: (value: string | undefined, keyword: string) => boolean;
+    declare function specifiedValues(node: XmlNode, css: CssMatches): StyleProps;
+    declare function parseOpacity(value: string): number | undefined;
+    declare function computeStyle(specified: StyleProps, parent: StyleState, readings: StyleReadings): StyleState;
+    declare function toSvgStyle(state: StyleState, viewport: ViewportSize, strokeScale: number, readings: StyleReadings): SvgStyle;
+    declare function styleReadings(): StyleReadings;
+    declare function fillsArea(style: SvgStyle, readings?: StyleReadings): boolean;
+    interface ParsedTransform {
+        matrix: AffineMatrix2;
+        malformed: boolean;
+    }
+    declare function parseTransformList(value: string | undefined | null): ParsedTransform;
+    declare function parseTransform(value: string | undefined | null): AffineMatrix2;
+    declare function transformSegment(m: AffineMatrix2, seg: SvgSegment): SvgSegment;
+    declare function transformSubpath(m: AffineMatrix2, sp: SvgSubpath): SvgSubpath;
+    interface SvgDocumentOptions {
+        readonly unit: string | undefined;
+        readonly strokeWidth: number | undefined;
+        readonly margin: number | undefined;
+        readonly tolerance: number;
+        readonly property: string;
+    }
+    interface SvgPathOptions {
+        readonly flipY: boolean;
+        readonly tolerance: number;
+        readonly property: string;
+    }
+    declare const svgNumber: (value: number) => string;
+    declare const pathDataOf: (path: DrawingPath, options: SvgPathOptions) => string;
+    declare const svgDocumentOf: (parts: readonly DrawingPart[], options: SvgDocumentOptions) => string;
+    type XmlAttributes = Record<string, string>;
+    interface XmlNode {
+        tag: string;
+        prefix: string;
+        namespace?: string;
+        attrs: XmlAttributes;
+        attrNamespaces?: XmlAttributes;
+        children: XmlNode[];
+        text?: string;
+    }
+    declare function parseXml(input: string): XmlNode | undefined;
+    declare const QUADRATIC_DEGREE = 2;
+    declare const CUBIC_DEGREE = 3;
+    declare const SVG_ARC_PIECE: number;
+    declare const EDGE_ON_SHARE = 1e-12;
+    declare const SVG_DECIMALS = 6;
+    declare const TRAILING_FRACTION_ZEROS: RegExp;
+    declare const LEAST_VIEW_SPAN: number;
+    declare const SVG_JOIN_DISTANCE = 1e-9;
+    declare const STROKE_SHARE: number;
+    declare const MARGIN_SHARE: number;
+    declare const SVG_UNITS: Readonly<Record<string, readonly [
+        string,
+        number
+    ]>>;
+    declare const ID_UNSAFE: RegExp;
+    declare const PATH_COLOR = "#000000";
+    declare class WorkBudget {
+        readonly capacity: number;
+        private used;
+        constructor(capacity: number);
+        static forInput(inputSize: number, perUnit: number, floor: number, ceiling?: number): WorkBudget;
+        get spent(): number;
+        get remaining(): number;
+        get exhausted(): boolean;
+        spend(units: number): boolean;
+        affords(units: number): boolean;
+    }
     declare const CRC32_POLYNOMIAL = 3988292384;
     declare const CRC32_ALL_ONES = 4294967295;
     declare const BYTE_MASK = 255;
@@ -67738,12 +69438,37 @@ declare namespace Bit {
     declare function zipStoredParts<T>(records: readonly ZipStoredRecord<T>[], modified?: Date): (Uint8Array<ArrayBuffer> | T)[];
     declare function zipStored(files: readonly ZipFile[], modified?: Date): Uint8Array<ArrayBuffer>;
     declare function zipStoredBlob(files: readonly ZipFile[], modified?: Date): Blob;
+    type AffineMatrix2 = readonly [
+        number,
+        number,
+        number,
+        number,
+        number,
+        number
+    ];
+    declare const AFFINE_IDENTITY2: AffineMatrix2;
+    declare const affineProduct2: (first: AffineMatrix2, second: AffineMatrix2) => AffineMatrix2;
+    declare const affinePoint2: (matrix: AffineMatrix2, point: Base.Point2) => Base.Point2;
+    declare const affineTranslation2: (x: number, y: number) => AffineMatrix2;
+    declare const affineScaling2: (x: number, y: number) => AffineMatrix2;
+    declare const affineAreaScale2: (matrix: AffineMatrix2) => number;
     type Point2 = Inputs.Base.Point2;
     type Point3 = Inputs.Base.Point3;
     declare const arcThroughThreePoints: (start: Point3, middle: Point3, end: Point3) => ThreePointArc | undefined;
     declare const pointsOnArc: (arc: ThreePointArc, start: Point3, end: Point3, segments: number) => Point3[];
     declare const pointOnCubic2: (from: Point2, control1: Point2, control2: Point2, to: Point2, t: number) => Point2;
     declare const pointOnCubic3: (from: Point3, control1: Point3, control2: Point3, to: Point3, t: number) => Point3;
+    type Point2 = Inputs.Base.Point2;
+    interface EllipseArc2 {
+        center: Point2;
+        rx: number;
+        ry: number;
+        xAxisRotation: number;
+        startAngle: number;
+        deltaAngle: number;
+    }
+    declare const ellipseArcOfEndpoints2: (from: Point2, to: Point2, radiusX: number, radiusY: number, xAxisRotation: number, largeArc: boolean, sweep: boolean) => EllipseArc2 | undefined;
+    declare const affineEllipseArc2: (matrix: AffineMatrix2, arc: EllipseArc2) => EllipseArc2;
     type Vec3 = Inputs.Base.Vector3;
     /**
      * The sine below which two directions count as parallel wherever a frame is squared: a direction
@@ -67752,7 +69477,9 @@ declare namespace Bit {
     declare const PARALLEL_SINE = 1e-9;
     /**
      * A frame as the four vectors the maths reads: the origin and three unit axes at right angles,
-     * with `y` the cross product of `z` and `x`.
+     * with `y` the cross product of `z` and `x`. `vectorToWorld`, `pointToWorld` and `composeAxes`
+     * also map by axes of any length and angle, such as a scaled block insert's; the `ToLocal`
+     * functions and `relativeAxes` undo only unit axes at right angles.
      */
     interface FrameAxes {
         readonly origin: Vec3;
@@ -67831,6 +69558,58 @@ declare namespace Bit {
     declare const transportedAxes: (points: readonly Point3[], tangents: readonly Vec3[], first: Vec3) => Vec3[];
     declare const sweepMatrices: (points: readonly Point3[], tangents: readonly Vec3[], xAxes: readonly Vec3[]) => Inputs.Base.TransformMatrix[];
     declare const roundedPath3: (points: readonly Point3[], radius: number, segmentsFor: (sweep: number) => number) => Point3[];
+    declare const NESTING_BOX_MARGIN = 0.01;
+    declare const INTERIOR_SCANLINES: number[];
+    declare const COINCIDENT_AREA_SHARE = 1e-9;
+    declare const SWEEP_CANDIDATES_PER_PAIR = 1000;
+    declare const SWEEP_STEPS_PER_BOX = 20;
+    declare const SWEEP_STEPS_PER_CANDIDATE = 2;
+    type Point2 = Inputs.Base.Point2;
+    type FillRule2 = "nonzero" | "evenOdd";
+    interface Box2 {
+        min: Point2;
+        max: Point2;
+    }
+    interface NestingOutline2 {
+        points: Point2[];
+        area: number;
+        box: Box2;
+        inner?: Point2;
+    }
+    interface FilledRegion2 {
+        outer: number;
+        holes: number[];
+    }
+    declare const boxOf2: (points: readonly Point2[]) => Box2;
+    declare const boxesOverlap2: (a: Box2, b: Box2) => boolean;
+    declare const interiorPoint2: (points: readonly Point2[], box?: Box2) => Point2 | undefined;
+    declare const nestingOutlineOf2: (points: Point2[]) => NestingOutline2;
+    declare function overlappingBoxPairs2(boxes: readonly Box2[]): [
+        number,
+        number
+    ][];
+    declare function overlappingBoxPairs2(boxes: readonly Box2[], most: number, budget?: WorkBudget): [
+        number,
+        number
+    ][] | undefined;
+    declare const segmentsCross2: (p1: Point2, p2: Point2, q1: Point2, q2: Point2) => boolean;
+    declare function outlinesCross2(outlines: readonly NestingOutline2[], pairs: readonly (readonly [
+        number,
+        number
+    ])[]): boolean;
+    declare function outlinesCross2(outlines: readonly NestingOutline2[], pairs: readonly (readonly [
+        number,
+        number
+    ])[], budget: WorkBudget): boolean | undefined;
+    declare function nestedOutlines2(outlines: readonly NestingOutline2[], pairs: readonly (readonly [
+        number,
+        number
+    ])[]): number[][];
+    declare function nestedOutlines2(outlines: readonly NestingOutline2[], pairs: readonly (readonly [
+        number,
+        number
+    ])[], budget: WorkBudget): number[][] | undefined;
+    declare const filledRegions2: (outlines: readonly NestingOutline2[], ancestors: readonly (readonly number[])[], rule: FillRule2) => FilledRegion2[];
     type Point2 = Inputs.Base.Point2;
     declare const signedArea2: (points: readonly Point2[]) => number;
     declare const wound2: (points: readonly Point2[], counterClockwise: boolean) => Point2[];
@@ -67907,6 +69686,7 @@ declare namespace Bit {
     declare const length3: (a: Vec3) => number;
     declare const between3: (a: Vec3, b: Vec3, share: number) => Vec3;
     declare const distance3: (a: Vec3, b: Vec3) => number;
+    declare const distanceToSegment3: (point: Vec3, start: Vec3, end: Vec3) => number;
     interface ThreePointArc {
         readonly center: Inputs.Base.Point3;
         readonly x: Inputs.Base.Vector3;
@@ -68095,12 +69875,378 @@ declare namespace Bit {
     declare function pointsOnTree(tree: TriangleTree, most: number): Vec[];
     declare function treeBox(tree: TriangleTree): TreeBox | undefined;
     /**
-     * Reading and writing files: exporting geometry to the supported formats, importing it back, and
-     * the download and upload helpers that move files between the browser and the user's machine.
+     * Builds drawings as data, for any file format: segments of every kind, paths joined from segments,
+     * and parts that put paths on a layer with a color and a line type. `io.dxf.dxfCreate` writes the
+     * parts as DXF and `io.svg.svgCreate` as SVG; `svgToDxf` and `dxfToSvg` convert one file into the
+     * other through these parts.
+     */
+    declare class Drawing {
+        private readonly dxfOf;
+        private readonly svgOf;
+        constructor(dxfOf: () => Dxf, svgOf: () => Svg);
+        /**
+         * Makes a straight segment of a drawing path, from `start` to `end`.
+         * @param inputs - The start and the end point
+         * @returns The line segment
+         * @group drawing
+         * @shortname line segment
+         * @drawable false
+         * @example
+         * ```typescript
+         * const edge = bitbybit.io.drawing.lineSegment({ start: [0, 0], end: [40, 0] });
+         * ```
+         */
+        lineSegment(inputs: Inputs.IO.DrawingLineSegmentDto): Inputs.IO.DrawingLineSegmentDto;
+        /**
+         * Makes a circular arc of a drawing path, running counterclockwise about its `center` from
+         * `startAngle` to `endAngle`, in degrees, in the XY plane unless a `normal` tilts it.
+         * @param inputs - The center, the radius, the start and end angles and the plane's normal
+         * @returns The arc segment
+         * @group drawing
+         * @shortname arc segment
+         * @drawable false
+         * @example
+         * ```typescript
+         * const corner = bitbybit.io.drawing.arcSegment({ center: [0, 0], radius: 10, startAngle: 0, endAngle: 90 });
+         * ```
+         */
+        arcSegment(inputs: Inputs.IO.DrawingArcSegmentDto): Inputs.IO.DrawingArcSegmentDto;
+        /**
+         * Makes a whole circle of a drawing path from its `center` and `radius`, in the XY plane unless a
+         * `normal` tilts it.
+         * @param inputs - The center, the radius and the plane's normal
+         * @returns The circle segment
+         * @group drawing
+         * @shortname circle segment
+         * @drawable false
+         * @example
+         * ```typescript
+         * const hole = bitbybit.io.drawing.circleSegment({ center: [20, 15], radius: 6 });
+         * ```
+         */
+        circleSegment(inputs: Inputs.IO.DrawingCircleSegmentDto): Inputs.IO.DrawingCircleSegmentDto;
+        /**
+         * Makes connected straight segments through `points`, which `bulges` can bend into arcs;
+         * `closed` joins the last point back to the first.
+         * @param inputs - The points, whether the polyline is closed, and the bulges
+         * @returns The polyline segment
+         * @group drawing
+         * @shortname polyline segment
+         * @drawable false
+         * @example
+         * ```typescript
+         * const slot = bitbybit.io.drawing.polylineSegment({ points: [[0, 0], [30, 0], [30, 10], [0, 10]], closed: true, bulges: [0, 1, 0, 1] });
+         * ```
+         */
+        polylineSegment(inputs: Inputs.IO.DrawingPolylineSegmentDto): Inputs.IO.DrawingPolylineSegmentDto;
+        /**
+         * Makes a B-spline or NURBS curve of a drawing path from its control points and degree, with
+         * its knots and weights when they are given.
+         * @param inputs - The control points, the degree, whether it is closed, the knots and the weights
+         * @returns The spline segment
+         * @group drawing
+         * @shortname spline segment
+         * @drawable false
+         * @example
+         * ```typescript
+         * const wave = bitbybit.io.drawing.splineSegment({ controlPoints: [[0, 0], [10, 8], [20, -8], [30, 0]], degree: 3 });
+         * ```
+         */
+        splineSegment(inputs: Inputs.IO.DrawingSplineSegmentDto): Inputs.IO.DrawingSplineSegmentDto;
+        /**
+         * Makes an ellipse, or an arc of one, for a drawing path.
+         *
+         * The ellipse is given by its center, the vector to the end of its major axis and the minor to
+         * major ratio; parameters in radians pick the arc, running counterclockwise about the normal.
+         * @param inputs - The center, the major axis, the ratio, the start and end parameters and the plane's normal
+         * @returns The ellipse segment
+         * @group drawing
+         * @shortname ellipse segment
+         * @drawable false
+         * @example
+         * ```typescript
+         * const lens = bitbybit.io.drawing.ellipseSegment({ center: [0, 0], majorAxis: [20, 0], ratio: 0.5, startParameter: 0, endParameter: Math.PI });
+         * ```
+         */
+        ellipseSegment(inputs: Inputs.IO.DrawingEllipseSegmentDto): Inputs.IO.DrawingEllipseSegmentDto;
+        /**
+         * Joins segments into one path, drawn in order like the edges of a wire; segments that meet
+         * are drawn as one stroke in SVG.
+         * @param inputs - The segments, in order
+         * @returns The path
+         * @group drawing
+         * @shortname path
+         * @drawable false
+         * @example
+         * ```typescript
+         * const edge = bitbybit.io.drawing.lineSegment({ start: [0, 0], end: [40, 0] });
+         * const corner = bitbybit.io.drawing.arcSegment({ center: [40, 10], radius: 10, startAngle: 270, endAngle: 360 });
+         * const outline = bitbybit.io.drawing.path({ segments: [edge, corner] });
+         * ```
+         */
+        path(inputs: Inputs.IO.DrawingPathDto): Inputs.IO.DrawingPathDto;
+        /**
+         * Puts paths on a named layer with a color and a line type, making one part of a drawing.
+         *
+         * A drawing may hold several parts; `io.dxf.dxfCreate` writes them as DXF and `io.svg.svgCreate`
+         * as SVG.
+         * @param inputs - The layer name, the color, the paths and the line type
+         * @returns The part
+         * @group drawing
+         * @shortname part
+         * @drawable false
+         * @example
+         * ```typescript
+         * const square = bitbybit.io.drawing.polylineSegment({ points: [[0, 0], [40, 0], [40, 30], [0, 30]], closed: true });
+         * const cut = bitbybit.io.drawing.part({ layer: "cut", color: "#ff0000", paths: [{ segments: [square] }] });
+         * ```
+         */
+        part(inputs: Inputs.IO.DrawingPartDto): Inputs.IO.DrawingPartDto;
+        /**
+         * Converts an SVG file into a DXF file, reading it as `io.svg.svgRead` does and writing it as
+         * `io.dxf.dxfCreate` does.
+         *
+         * Inkscape layers, stroke colors and dash patterns become DXF layers, colors and line types, and
+         * curves stay exact. With `unit` the drawing is read at true size and the DXF states that unit. A
+         * drawing too large to write throws.
+         * @param inputs - The SVG text, the unit, whether hidden elements are written, and the DXF's color format, version and curve tolerance
+         * @returns The DXF text and the reading's warnings
+         * @group convert
+         * @shortname svg to dxf
+         * @drawable false
+         * @example
+         * ```typescript
+         * const converted = bitbybit.io.drawing.svgToDxf({ svg: svgText, unit: Bit.Inputs.Base.unitOfLengthEnum.millimetre });
+         * const drawing = bitbybit.io.dxf.dxfRead({ dxf: converted.dxf });
+         * ```
+         */
+        svgToDxf(inputs: Inputs.IO.SvgToDxfDto): Inputs.IO.SvgToDxfResultDto;
+        /**
+         * Converts a DXF file into an SVG file, reading it as `io.dxf.dxfRead` does and writing it as
+         * `io.svg.svgCreate` does.
+         *
+         * Layers become Inkscape layers and the SVG takes its true size from the unit the DXF states.
+         * Splines given only by fit points are left out and named in `warnings`; a drawing too large to
+         * write throws.
+         * @param inputs - The DXF file as text or bytes, whether hidden layers are written, and the SVG's line width, border and curve tolerance
+         * @returns The SVG text and the reading's warnings
+         * @group convert
+         * @shortname dxf to svg
+         * @drawable false
+         * @example
+         * ```typescript
+         * const converted = bitbybit.io.drawing.dxfToSvg({ dxf: dxfText, includeHiddenLayers: true });
+         * const drawing = bitbybit.io.svg.svgRead({ svg: converted.svg });
+         * ```
+         */
+        dxfToSvg(inputs: Inputs.IO.DxfToSvgDto): Inputs.IO.DxfToSvgResultDto;
+    }
+    /**
+     * Writes a drawing as a DXF file and reads a DXF file back into one. The drawing itself is built with
+     * `io.drawing`; the builders here are its former DXF-named copies.
+     */
+    declare class Dxf {
+        private readonly dxfGenerator;
+        /**
+         * Makes a straight segment for a drawing, under its former DXF name.
+         * @param inputs - The line segment definition
+         * @returns The line segment
+         * @group dxf
+         * @shortname line segment
+         * @drawable false
+         * @deprecated Use `io.drawing.lineSegment`, the same builder under the drawing's own name; this one is
+         * removed in the next major version.
+         */
+        lineSegment(inputs: Inputs.IO.DxfLineSegmentDto): Inputs.IO.DxfLineSegmentDto;
+        /**
+         * Makes a circular arc for a drawing, under its former DXF name.
+         * @param inputs - The arc segment definition
+         * @returns The arc segment
+         * @group dxf
+         * @shortname arc segment
+         * @drawable false
+         * @deprecated Use `io.drawing.arcSegment`, the same builder under the drawing's own name; this one is
+         * removed in the next major version.
+         */
+        arcSegment(inputs: Inputs.IO.DxfArcSegmentDto): Inputs.IO.DxfArcSegmentDto;
+        /**
+         * Makes a whole circle for a drawing, under its former DXF name.
+         * @param inputs - The circle segment definition
+         * @returns The circle segment
+         * @group dxf
+         * @shortname circle segment
+         * @drawable false
+         * @deprecated Use `io.drawing.circleSegment`, the same builder under the drawing's own name; this one is
+         * removed in the next major version.
+         */
+        circleSegment(inputs: Inputs.IO.DxfCircleSegmentDto): Inputs.IO.DxfCircleSegmentDto;
+        /**
+         * Makes connected straight segments for a drawing, under its former DXF name.
+         * @param inputs - The polyline segment definition
+         * @returns The polyline segment
+         * @group dxf
+         * @shortname polyline segment
+         * @drawable false
+         * @deprecated Use `io.drawing.polylineSegment`, the same builder under the drawing's own name; this one is
+         * removed in the next major version.
+         */
+        polylineSegment(inputs: Inputs.IO.DxfPolylineSegmentDto): Inputs.IO.DxfPolylineSegmentDto;
+        /**
+         * Makes a B-spline or NURBS curve for a drawing, under its former DXF name.
+         * @param inputs - The spline segment definition
+         * @returns The spline segment
+         * @group dxf
+         * @shortname spline segment
+         * @drawable false
+         * @deprecated Use `io.drawing.splineSegment`, the same builder under the drawing's own name; this one is
+         * removed in the next major version.
+         */
+        splineSegment(inputs: Inputs.IO.DxfSplineSegmentDto): Inputs.IO.DxfSplineSegmentDto;
+        /**
+         * Makes an ellipse or an arc of one for a drawing, under its former DXF name.
+         * @param inputs - The ellipse segment definition
+         * @returns The ellipse segment
+         * @group dxf
+         * @shortname ellipse segment
+         * @drawable false
+         * @deprecated Use `io.drawing.ellipseSegment`, the same builder under the drawing's own name; this one is
+         * removed in the next major version.
+         */
+        ellipseSegment(inputs: Inputs.IO.DxfEllipseSegmentDto): Inputs.IO.DxfEllipseSegmentDto;
+        /**
+         * Makes a path joined from segments for a drawing, under its former DXF name.
+         * @param inputs - The path definition
+         * @returns The path
+         * @group dxf
+         * @shortname path
+         * @drawable false
+         * @deprecated Use `io.drawing.path`, the same builder under the drawing's own name; this one is
+         * removed in the next major version.
+         */
+        path(inputs: Inputs.IO.DxfPathDto): Inputs.IO.DxfPathDto;
+        /**
+         * Makes a part of a drawing on one layer for a drawing, under its former DXF name.
+         * @param inputs - The paths part definition
+         * @returns The paths part
+         * @group dxf
+         * @shortname paths part
+         * @drawable false
+         * @deprecated Use `io.drawing.part`, the same builder under the drawing's own name; this one is
+         * removed in the next major version.
+         */
+        pathsPart(inputs: Inputs.IO.DxfPathsPartDto): Inputs.IO.DxfPathsPartDto;
+        /**
+         * Writes a DXF file from path parts, each on its layer with its color and line type.
+         *
+         * `AC1015` keeps every curve exact. `AC1009` (R12) writes splines and ellipses as polylines
+         * within `curveTolerance`, never finer than a millionth of the drawing. Points off one Z make a
+         * 3D polyline; a drawing too large to write throws.
+         * @param inputs DXF model definition
+         * @returns DXF file content as string
+         * @group dxf
+         * @shortname dxf create
+         * @drawable false
+         * @example
+         * ```typescript
+         * const outline = bitbybit.io.drawing.polylineSegment({ points: [[0, 0], [40, 0], [40, 30], [0, 30]], closed: true });
+         * const hole = bitbybit.io.drawing.circleSegment({ center: [20, 15], radius: 6 });
+         * const part = bitbybit.io.drawing.part({ layer: "cut", color: "#ff0000", paths: [{ segments: [outline] }, { segments: [hole] }] });
+         * const dxf = bitbybit.io.dxf.dxfCreate({ dxfPathsParts: [part], unit: Bit.Inputs.Base.unitOfLengthEnum.millimetre });
+         * ```
+         */
+        dxfCreate(inputs: Inputs.IO.DxfModelDto): string;
+        /**
+         * Reads a DXF file into path parts by layer, color and line type, the model `dxfCreate` writes.
+         *
+         * Lines, arcs, circles, ellipses, polylines and splines are read exactly in the file's
+         * coordinates, block inserts expanded. Text, dimensions and hatches are left out and named in
+         * `warnings`; splines given only by fit points are read by `occt.io.loadDxf`.
+         * @param inputs - The DXF file, as text or bytes, and whether hidden layers are read
+         * @returns The drawing's parts, unit, version and warnings
+         * @group dxf
+         * @shortname dxf read
+         * @drawable false
+         * @example
+         * ```typescript
+         * const drawing = bitbybit.io.dxf.dxfRead({ dxf: dxfText });
+         * const svg = bitbybit.io.svg.svgCreate({ parts: drawing.parts, unit: drawing.unit });
+         * ```
+         */
+        dxfRead(inputs: Inputs.IO.DxfReadDto): Inputs.IO.DxfDrawingDto;
+    }
+    /**
+     * Drawings as data, with no kernel: `drawing` builds one from segments, paths and layered parts and
+     * converts SVG files to DXF and back, `dxf` writes it as a DXF file and reads one back, and `svg` does
+     * the same for SVG.
      */
     declare class IoBitByBit {
+        drawing: Drawing;
         dxf: Dxf;
+        svg: Svg;
         constructor();
+    }
+    /**
+     * Writes SVG drawings from the same path parts DXF files are made of: lines, arcs, circles, bulged
+     * polylines, splines and ellipses, kept exact wherever SVG can draw them. Reads SVG files back into
+     * those parts, by layer, color and line type.
+     */
+    declare class Svg {
+        /**
+         * Writes an SVG file from path parts, each layer an Inkscape layer.
+         *
+         * Arcs, circles, ellipses and bulges stay exact arcs, unweighted splines up to degree 3 exact
+         * Beziers, others cubics within `tolerance` (at least a millionth of the drawing). Y points up, Z
+         * is dropped and `unit` gives the true size. A drawing too large to write throws.
+         * @param inputs - The path parts, the unit, the line width, the border and the curve tolerance
+         * @returns The SVG file as text
+         * @group svg
+         * @shortname svg create
+         * @drawable false
+         * @example
+         * ```typescript
+         * const square = bitbybit.io.drawing.polylineSegment({ points: [[0, 0], [40, 0], [40, 30], [0, 30]], closed: true });
+         * const hole = bitbybit.io.drawing.circleSegment({ center: [20, 15], radius: 6 });
+         * const part = bitbybit.io.drawing.part({ layer: "cut", color: "#ff0000", paths: [{ segments: [square] }, { segments: [hole] }] });
+         * const svg = bitbybit.io.svg.svgCreate({ parts: [part], unit: Bit.Inputs.Base.unitOfLengthEnum.millimetre });
+         * ```
+         */
+        svgCreate(inputs: Inputs.IO.SvgModelDto): string;
+        /**
+         * Writes one drawing path as SVG path data, the text of a `path` element's `d` attribute.
+         *
+         * Segments that meet are drawn as one stroke, reversed where a segment ends where the stroke is,
+         * and a stroke that returns to its start is closed. Curves are kept exact as `svgCreate` keeps
+         * them.
+         * @param inputs - The path, whether Y is negated, and the curve tolerance
+         * @returns SVG path data
+         * @group svg
+         * @shortname path data
+         * @drawable false
+         * @example
+         * ```typescript
+         * const slot = bitbybit.io.drawing.polylineSegment({ points: [[0, 0], [30, 0], [30, 10], [0, 10]], closed: true, bulges: [0, 1, 0, 1] });
+         * const data = bitbybit.io.svg.pathData({ path: { segments: [slot] }, flipY: false });
+         * ```
+         */
+        pathData(inputs: Inputs.IO.SvgPathDataDto): string;
+        /**
+         * Reads an SVG file into path parts by layer, color and line type, the model `svgCreate` writes.
+         *
+         * Lines, arcs and Bezier curves are read exactly, transforms applied and Y turned up. Inkscape
+         * layers are layers, each stroke color (else fill) a color, each dash pattern a line type. Text
+         * and images are left out and named in `warnings`.
+         * @param inputs - The SVG text, the unit to read it in and whether hidden elements are read
+         * @returns The drawing's parts, unit, view box and warnings
+         * @group svg
+         * @shortname svg read
+         * @drawable false
+         * @example
+         * ```typescript
+         * const drawing = bitbybit.io.svg.svgRead({ svg: svgText, unit: Bit.Inputs.Base.unitOfLengthEnum.millimetre });
+         * const dxf = bitbybit.io.dxf.dxfCreate({ dxfPathsParts: drawing.parts, unit: drawing.unit });
+         * ```
+         */
+        svgRead(inputs: Inputs.IO.SvgReadDto): Inputs.IO.SvgDrawingDto;
     }
     /**
      * Straight lines between two points, held as plain objects of the form `{ start, end }`, and the
@@ -68146,6 +70292,23 @@ declare namespace Bit {
          * @drawable false
          */
         length(inputs: Inputs.Line.LineDto): number;
+        /**
+         * Measures how far a point lies from a line, to the nearest point between its start and end.
+         *
+         * A point beside the line is measured square to it, and one past either end to that end. A line
+         * whose ends meet is measured to that one point.
+         * @param inputs - The line and the point
+         * @returns Distance in model units
+         * @group get
+         * @shortname distance to point
+         * @drawable false
+         * @example
+         * ```typescript
+         * const beside = bitbybit.line.distanceToPoint({ line: { start: [0, 0, 0], end: [10, 0, 0] }, point: [4, 3, 0] });
+         * const pastTheEnd = bitbybit.line.distanceToPoint({ line: { start: [0, 0, 0], end: [10, 0, 0] }, point: [13, 4, 0] });
+         * ```
+         */
+        distanceToPoint(inputs: Inputs.Line.LinePointDistanceDto): number;
         /**
          * Swaps the start and end of a line, so it runs the other way.
          *
@@ -70208,7 +72371,9 @@ declare namespace Bit {
         private readonly transforms;
         private readonly vector;
         private readonly lists;
-        constructor(geometryHelper: GeometryHelper, transforms: Transforms, vector: Vector, lists: Lists);
+        private readonly settings;
+        constructor(geometryHelper: GeometryHelper, transforms: Transforms, vector: Vector, lists: Lists, settings?: () => BitbybitSettings);
+        private onGround;
         /**
          * Applies a transformation matrix, or a list of them in order, to one point.
          *
@@ -71236,6 +73401,8 @@ declare namespace Bit {
      * @beta
      */
     declare class Recipes {
+        private readonly settings;
+        constructor(settings?: () => BitbybitSettings);
         /**
          * Checks a value against the recipe format and lists what is wrong with it: steps that refer
          * forward or out of range, ranges outside their buffers, coordinates that are not finite or
@@ -71314,7 +73481,8 @@ declare namespace Bit {
      */
     declare class TextBitByBit {
         private readonly point;
-        constructor(point: Point);
+        private readonly settings;
+        constructor(point: Point, settings?: () => BitbybitSettings);
         /**
          * Passes a text through unchanged, so a value can be given a name and reused.
          *
@@ -71827,6 +73995,7 @@ declare namespace Bit {
          * ```
          */
         vectorText(inputs: Inputs.Text.VectorTextDto): Models.Text.VectorTextData[];
+        private onGround;
         private vectorParamsChar;
         private translateLine;
     }
@@ -75325,6 +77494,7 @@ declare namespace Bit {
         readonly frame: Frame;
         readonly engineering: Engineering;
         readonly recipes: Recipes;
+        readonly io: IoBitByBit;
         readonly line: Line;
         readonly polyline: Polyline;
         readonly mesh: MeshBitByBit;

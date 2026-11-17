@@ -377,6 +377,10 @@ declare namespace Bit {
                 metre = "m",
                 inch = "in"
             }
+            enum coordinateSystemEnum {
+                leftHanded = "leftHanded",
+                rightHanded = "rightHanded"
+            }
             enum colorMapStrategyEnum {
                 firstColorForAll = "firstColorForAll",
                 lastColorRemainder = "lastColorRemainder",
@@ -3879,26 +3883,46 @@ declare namespace Bit {
                 binary?: boolean | undefined;
             }
             class ShapeToDxfPathsDto<T> {
-                constructor(shape?: T, angularDeflection?: number, curvatureDeflection?: number, minimumOfPoints?: number, uTolerance?: number, minimumLength?: number);
+                constructor(shape?: T, angularDeflection?: number, curvatureDeflection?: number, minimumOfPoints?: number, uTolerance?: number, minimumLength?: number, exactCurves?: boolean);
                 shape: T;
                 angularDeflection?: number | undefined;
                 curvatureDeflection?: number | undefined;
                 minimumOfPoints?: number | undefined;
                 uTolerance?: number | undefined;
                 minimumLength?: number | undefined;
+                exactCurves?: boolean | undefined;
             }
             class DxfPathsWithLayerDto {
-                constructor(paths?: IO.DxfPathDto[], layer?: string, color?: Base.Color);
-                paths: IO.DxfPathDto[];
+                constructor(paths?: IO.DrawingPathDto[], layer?: string, color?: Base.Color, lineType?: IO.lineTypeEnum);
+                paths: IO.DrawingPathDto[];
                 layer?: string | undefined;
                 color?: Base.Color | undefined;
+                lineType?: IO.lineTypeEnum | undefined;
             }
             class DxfPathsPartsListDto {
-                constructor(pathsParts?: IO.DxfPathsPartDto[], colorFormat?: dxfColorFormatEnum, acadVersion?: dxfAcadVersionEnum, tryDownload?: boolean, unit?: Base.unitOfLengthEnum);
-                pathsParts: IO.DxfPathsPartDto[];
+                constructor(pathsParts?: IO.DrawingPartDto[], colorFormat?: dxfColorFormatEnum, acadVersion?: dxfAcadVersionEnum, tryDownload?: boolean, unit?: Base.unitOfLengthEnum, curveTolerance?: number);
+                pathsParts: IO.DrawingPartDto[];
                 colorFormat?: dxfColorFormatEnum | undefined;
                 acadVersion?: dxfAcadVersionEnum | undefined;
+                curveTolerance?: number | undefined;
                 unit?: Base.unitOfLengthEnum | undefined;
+                fileName?: string | undefined;
+                tryDownload?: boolean | undefined;
+            }
+            class SvgLayerDto<T> {
+                constructor(shapes?: T[], layer?: string, color?: Base.Color, lineType?: IO.lineTypeEnum);
+                shapes: T[];
+                layer?: string | undefined;
+                color?: Base.Color | undefined;
+                lineType?: IO.lineTypeEnum | undefined;
+            }
+            class SvgLayersDto<T> {
+                constructor(layers?: SvgLayerDto<T>[], unit?: Base.unitOfLengthEnum, strokeWidth?: number, margin?: number, tolerance?: number, fileName?: string, tryDownload?: boolean);
+                layers: SvgLayerDto<T>[];
+                unit?: Base.unitOfLengthEnum | undefined;
+                strokeWidth?: number | undefined;
+                margin?: number | undefined;
+                tolerance?: number | undefined;
                 fileName?: string | undefined;
                 tryDownload?: boolean | undefined;
             }
@@ -4482,7 +4506,7 @@ declare namespace Bit {
                 origin?: Base.Point3 | undefined;
             }
             class LoadSVGDto {
-                constructor(svg?: string, faceStrategy?: svgFaceStrategyEnum, makeRibbons?: boolean, includeInvisible?: boolean, joinSegments?: boolean, tolerance?: number, scale?: number, flipY?: boolean, alignment?: Base.basicAlignmentEnum, direction?: Base.Vector3, center?: Base.Point3);
+                constructor(svg?: string, faceStrategy?: svgFaceStrategyEnum, makeRibbons?: boolean, includeInvisible?: boolean, joinSegments?: boolean, tolerance?: number, scale?: number, flipY?: boolean, alignment?: Base.basicAlignmentEnum, direction?: Base.Vector3, center?: Base.Point3, unit?: Base.unitOfLengthEnum, keepOrigin?: boolean);
                 svg?: string | undefined;
                 faceStrategy?: svgFaceStrategyEnum | undefined;
                 makeRibbons?: boolean | undefined;
@@ -4494,6 +4518,8 @@ declare namespace Bit {
                 alignment?: Base.basicAlignmentEnum | undefined;
                 direction?: Base.Vector3 | undefined;
                 center?: Base.Point3 | undefined;
+                unit?: Base.unitOfLengthEnum | undefined;
+                keepOrigin?: boolean | undefined;
             }
             class SVGShape<T> {
                 shape: T;
@@ -4515,6 +4541,9 @@ declare namespace Bit {
                     number,
                     number
                 ] | undefined;
+                documentWidth?: number | undefined;
+                documentHeight?: number | undefined;
+                millimetresPerUserUnit?: number | undefined;
                 warnings: string[];
             }
             enum strokeCapEnum {
@@ -5124,6 +5153,26 @@ declare namespace Bit {
                 constructor(brepData?: ArrayBuffer | Uint8Array | File | Blob);
                 brepData: ArrayBuffer | Uint8Array | File | Blob;
             }
+            class LoadDxfDto {
+                constructor(dxf?: string | File | Blob, makeFaces?: boolean, joinTolerance?: number, includeHiddenLayers?: boolean, unit?: Base.unitOfLengthEnum);
+                dxf: string | File | Blob;
+                makeFaces?: boolean | undefined;
+                joinTolerance?: number | undefined;
+                includeHiddenLayers?: boolean | undefined;
+                unit?: Base.unitOfLengthEnum | undefined;
+            }
+            class DxfShapePart<T> {
+                layer: string;
+                color: string;
+                lineType: IO.lineTypeEnum;
+                shape: T;
+            }
+            class DxfShapesResult<T> {
+                parts: DxfShapePart<T>[];
+                unit?: Base.unitOfLengthEnum | undefined;
+                version: string;
+                warnings: string[];
+            }
             class SaveObjDto<T> {
                 constructor(shape?: T, fileName?: string, precision?: number, adjustYtoZ?: boolean, tryDownload?: boolean);
                 shape: T;
@@ -5147,6 +5196,17 @@ declare namespace Bit {
                 drawHidden?: boolean | undefined;
                 precision?: number | undefined;
                 unit?: Base.unitOfLengthEnum | undefined;
+                fileName?: string | undefined;
+                tryDownload?: boolean | undefined;
+            }
+            class SaveDxfDto<T> {
+                constructor(shape?: T, frame?: Base.Frame, drawHidden?: boolean, precision?: number, fileName?: string, tryDownload?: boolean, unit?: Base.unitOfLengthEnum, acadVersion?: dxfAcadVersionEnum);
+                shape: T;
+                frame: Base.Frame;
+                drawHidden?: boolean | undefined;
+                precision?: number | undefined;
+                unit?: Base.unitOfLengthEnum | undefined;
+                acadVersion?: dxfAcadVersionEnum | undefined;
                 fileName?: string | undefined;
                 tryDownload?: boolean | undefined;
             }
@@ -6626,51 +6686,151 @@ declare namespace Bit {
             }
         }
         declare namespace IO {
-            class DxfLineSegmentDto {
-                constructor(start?: Base.Point2, end?: Base.Point2);
-                start: Base.Point2;
-                end: Base.Point2;
+            enum lineTypeEnum {
+                continuous = "continuous",
+                dashed = "dashed",
+                hidden = "hidden",
+                center = "center",
+                dotted = "dotted"
             }
-            class DxfArcSegmentDto {
-                constructor(center?: Base.Point2, radius?: number, startAngle?: number, endAngle?: number);
-                center: Base.Point2;
+            class DrawingLineSegmentDto {
+                constructor(start?: Base.Point2 | Base.Point3, end?: Base.Point2 | Base.Point3);
+                start: Base.Point2 | Base.Point3;
+                end: Base.Point2 | Base.Point3;
+            }
+            class DrawingArcSegmentDto {
+                constructor(center?: Base.Point2 | Base.Point3, radius?: number, startAngle?: number, endAngle?: number, normal?: Base.Vector3);
+                center: Base.Point2 | Base.Point3;
                 radius: number;
                 startAngle: number;
                 endAngle: number;
+                normal?: Base.Vector3 | undefined;
             }
-            class DxfCircleSegmentDto {
-                constructor(center?: Base.Point2, radius?: number);
-                center: Base.Point2;
+            class DrawingCircleSegmentDto {
+                constructor(center?: Base.Point2 | Base.Point3, radius?: number, normal?: Base.Vector3);
+                center: Base.Point2 | Base.Point3;
                 radius: number;
+                normal?: Base.Vector3 | undefined;
             }
-            class DxfPolylineSegmentDto {
-                constructor(points?: Base.Point2[], closed?: boolean, bulges?: number[]);
-                points: Base.Point2[];
+            class DrawingPolylineSegmentDto {
+                constructor(points?: (Base.Point2 | Base.Point3)[], closed?: boolean, bulges?: number[]);
+                points: (Base.Point2 | Base.Point3)[];
                 closed?: boolean | undefined;
                 bulges?: number[] | undefined;
             }
-            class DxfSplineSegmentDto {
-                constructor(controlPoints?: Base.Point2[], degree?: number, closed?: boolean);
-                controlPoints: Base.Point2[];
+            class DrawingSplineSegmentDto {
+                constructor(controlPoints?: (Base.Point2 | Base.Point3)[], degree?: number, closed?: boolean, knots?: number[], weights?: number[]);
+                controlPoints: (Base.Point2 | Base.Point3)[];
                 degree?: number | undefined;
                 closed?: boolean | undefined;
+                knots?: number[] | undefined;
+                weights?: number[] | undefined;
             }
-            class DxfPathDto {
-                constructor(segments?: (DxfLineSegmentDto | DxfArcSegmentDto | DxfCircleSegmentDto | DxfPolylineSegmentDto | DxfSplineSegmentDto)[]);
-                segments: (DxfLineSegmentDto | DxfArcSegmentDto | DxfCircleSegmentDto | DxfPolylineSegmentDto | DxfSplineSegmentDto)[];
+            class DrawingEllipseSegmentDto {
+                constructor(center?: Base.Point2 | Base.Point3, majorAxis?: Base.Vector2 | Base.Vector3, ratio?: number, startParameter?: number, endParameter?: number, normal?: Base.Vector3);
+                center: Base.Point2 | Base.Point3;
+                majorAxis: Base.Vector2 | Base.Vector3;
+                ratio: number;
+                startParameter?: number | undefined;
+                endParameter?: number | undefined;
+                normal?: Base.Vector3 | undefined;
             }
-            class DxfPathsPartDto {
-                constructor(layer?: string, color?: Base.Color, paths?: DxfPathDto[]);
+            class DrawingPathDto {
+                constructor(segments?: (DrawingLineSegmentDto | DrawingArcSegmentDto | DrawingCircleSegmentDto | DrawingPolylineSegmentDto | DrawingSplineSegmentDto | DrawingEllipseSegmentDto)[]);
+                segments: (DrawingLineSegmentDto | DrawingArcSegmentDto | DrawingCircleSegmentDto | DrawingPolylineSegmentDto | DrawingSplineSegmentDto | DrawingEllipseSegmentDto)[];
+            }
+            class DrawingPartDto {
+                constructor(layer?: string, color?: Base.Color, paths?: DrawingPathDto[], lineType?: lineTypeEnum);
                 layer?: string | undefined;
                 color?: Base.Color | undefined;
-                paths: DxfPathDto[];
+                paths: DrawingPathDto[];
+                lineType?: lineTypeEnum | undefined;
+            }
+            class DxfLineSegmentDto extends DrawingLineSegmentDto {
+            }
+            class DxfArcSegmentDto extends DrawingArcSegmentDto {
+            }
+            class DxfCircleSegmentDto extends DrawingCircleSegmentDto {
+            }
+            class DxfPolylineSegmentDto extends DrawingPolylineSegmentDto {
+            }
+            class DxfSplineSegmentDto extends DrawingSplineSegmentDto {
+            }
+            class DxfEllipseSegmentDto extends DrawingEllipseSegmentDto {
+            }
+            class DxfPathDto extends DrawingPathDto {
+            }
+            class DxfPathsPartDto extends DrawingPartDto {
             }
             class DxfModelDto {
-                constructor(dxfPathsParts?: DxfPathsPartDto[], colorFormat?: "aci" | "truecolor", acadVersion?: "AC1009" | "AC1015", unit?: Base.unitOfLengthEnum);
-                dxfPathsParts: DxfPathsPartDto[];
+                constructor(dxfPathsParts?: DrawingPartDto[], colorFormat?: "aci" | "truecolor", acadVersion?: "AC1009" | "AC1015", unit?: Base.unitOfLengthEnum, curveTolerance?: number);
+                dxfPathsParts: DrawingPartDto[];
                 colorFormat?: "aci" | "truecolor" | undefined;
                 acadVersion?: "AC1009" | "AC1015" | undefined;
                 unit?: Base.unitOfLengthEnum | undefined;
+                curveTolerance?: number | undefined;
+            }
+            class DxfReadDto {
+                constructor(dxf?: string | Uint8Array, includeHiddenLayers?: boolean);
+                dxf: string | Uint8Array;
+                includeHiddenLayers?: boolean | undefined;
+            }
+            class DxfDrawingDto {
+                parts: DrawingPartDto[];
+                unit?: Base.unitOfLengthEnum | undefined;
+                version: string;
+                warnings: string[];
+            }
+            class SvgModelDto {
+                constructor(parts?: DrawingPartDto[], unit?: Base.unitOfLengthEnum, strokeWidth?: number, margin?: number, tolerance?: number);
+                parts: DrawingPartDto[];
+                unit?: Base.unitOfLengthEnum | undefined;
+                strokeWidth?: number | undefined;
+                margin?: number | undefined;
+                tolerance?: number | undefined;
+            }
+            class SvgPathDataDto {
+                constructor(path?: DrawingPathDto, flipY?: boolean, tolerance?: number);
+                path: DrawingPathDto;
+                flipY?: boolean | undefined;
+                tolerance?: number | undefined;
+            }
+            class SvgReadDto {
+                constructor(svg?: string, unit?: Base.unitOfLengthEnum, includeInvisible?: boolean);
+                svg: string;
+                unit?: Base.unitOfLengthEnum | undefined;
+                includeInvisible?: boolean | undefined;
+            }
+            class SvgDrawingDto {
+                parts: DrawingPartDto[];
+                unit?: Base.unitOfLengthEnum | undefined;
+                viewBox?: number[] | undefined;
+                warnings: string[];
+            }
+            class SvgToDxfDto {
+                constructor(svg?: string, unit?: Base.unitOfLengthEnum, includeInvisible?: boolean, colorFormat?: "aci" | "truecolor", acadVersion?: "AC1009" | "AC1015", curveTolerance?: number);
+                svg: string;
+                unit?: Base.unitOfLengthEnum | undefined;
+                includeInvisible?: boolean | undefined;
+                colorFormat?: "aci" | "truecolor" | undefined;
+                acadVersion?: "AC1009" | "AC1015" | undefined;
+                curveTolerance?: number | undefined;
+            }
+            class SvgToDxfResultDto {
+                dxf: string;
+                warnings: string[];
+            }
+            class DxfToSvgDto {
+                constructor(dxf?: string | Uint8Array, includeHiddenLayers?: boolean, strokeWidth?: number, margin?: number, tolerance?: number);
+                dxf: string | Uint8Array;
+                includeHiddenLayers?: boolean | undefined;
+                strokeWidth?: number | undefined;
+                margin?: number | undefined;
+                tolerance?: number | undefined;
+            }
+            class DxfToSvgResultDto {
+                svg: string;
+                warnings: string[];
             }
         }
         declare namespace Line {
@@ -6728,6 +6888,11 @@ declare namespace Bit {
                 line2: LinePointsDto;
                 checkSegmentsOnly?: boolean | undefined;
                 tolerance?: number | undefined;
+            }
+            class LinePointDistanceDto {
+                constructor(line?: LinePointsDto, point?: Base.Point3);
+                line: LinePointsDto;
+                point: Base.Point3;
             }
             class PointOnLineDto {
                 constructor(line?: LinePointsDto, param?: number);
@@ -12728,13 +12893,19 @@ declare namespace Bit {
         saveShapeSvgAndReturn(inputs: Inputs.OCCT.SaveSvgDto<Inputs.OCCT.TopoDSShapePointer>): Promise<string>;
         private downloadObj;
         private downloadFile;
+        svgLayer(inputs: Inputs.OCCT.SvgLayerDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.SvgLayerDto<Inputs.OCCT.TopoDSShapePointer>>;
+        svgCreate(inputs: Inputs.OCCT.SvgLayersDto<Inputs.OCCT.TopoDSShapePointer>): Promise<string>;
+        saveShapeDxf(inputs: Inputs.OCCT.SaveDxfDto<Inputs.OCCT.TopoDSShapePointer>): Promise<void>;
+        saveShapeDxfAndReturn(inputs: Inputs.OCCT.SaveDxfDto<Inputs.OCCT.TopoDSShapePointer>): Promise<string>;
         fileLengthUnit(inputs: Inputs.OCCT.FileLengthUnitDto): Promise<Inputs.Base.unitOfLengthEnum | undefined>;
         loadStl(inputs: Inputs.OCCT.LoadStlDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
         loadBrep(inputs: Inputs.OCCT.LoadBrepDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
         loadBrepBinary(inputs: Inputs.OCCT.LoadBrepBinaryDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
-        shapeToDxfPaths(inputs: Inputs.OCCT.ShapeToDxfPathsDto<Inputs.OCCT.TopoDSShapePointer>): Promise<IO.DxfPathDto[]>;
-        dxfPathsWithLayer(inputs: Inputs.OCCT.DxfPathsWithLayerDto): Promise<IO.DxfPathsPartDto>;
+        shapeToDxfPaths(inputs: Inputs.OCCT.ShapeToDxfPathsDto<Inputs.OCCT.TopoDSShapePointer>): Promise<IO.DrawingPathDto[]>;
+        dxfPathsWithLayer(inputs: Inputs.OCCT.DxfPathsWithLayerDto): Promise<IO.DrawingPartDto>;
         dxfCreate(inputs: Inputs.OCCT.DxfPathsPartsListDto): Promise<string>;
+        loadDxf(inputs: Inputs.OCCT.LoadDxfDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
+        loadDxfStructured(inputs: Inputs.OCCT.LoadDxfDto): Promise<Inputs.OCCT.DxfShapesResult<Inputs.OCCT.TopoDSShapePointer>>;
         convertStepToGltf(inputs: Inputs.OCCT.ConvertStepToGltfDto): Promise<Uint8Array>;
         convertStepToGltfAdvanced(inputs: Inputs.OCCT.ConvertStepToGltfAdvancedDto): Promise<Uint8Array>;
         convertStepToGltfWithDraco(inputs: Inputs.OCCT.ConvertStepToGltfWithDracoDto): Promise<Uint8Array>;
@@ -13597,6 +13768,9 @@ declare namespace Bit {
         readonly dates: Dates;
         readonly engineering: Engineering;
         readonly recipes: Recipes;
+        private checked;
+        get settings(): BitbybitSettings;
+        set settings(settings: BitbybitSettings);
         constructor();
     }
     declare class Color {
@@ -13880,11 +14054,19 @@ declare namespace Bit {
     declare const RED_OFFSET = 0;
     declare const GREEN_OFFSET = 8;
     declare const BLUE_OFFSET = 4;
+    declare const HEX_LEAD = 16777216;
+    declare const RED_PLACE = 65536;
+    declare const GREEN_PLACE = 256;
     declare function hexChannels(text: string): [
         number,
         number,
         number
     ] | undefined;
+    declare function hexOfChannels(channels: readonly [
+        number,
+        number,
+        number
+    ]): string;
     declare function hslChannels(hue: number, saturation: number, lightness: number): [
         number,
         number,
@@ -13892,7 +14074,93 @@ declare namespace Bit {
     ];
     declare function srgbToLinear(channel: number): number;
     declare function linearToSrgb(channel: number): number;
+    declare const CHANNEL_MAX = 255;
+    declare const PERCENT = 100;
+    declare const RGB_CHANNELS = 3;
+    declare const RGB_WITH_ALPHA = 4;
+    declare const SHORT_HEX_DIGITS = 3;
+    declare const SHORT_HEX_WITH_ALPHA_DIGITS = 4;
+    declare const LONG_HEX_DIGITS = 6;
+    declare const LONG_HEX_WITH_ALPHA_DIGITS = 8;
+    declare const CSS_NAMED_COLORS: ReadonlyMap<string, string>;
+    declare function cssColorHex(text: string): string | undefined;
+    declare const HERMITE_THIRD: number;
+    declare const FIT_SAMPLES = 8;
+    declare const FLATNESS_SHARES: number[];
+    declare const DEEPEST_SPLIT = 18;
+    declare const HALF = 0.5;
     type Point3 = Inputs.Base.Point3;
+    interface CubicPiece {
+        readonly start: Point3;
+        readonly control1: Point3;
+        readonly control2: Point3;
+        readonly end: Point3;
+    }
+    interface PointAndTangent {
+        readonly point: Point3;
+        readonly tangent: Point3;
+    }
+    interface PiecesBounds {
+        readonly min: Point3;
+        readonly max: Point3;
+    }
+    declare const bezierPointAndTangent: (piece: BezierPiece, parameter: number) => PointAndTangent;
+    declare const bezierPoint: (piece: BezierPiece, parameter: number) => Point3;
+    declare const cubicsOfPiece: (piece: BezierPiece, tolerance: number, budget?: WorkBudget) => CubicPiece[];
+    declare const samplesOfPiece: (piece: BezierPiece, tolerance: number, budget?: WorkBudget) => Point3[];
+    declare const bezierPiecesBounds: (pieces: readonly BezierPiece[], tolerance: number, budget?: WorkBudget) => PiecesBounds;
+    declare const QUARTER_TURN: number;
+    declare const BULGE_TURN_SHARE = 4;
+    declare const PIECE_SLACK = 1e-9;
+    declare const LEAST_RELATIVE_TOLERANCE = 1e-9;
+    declare const FRAME_AXES: readonly number[];
+    type Point3 = Inputs.Base.Point3;
+    type Vec3 = Inputs.Base.Vector3;
+    interface EllipseFrame {
+        readonly center: Point3;
+        readonly xAxis: Vec3;
+        readonly yAxis: Vec3;
+    }
+    interface ConicArc {
+        readonly frame: EllipseFrame;
+        readonly start: number;
+        readonly sweep: number;
+    }
+    declare const angleWithinTurn: (angle: number, turn: number) => number;
+    declare const ellipseFramePoint: (frame: EllipseFrame, angle: number) => Point3;
+    declare const conicArcOfEllipseArc: (arc: EllipseArc2) => ConicArc;
+    declare const conicArcSamples: (arc: ConicArc, tolerance: number) => Point3[];
+    declare const conicArcAsNurbs: (arc: ConicArc) => NurbsCurveForm;
+    declare const bulgeArcOf: (start: Point3, end: Point3, bulge: number) => ConicArc;
+    declare const conicArcExtremes: (arc: ConicArc, axes?: readonly number[]) => Point3[];
+    declare const principalArcOf: (arc: ConicArc) => ConicArc;
+    type Point3 = Inputs.Base.Point3;
+    interface NurbsCurveForm {
+        readonly degree: number;
+        readonly points: readonly Point3[];
+        readonly weights: readonly number[];
+        readonly knots: readonly number[];
+    }
+    interface BezierPiece {
+        readonly points: readonly Point3[];
+        readonly weights: readonly number[];
+    }
+    declare const clampedUniformKnots: (pointCount: number, degree: number) => number[];
+    declare const periodicUniformForm: (points: readonly Point3[], weights: readonly number[], degree: number) => NurbsCurveForm;
+    declare const insertKnot: (form: NurbsCurveForm, parameter: number, times?: number) => NurbsCurveForm;
+    declare const clampedForm: (form: NurbsCurveForm) => NurbsCurveForm;
+    declare const bezierPiecesOf: (form: NurbsCurveForm, budget?: WorkBudget) => BezierPiece[];
+    declare const isRationalPiece: (piece: BezierPiece) => boolean;
+    type Point3 = Inputs.Base.Point3;
+    type Homogeneous = [
+        number,
+        number,
+        number,
+        number
+    ];
+    declare const liftedPoint: (point: Point3, weight: number) => Homogeneous;
+    declare const projectedPoint: (point: Homogeneous) => Point3;
+    declare const blendedPoint: (from: Homogeneous, to: Homogeneous, share: number) => Homogeneous;
     declare const expandedKnots: (knots: readonly number[], multiplicities: readonly number[]) => number[];
     declare const knotDomain: (degree: number, knots: readonly number[]) => [
         number,
@@ -13910,55 +14178,430 @@ declare namespace Bit {
     type Point3 = Inputs.Base.Point3;
     declare const refinedSurfaceMesh: (uv: readonly Point2[], positions: readonly Point3[], loops: readonly (readonly number[])[], pointAt: (u: number, v: number) => Point3) => RefinedSurfaceMesh;
     declare function crc32(data: Uint8Array): number;
-    declare class DxfGenerator {
-        private entityHandle;
-        private colorFormat;
-        private acadVersion;
-        generateDxf(dxfInputs: Inputs.IO.DxfModelDto): string;
-        private generateHeader;
-        private unitHeader;
-        private generateTables;
-        private generateLineTypeTable;
-        private generateStyleTable;
-        private generateVportTable;
-        private generateViewTable;
-        private generateUcsTable;
-        private generateAppidTable;
-        private generateDimstyleTable;
-        private generateBlocks;
-        private generateLayerTable;
-        private generateEntities;
-        private generateSegmentEntity;
-        private isLineSegment;
-        private isArcSegment;
-        private isCircleSegment;
-        private isPolylineSegment;
-        private isSplineSegment;
-        private generateLineEntity;
-        private generateCircleEntity;
-        private generateArcEntity;
-        private generatePolylineEntity;
-        private generateSplineEntity;
-        private isClosedPolyline;
-        private getNextHandle;
-        private convertColorToDxf;
-        private rgbToAciColorIndex;
+    declare const writerBudgetOf: (parts: readonly DrawingPart[]) => WorkBudget;
+    type Point3 = Inputs.Base.Point3;
+    type Vec3 = Inputs.Base.Vector3;
+    declare const ocsAxesOf: (normal: Vec3) => FrameAxes;
+    declare const circleArcOf: (segment: DrawingCircle | DrawingArc) => ConicArc;
+    declare const ellipseArcOf: (segment: DrawingEllipse) => ConicArc;
+    declare const polylineSpans: (polyline: DrawingPolyline) => number;
+    declare const polylineSpanEnd: (polyline: DrawingPolyline, span: number) => Point3;
+    declare const bulgeArcOfSpan: (polyline: DrawingPolyline, span: number) => ConicArc | undefined;
+    declare const segmentSamples: (segment: DrawingSpline | DrawingEllipse, tolerance: number, budget?: WorkBudget) => readonly Point3[];
+    declare const drawingBounds: (parts: readonly DrawingPart[], tolerance: number, budget?: WorkBudget) => DrawingBounds | undefined;
+    declare const drawingSize: (bounds: DrawingBounds | undefined, axes?: number) => number;
+    declare const patternUnitOf: (bounds: DrawingBounds | undefined) => number;
+    declare const positiveNumber: (value: unknown, property: string) => number;
+    declare const drawingPathOf: (path: Inputs.IO.DrawingPathDto | undefined, property: string) => DrawingPath;
+    declare const drawingPartsOf: (parts: readonly unknown[] | undefined, property: string) => DrawingPart[];
+    type Point3 = Inputs.Base.Point3;
+    type Vec3 = Inputs.Base.Vector3;
+    interface DrawingLine {
+        readonly kind: "line";
+        readonly start: Point3;
+        readonly end: Point3;
     }
-    declare const DXF_FIRST_ENTITY_HANDLE = 256;
+    interface DrawingCircle {
+        readonly kind: "circle";
+        readonly center: Point3;
+        readonly radius: number;
+        readonly normal: Vec3;
+    }
+    interface DrawingArc {
+        readonly kind: "arc";
+        readonly center: Point3;
+        readonly radius: number;
+        readonly startAngle: number;
+        readonly endAngle: number;
+        readonly startDegrees: number;
+        readonly endDegrees: number;
+        readonly normal: Vec3;
+    }
+    interface DrawingPolyline {
+        readonly kind: "polyline";
+        readonly points: readonly Point3[];
+        readonly bulges: readonly number[];
+        readonly closed: boolean;
+        readonly planar: boolean;
+    }
+    interface DrawingEllipse {
+        readonly kind: "ellipse";
+        readonly center: Point3;
+        readonly majorAxis: Vec3;
+        readonly ratio: number;
+        readonly start: number;
+        readonly end: number;
+        readonly normal: Vec3;
+    }
+    interface DrawingSpline {
+        readonly kind: "spline";
+        readonly curve: NurbsCurveForm;
+    }
+    type DrawingSegment = DrawingLine | DrawingCircle | DrawingArc | DrawingPolyline | DrawingEllipse | DrawingSpline;
+    interface DrawingPath {
+        readonly segments: readonly DrawingSegment[];
+    }
+    interface DrawingPart {
+        readonly layer: string;
+        readonly color: string;
+        readonly lineType: Inputs.IO.lineTypeEnum;
+        readonly paths: readonly DrawingPath[];
+    }
+    interface DrawingBounds {
+        readonly min: Point3;
+        readonly max: Point3;
+    }
+    declare const SAME_POINT = 1e-10;
+    declare const PERPENDICULAR_COSINE = 1e-9;
+    declare const FULL_TURN_DEGREES = 360;
+    declare const ARBITRARY_AXIS_LIMIT: number;
+    declare const FORBIDDEN_LAYER_CHARACTERS: RegExp;
+    declare const FIRST_PRINTABLE_CODE = 32;
+    declare const DEFAULT_LAYER = "0";
+    declare const POINT_SIZES: number[];
+    declare const DEFAULT_SPLINE_DEGREE = 3;
+    declare const HIGHEST_SPLINE_DEGREE = 25;
+    declare const LARGEST_NUMBER = 1e+100;
+    declare const LEAST_WEIGHT = 1e-100;
+    declare const PATTERN_UNIT_SHARE: number;
+    declare const LEAST_TOLERANCE_SHARE = 0.000001;
+    declare const PLAN_AXES = 2;
+    declare const SPACE_AXES = 3;
+    declare const WRITER_WORK_PER_NUMBER: number;
+    declare const WRITER_WORK_FLOOR: number;
+    declare const WRITER_WORK_CEILING: number;
+    declare const NUMBERS_PER_PART = 1;
+    declare const NUMBERS_PER_VERTEX = 4;
+    declare const NUMBERS_PER_CURVE: Readonly<Record<"line" | "circle" | "arc" | "ellipse", number>>;
+    interface LineTypePattern {
+        readonly name: string;
+        readonly description: string;
+        readonly elements: readonly number[];
+    }
+    declare const LINE_TYPE_PATTERNS: Readonly<Record<string, LineTypePattern>>;
+    type Rgb = readonly [
+        number,
+        number,
+        number
+    ];
+    declare const ACI_PALETTE: readonly Rgb[];
+    declare const nearestAciIndex: (hex: string) => number;
+    declare const trueColorOf: (hex: string) => number;
+    interface DxfEntityStyle {
+        readonly layer: string;
+        readonly color: string;
+        readonly lineType: Inputs.IO.lineTypeEnum | undefined;
+    }
+    interface DxfEntityContext {
+        readonly text: DxfText;
+        readonly version: DxfVersion;
+        readonly owner: string;
+        readonly colorFormat: "aci" | "truecolor";
+        readonly curveTolerance: number;
+    }
+    declare const writeSegment: (context: DxfEntityContext, segment: DrawingSegment, style: DxfEntityStyle) => void;
+    declare const dxfTextOf: (data: unknown, property: string) => string;
+    declare class DxfGenerator {
+        generateDxf(model: Resolved.IO.DxfModelDto): string;
+    }
+    type DxfSegment = Inputs.IO.DrawingPathDto["segments"][number];
+    declare const conicSegmentDto: (conic: ReadConic) => DxfSegment | undefined;
+    declare const drawingDtoOf: (drawing: ReadDrawing) => Inputs.IO.DxfDrawingDto;
+    type Point3 = Inputs.Base.Point3;
+    type Vec3 = Inputs.Base.Vector3;
+    interface PrincipalConic {
+        readonly center: Point3;
+        readonly normal: Vec3;
+        readonly major: Vec3;
+        readonly minor: number;
+        readonly start: number;
+        readonly end: number;
+    }
+    declare const translation: (offset: Vec3) => FrameAxes;
+    declare const scaling: (x: number, y: number, z: number) => FrameAxes;
+    declare const rotationAboutZ: (radians: number) => FrameAxes;
+    declare const positiveConic: (conic: ReadConic) => ReadConic;
+    declare const polylineSegments: (polyline: ReadPolyline) => ReadSegment[];
+    declare const mappedSegments: (map: FrameAxes, segment: ReadSegment) => ReadSegment[];
+    declare const principalConicOf: (conic: ReadConic) => PrincipalConic | undefined;
+    type Point3 = Inputs.Base.Point3;
+    type Vec3 = Inputs.Base.Vector3;
+    interface DxfGroup {
+        readonly code: number;
+        readonly value: string;
+        readonly line: number;
+    }
+    interface DxfEntityRecord {
+        readonly type: string;
+        readonly groups: readonly DxfGroup[];
+        readonly vertices: readonly DxfEntityRecord[];
+    }
+    interface ReadLine {
+        readonly kind: "line";
+        readonly start: Point3;
+        readonly end: Point3;
+    }
+    interface ReadConic {
+        readonly kind: "conic";
+        readonly center: Point3;
+        readonly xAxis: Vec3;
+        readonly yAxis: Vec3;
+        readonly start: number;
+        readonly sweep: number;
+    }
+    interface ReadPolyline {
+        readonly kind: "polyline";
+        readonly points: readonly Point3[];
+        readonly bulges: readonly number[];
+        readonly closed: boolean;
+        readonly normal: Vec3;
+    }
+    interface ReadSpline {
+        readonly kind: "spline";
+        readonly curve: NurbsCurveForm;
+    }
+    interface ReadFitSpline {
+        readonly kind: "fit";
+        readonly points: readonly Point3[];
+        readonly startTangent: Vec3 | undefined;
+        readonly endTangent: Vec3 | undefined;
+        readonly closed: boolean;
+    }
+    type ReadSegment = ReadLine | ReadConic | ReadPolyline | ReadSpline | ReadFitSpline;
+    interface ReadStyle {
+        readonly layer: string;
+        readonly color: string;
+        readonly lineType: Inputs.IO.lineTypeEnum;
+    }
+    interface ReadEntity {
+        readonly style: ReadStyle;
+        readonly segments: readonly ReadSegment[];
+    }
+    interface ReadLayer {
+        readonly name: string;
+        readonly color: string;
+        readonly lineType: Inputs.IO.lineTypeEnum;
+        readonly hidden: boolean;
+    }
+    interface ReadDrawing {
+        readonly version: string;
+        readonly unit: Inputs.Base.unitOfLengthEnum | undefined;
+        readonly layers: readonly ReadLayer[];
+        readonly entities: readonly ReadEntity[];
+        readonly warnings: readonly string[];
+    }
+    declare const BINARY_SENTINEL = "AutoCAD Binary DXF";
+    declare const QUOTED_LENGTH = 40;
+    declare const MAX_INSERT_DEPTH = 16;
+    declare const INSERT_WORK_PER_CHARACTER = 16;
+    declare const INSERT_WORK_FLOOR = 500000;
+    declare const INSERT_WORK_CEILING = 1000000;
+    declare const ENTITY_WORK = 2;
+    declare const COPY_WORK = 1;
+    declare const LINE_WORK = 2;
+    declare const CONIC_WORK = 2;
+    declare const MAX_SPLINE_DEGREE = 25;
+    declare const MAX_FIT_POINTS = 10000;
+    declare const MAX_LISTED_NAMES = 5;
+    declare const PAPER_SPACE = "1";
+    declare const FROZEN_FLAG = 1;
+    declare const XREF_FLAGS: number;
+    declare const PERIODIC_FLAG = 2;
+    declare const POLYFACE_FLAG = 64;
+    declare const MESH_FLAG = 16;
+    declare const SPLINE_FRAME_VERTEX_FLAG = 16;
+    declare const BY_BLOCK = 0;
+    declare const BY_LAYER = 256;
+    declare const BLACK = "#000000";
+    declare const BYTE = 255;
+    declare const RED_SHIFT = 16;
+    declare const GREEN_SHIFT = 8;
+    declare const DEGREES_PER_TURN = 360;
+    declare const SAME_SCALE = 1e-9;
+    declare const UNIT_CODES: ReadonlyMap<number, Inputs.Base.unitOfLengthEnum>;
+    declare const UNIT_NAMES: ReadonlyMap<number, string>;
+    declare const DRAWN_ENTITIES: Set<string>;
+    declare const Y_OFFSET = 10;
+    declare const Z_OFFSET = 20;
+    declare const GROUP: {
+        readonly name: 2;
+        readonly variable: 9;
+        readonly x: 10;
+        readonly y: 20;
+        readonly elevationZ: 30;
+        readonly otherX: 11;
+        readonly fitX: 11;
+        readonly startTangentX: 12;
+        readonly endTangentX: 13;
+        readonly controlX: 10;
+        readonly radius: 40;
+        readonly ratio: 40;
+        readonly knot: 40;
+        readonly weight: 41;
+        readonly startParameter: 41;
+        readonly endParameter: 42;
+        readonly bulge: 42;
+        readonly scaleX: 41;
+        readonly scaleY: 42;
+        readonly scaleZ: 43;
+        readonly columnStep: 44;
+        readonly rowStep: 45;
+        readonly startAngle: 50;
+        readonly rotation: 50;
+        readonly endAngle: 51;
+        readonly lineType: 6;
+        readonly layer: 8;
+        readonly color: 62;
+        readonly trueColor: 420;
+        readonly flags: 70;
+        readonly columns: 70;
+        readonly degree: 71;
+        readonly rows: 71;
+        readonly elevation: 38;
+        readonly space: 67;
+    };
+    declare const readDxfDrawing: (text: string, includeHidden: boolean) => ReadDrawing;
+    type DxfVersion = "AC1009" | "AC1015";
+    interface DxfLayerRow {
+        readonly name: string;
+        readonly color: string;
+        readonly lineType: Inputs.IO.lineTypeEnum;
+    }
+    interface DxfLayout {
+        readonly version: DxfVersion;
+        readonly colorFormat: "aci" | "truecolor";
+        readonly unit: string | undefined;
+        readonly bounds: DrawingBounds | undefined;
+        readonly layers: readonly DxfLayerRow[];
+        readonly lineTypes: readonly Inputs.IO.lineTypeEnum[];
+        readonly patternUnit: number;
+    }
+    interface DxfOwners {
+        readonly modelSpace: string;
+        readonly paperSpace: string;
+    }
+    declare const writeHeader: (text: DxfText, layout: DxfLayout) => number | undefined;
+    declare const writeClasses: (text: DxfText, layout: DxfLayout) => void;
+    declare const writeTables: (text: DxfText, layout: DxfLayout) => DxfOwners;
+    declare const writeBlocks: (text: DxfText, layout: DxfLayout, owners: DxfOwners) => void;
+    declare const writeObjects: (text: DxfText, layout: DxfLayout) => void;
+    interface DxfTextLimit {
+        readonly budget: WorkBudget;
+        readonly property: string;
+    }
+    declare const realText: (value: number) => string;
+    declare const encodedText: (value: string) => string;
+    declare class DxfText {
+        private readonly limit;
+        private readonly pieces;
+        private readonly encodedNames;
+        private handle;
+        constructor(firstHandle: number, limit?: DxfTextLimit);
+        get budget(): WorkBudget;
+        refuseWhenSpent(): void;
+        pair(code: string, value: string): void;
+        real(code: string, value: number): void;
+        point(codes: readonly [
+            number,
+            number,
+            number
+        ], point: readonly [
+            number,
+            number,
+            number
+        ]): void;
+        name(code: string, value: string): void;
+        nextHandle(): string;
+        peekHandle(): string;
+        reserve(code: string): number;
+        fill(slot: number, value: string): void;
+        joined(): string;
+        private tooLarge;
+    }
+    declare const dxfGroupsOf: (text: string) => DxfGroup[];
+    declare const recordsOf: (groups: readonly DxfGroup[]) => DxfEntityRecord[];
+    declare const numberIn: (group: DxfGroup) => number;
+    declare const valueOf: (record: DxfEntityRecord, code: number) => string | undefined;
+    declare const textOf: (record: DxfEntityRecord, code: number, fallback?: string) => string;
+    declare const numberOf: (record: DxfEntityRecord, code: number, fallback: number) => number;
+    declare const numbersOf: (record: DxfEntityRecord, code: number) => number[];
+    declare const decodedText: (value: string) => string;
+    declare const DXF_FIRST_HANDLE = 32;
     declare const DXF_INSUNITS: Readonly<Record<string, string>>;
     declare const DXF_IMPERIAL_MEASUREMENT = "0";
     declare const DXF_METRIC_MEASUREMENT = "1";
-    declare class Dxf {
-        private dxfGenerator;
-        lineSegment(inputs: Inputs.IO.DxfLineSegmentDto): Inputs.IO.DxfLineSegmentDto;
-        arcSegment(inputs: Inputs.IO.DxfArcSegmentDto): Inputs.IO.DxfArcSegmentDto;
-        circleSegment(inputs: Inputs.IO.DxfCircleSegmentDto): Inputs.IO.DxfCircleSegmentDto;
-        polylineSegment(inputs: Inputs.IO.DxfPolylineSegmentDto): Inputs.IO.DxfPolylineSegmentDto;
-        splineSegment(inputs: Inputs.IO.DxfSplineSegmentDto): Inputs.IO.DxfSplineSegmentDto;
-        path(inputs: Inputs.IO.DxfPathDto): Inputs.IO.DxfPathDto;
-        pathsPart(inputs: Inputs.IO.DxfPathsPartDto): Inputs.IO.DxfPathsPartDto;
-        dxfCreate(inputs: Inputs.IO.DxfModelDto): string;
-    }
+    declare const DXF_HIGHEST_ASCII = 126;
+    declare const DXF_HEX_WIDTH = 4;
+    declare const DXF_VIEW_MARGIN = 1.1;
+    declare const DXF_VIEW_ASPECT = 1.5;
+    declare const DXF_KNOT_TOLERANCE = "0.0000001";
+    declare const DXF_FIXED_COLORS: readonly (readonly [
+        number,
+        number,
+        number
+    ])[];
+    declare const DXF_SHADES: number[];
+    declare const DXF_GRAYS: number[];
+    declare const DXF_HUE_STEP_DEGREES = 15;
+    declare const DXF_PURE_HUE_LIGHTNESS = 0.5;
+    declare const DXF_HUES = 24;
+    declare const DXF_PASTEL_SHARE: number;
+    declare const DXF_WHITE_OR_BLACK = 7;
+    declare const DXF_TRUE_COLOR_RED = 65536;
+    declare const DXF_TRUE_COLOR_GREEN = 256;
+    declare const DXF_LENS_LENGTH = 50;
+    declare const DXF_HEX_RADIX = 16;
+    declare const DXF_TURN_SLACK = 1e-9;
+    declare const DXF_POINT_CODES: readonly [
+        10,
+        20,
+        30
+    ];
+    declare const DXF_OTHER_POINT_CODES: readonly [
+        11,
+        21,
+        31
+    ];
+    declare const DXF_EXTRUSION_CODES: readonly [
+        210,
+        220,
+        230
+    ];
+    declare const DXF_VIEW_CENTER_CODES: readonly [
+        12,
+        22,
+        32
+    ];
+    declare const DXF_SNAP_BASE_CODES: readonly [
+        13,
+        23,
+        33
+    ];
+    declare const DXF_SNAP_SPACING_CODES: readonly [
+        14,
+        24,
+        34
+    ];
+    declare const DXF_GRID_SPACING_CODES: readonly [
+        15,
+        25,
+        35
+    ];
+    declare const DXF_VIEW_DIRECTION_CODES: readonly [
+        16,
+        26,
+        36
+    ];
+    declare const DXF_VIEW_TARGET_CODES: readonly [
+        17,
+        27,
+        37
+    ];
+    declare const DXF_CLOSED_FLAG = 1;
+    declare const DXF_RATIONAL_FLAG = 4;
+    declare const DXF_POLYLINE_3D_FLAG = 8;
+    declare const DXF_MAX_NAME_LENGTH = 255;
+    declare const bytesOfData: (data: unknown) => Uint8Array | undefined;
     declare const GLB_MAGIC = 1179937895;
     declare const GLB_VERSION = 2;
     declare const GLB_HEADER_SIZE = 12;
@@ -13971,6 +14614,7 @@ declare namespace Bit {
     declare const GLB_JSON_PADDING = 32;
     declare const GLB_SCALE_NODE_NAME = "unit scale";
     declare function glbWithRootScale(glb: Uint8Array, scale: number): Uint8Array;
+    declare function pointOnGround(x: number, y: number, coordinateSystem: Base.coordinateSystemEnum | undefined): Base.Point3;
     declare const GZIP_MAGIC_FIRST = 31;
     declare const GZIP_MAGIC_SECOND = 139;
     declare const GZIP_DEFLATE_METHOD = 8;
@@ -14039,6 +14683,378 @@ declare namespace Bit {
     declare const STORED_LENGTH_BYTES = 2;
     declare function huffmanTable(lengths: ArrayLike<number>): HuffmanTable;
     declare function inflateRaw(data: Uint8Array, expectedSize?: number, limit?: number): Uint8Array;
+    declare function meshMatrixInFile(coordinateSystem: Base.coordinateSystemEnum.leftHanded, zUp: boolean): Base.TransformMatrix;
+    declare function meshMatrixInFile(coordinateSystem: Base.coordinateSystemEnum, zUp: true): Base.TransformMatrix;
+    declare function meshMatrixInFile(coordinateSystem: Base.coordinateSystemEnum, zUp: boolean): Base.TransformMatrix | undefined;
+    declare function meshMatrixInModel(coordinateSystem: Base.coordinateSystemEnum.leftHanded, zUp: boolean): Base.TransformMatrix;
+    declare function meshMatrixInModel(coordinateSystem: Base.coordinateSystemEnum, zUp: true): Base.TransformMatrix;
+    declare function meshMatrixInModel(coordinateSystem: Base.coordinateSystemEnum, zUp: boolean): Base.TransformMatrix | undefined;
+    declare function stlAxesInFile(coordinateSystem: Base.coordinateSystemEnum, zUp: boolean): StlAxes;
+    declare function stlAxesInModel(coordinateSystem: Base.coordinateSystemEnum, zUp: boolean): StlAxes;
+    type StlAxis = readonly [
+        source: 0 | 1 | 2,
+        negated: boolean
+    ];
+    interface StlAxes {
+        readonly x: StlAxis;
+        readonly y: StlAxis;
+        readonly z: StlAxis;
+        readonly mirrors: boolean;
+    }
+    declare const BINARY_HEADER_BYTES = 80;
+    declare const BINARY_COUNT_BYTES = 4;
+    declare const BINARY_TRIANGLE_BYTES = 50;
+    declare const BINARY_POINT_BYTES = 12;
+    declare const BINARY_NUMBER_BYTES = 4;
+    declare const COMPONENTS_OF_A_POINT = 3;
+    declare const POINTS_OF_A_FACET = 4;
+    declare const SECOND_VERTEX_SLOT = 2;
+    declare const THIRD_VERTEX_SLOT = 3;
+    declare const CORNERS_OF_A_TRIANGLE = 3;
+    declare const NUMBERS_OF_A_TRIANGLE = 9;
+    declare function stlOfTriangles(parts: readonly ArrayLike<number>[]): Uint8Array<ArrayBuffer>;
+    declare function stlWithAxes(bytes: Uint8Array, axes: StlAxes): Uint8Array<ArrayBuffer>;
+    interface CssDeclaration {
+        property: string;
+        value: string;
+        important: boolean;
+    }
+    type AttributeOperator = "" | "=" | "~=" | "|=" | "^=" | "$=" | "*=";
+    type Combinator = "descendant" | "child";
+    interface AttributeTest {
+        name: string;
+        operator: AttributeOperator;
+        value: string;
+    }
+    interface CompoundSelector {
+        tag?: string;
+        id?: string;
+        classes: string[];
+        attributes: AttributeTest[];
+    }
+    interface ComplexSelector {
+        compounds: CompoundSelector[];
+        combinators: Combinator[];
+    }
+    interface CssRule {
+        selector: ComplexSelector;
+        specificity: number;
+        order: number;
+        declarations: CssDeclaration[];
+    }
+    interface Stylesheet {
+        rules: CssRule[];
+        unsupported: string[];
+    }
+    interface CssMatch {
+        declaration: CssDeclaration;
+        specificity: number;
+        order: number;
+    }
+    type CssMatches = Map<XmlNode, CssMatch[]>;
+    interface CssMatching {
+        matches: CssMatches;
+        exhausted: boolean;
+    }
+    declare function parseDeclarations(text: string | undefined): CssDeclaration[];
+    declare function parseStylesheets(texts: string[], properties: ReadonlySet<string>): Stylesheet;
+    declare function matchStylesheet(root: XmlNode, sheet: Stylesheet, budget: WorkBudget): CssMatching;
+    declare const lineTypeOfDashes: (dashes: readonly number[], patternUnit: () => number | undefined) => Inputs.IO.lineTypeEnum | undefined;
+    type ViewBox = [
+        number,
+        number,
+        number,
+        number
+    ];
+    interface DocumentFrame {
+        viewBox?: ViewBox;
+        width?: number;
+        height?: number;
+        pageTransform: AffineMatrix2;
+        pageInverse: AffineMatrix2;
+        contentViewport: ViewportSize;
+        millimetresPerUserUnit: number;
+    }
+    type AxisAlignment = "min" | "mid" | "max";
+    interface AspectRatio {
+        stretch: boolean;
+        x: AxisAlignment;
+        y: AxisAlignment;
+        slice: boolean;
+    }
+    declare function parseViewBox(text: string | undefined): ViewBox | undefined;
+    declare function parseAspectRatio(preserveAspectRatio: string | undefined): AspectRatio;
+    declare function fittedViewBox(box: ViewBox, width: number, height: number, aspect: AspectRatio): AffineMatrix2;
+    declare function viewBoxTransform(box: ViewBox, width: number, height: number, preserveAspectRatio: string | undefined): AffineMatrix2;
+    declare function documentFrame(root: XmlNode): DocumentFrame;
+    declare function remembered<K, V>(known: Map<K, V>, key: K, read: (key: K) => V): V;
+    interface NormalizeOptions {
+        unit?: `${Base.unitOfLengthEnum}` | undefined;
+    }
+    declare function normalizeSvg(svg: string, options?: NormalizeOptions): SvgScene;
+    interface ViewportSize {
+        width: number;
+        height: number;
+    }
+    type LengthAxis = "x" | "y" | "other";
+    interface SvgLength {
+        value: number;
+        unit: string;
+    }
+    declare const NO_VIEWPORT: ViewportSize;
+    declare function millimetresPerPixel(): number;
+    declare function percentReference(viewport: ViewportSize, axis: LengthAxis): number;
+    declare function readLength(text: string): SvgLength | undefined;
+    declare function pixelsOf(length: SvgLength, viewport: ViewportSize, axis: LengthAxis): number;
+    declare function lengthInPixels(text: string | undefined, viewport: ViewportSize, axis: LengthAxis): number | undefined;
+    declare const ARGUMENTS_PER_PATH_COMMAND: ReadonlyMap<string, number>;
+    declare const ARC_COMMAND = "a";
+    declare const MOVE_COMMAND = "m";
+    declare const ARC_FLAG_ARGUMENTS: ReadonlySet<number>;
+    declare const CUBIC_END_ARGUMENT = 4;
+    declare const ARC_END_ARGUMENT = 5;
+    declare const QUADRATIC_TO_CUBIC_SHARE: number;
+    declare const QUARTER_TURN: number;
+    type Point2 = Inputs.Base.Point2;
+    type Read = readonly [
+        number,
+        number
+    ];
+    declare const svgNumberAt: (text: string, at: number) => Read | undefined;
+    declare const scanSvgNumbers: (text: string | undefined) => ScannedSvgNumbers;
+    declare const parseSvgPathData: (d: string) => SvgSubpath[];
+    declare const svgSubpathPoints: (subpath: SvgSubpath, perCurve: number, perQuarterTurn: number) => Point2[];
+    type Point2 = Inputs.Base.Point2;
+    interface SvgLineSegment {
+        type: "line";
+        to: Point2;
+    }
+    interface SvgQuadSegment {
+        type: "quad";
+        c: Point2;
+        to: Point2;
+    }
+    interface SvgCubicSegment {
+        type: "cubic";
+        c1: Point2;
+        c2: Point2;
+        to: Point2;
+    }
+    interface SvgArcSegment extends EllipseArc2 {
+        type: "arc";
+        to: Point2;
+    }
+    type SvgSegment = SvgLineSegment | SvgQuadSegment | SvgCubicSegment | SvgArcSegment;
+    interface SvgSubpath {
+        start: Point2;
+        segments: SvgSegment[];
+        closed: boolean;
+    }
+    interface ScannedSvgNumbers {
+        numbers: number[];
+        malformed: boolean;
+    }
+    declare const PIXELS_PER_INCH = 96;
+    declare const POINTS_PER_INCH = 72;
+    declare const PICAS_PER_INCH = 6;
+    declare const FONT_SIZE_PIXELS = 16;
+    declare const EX_PER_EM = 0.5;
+    declare const PERCENT = 100;
+    declare const COLOR_PARTS_WITH_ALPHA = 4;
+    declare const MAX_XML_NESTING = 256;
+    declare const ENTITY_EXPANSION_FLOOR = 65536;
+    declare const ENTITY_EXPANSION_PER_INPUT_CHARACTER = 8;
+    declare const ENTITY_EXPANSION_CEILING = 134217728;
+    declare const LAST_CODE_POINT = 1114111;
+    declare const REPLACEMENT_CHARACTER = "\uFFFD";
+    declare const MAX_WALK_DEPTH = 512;
+    declare const MAX_USE_DEPTH = 16;
+    declare const MAX_VISITED_ELEMENTS = 500000;
+    declare const SEGMENTS_PER_INPUT_CHARACTER = 2;
+    declare const SEGMENT_FLOOR = 25000;
+    declare const SEGMENT_CEILING = 120000;
+    declare const MAX_LISTED_SELECTORS = 5;
+    declare const MAX_LISTED_TAGS = 5;
+    declare const MAX_DASH_VALUES = 64;
+    declare const MAX_AT_RULE_NESTING = 32;
+    declare const SELECTOR_MATCH_STEPS_PER_INPUT_CHARACTER = 64;
+    declare const SELECTOR_MATCH_STEP_FLOOR = 2000000;
+    declare const SELECTOR_MATCH_STEP_CEILING = 64000000;
+    declare const STEPS_PER_ANCESTOR_TABLE = 8;
+    declare const STEPS_PER_MATCHED_DECLARATION = 8;
+    declare const SPECIFICITY_ID = 1000000;
+    declare const SPECIFICITY_CLASS = 1000;
+    declare const SPECIFICITY_TYPE = 1;
+    declare const MATRIX_ARGUMENTS = 6;
+    declare const ROTATE_ABOUT_POINT_ARGUMENTS = 3;
+    declare const HEX_RADIX = 16;
+    declare const DECIMAL_RADIX = 10;
+    declare const FULL_TURN: number;
+    declare const SAME_CONIC_SHARE = 0.000001;
+    declare const NUMBER_PRECISION_SLACK = 0.00001;
+    declare const LEAST_ARC_SWEEP = 1e-9;
+    declare const POINT_NOISE_SHARE = 1e-12;
+    declare const DASH_MATCH_SHARE = 0.001;
+    declare const LAYER_STAND_IN = "_";
+    declare const UNREAD_PAINT = "#000000";
+    declare const HIGH_SURROGATE_AT_END: RegExp;
+    interface SvgReadingOptions {
+        readonly unit: Inputs.Base.unitOfLengthEnum | undefined;
+        readonly includeInvisible: boolean;
+    }
+    declare const readSvgDrawing: (svg: string, options: SvgReadingOptions) => Inputs.IO.SvgDrawingDto;
+    interface SvgStyle {
+        fill?: string;
+        stroke?: string;
+        strokeWidth?: number;
+        strokeDashArray?: number[];
+        opacity?: number;
+        fillOpacity?: number;
+        strokeOpacity?: number;
+        fillRule?: "nonzero" | "evenodd";
+        hidden?: boolean;
+    }
+    interface SvgElement {
+        tag: string;
+        id?: string;
+        className?: string;
+        layer?: string;
+        style: SvgStyle;
+        subpaths: SvgSubpath[];
+    }
+    interface SvgScene {
+        elements: SvgElement[];
+        viewBox?: [
+            number,
+            number,
+            number,
+            number
+        ];
+        width?: number;
+        height?: number;
+        millimetresPerUserUnit?: number;
+        warnings: string[];
+    }
+    type LengthOf = (name: string, axis: LengthAxis) => number | undefined;
+    declare function lengthsIn(attrs: XmlAttributes, viewport: ViewportSize): LengthOf;
+    declare function shapeToSubpaths(tag: string, attrs: XmlAttributes, lengthOf?: LengthOf): SvgSubpath[];
+    type Point2 = Inputs.Base.Point2;
+    interface SvgLineMove {
+        readonly kind: "L";
+        readonly to: Point2;
+    }
+    interface SvgArcMove {
+        readonly kind: "A";
+        readonly radiusX: number;
+        readonly radiusY: number;
+        readonly rotation: number;
+        readonly large: boolean;
+        readonly counterclockwise: boolean;
+        readonly to: Point2;
+    }
+    interface SvgQuadraticMove {
+        readonly kind: "Q";
+        readonly control: Point2;
+        readonly to: Point2;
+    }
+    interface SvgCubicMove {
+        readonly kind: "C";
+        readonly control1: Point2;
+        readonly control2: Point2;
+        readonly to: Point2;
+    }
+    type SvgMove = SvgLineMove | SvgArcMove | SvgQuadraticMove | SvgCubicMove;
+    interface SvgStroke {
+        readonly start: Point2;
+        readonly moves: readonly SvgMove[];
+        readonly closed: boolean;
+    }
+    declare const strokeOf: (segment: DrawingSegment, tolerance: number, budget?: WorkBudget) => SvgStroke;
+    declare const reversedStroke: (stroke: SvgStroke) => SvgStroke;
+    declare const strokeEnd: (stroke: SvgStroke) => Point2;
+    type StyleProps = Record<string, string>;
+    interface StyleState {
+        props: StyleProps;
+        opacity: number;
+        opacitySet: boolean;
+        displayNone: boolean;
+    }
+    interface StyleReadings {
+        opacity: (text: string | undefined) => number | undefined;
+        length: (text: string | undefined) => SvgLength | undefined;
+        dashes: (text: string | undefined) => readonly SvgLength[] | undefined;
+        paintsNothing: (paint: string) => boolean;
+    }
+    declare const STYLE_PROPERTIES: ReadonlySet<string>;
+    declare const INITIAL_STYLE: StyleState;
+    declare const isKeyword: (value: string | undefined, keyword: string) => boolean;
+    declare function specifiedValues(node: XmlNode, css: CssMatches): StyleProps;
+    declare function parseOpacity(value: string): number | undefined;
+    declare function computeStyle(specified: StyleProps, parent: StyleState, readings: StyleReadings): StyleState;
+    declare function toSvgStyle(state: StyleState, viewport: ViewportSize, strokeScale: number, readings: StyleReadings): SvgStyle;
+    declare function styleReadings(): StyleReadings;
+    declare function fillsArea(style: SvgStyle, readings?: StyleReadings): boolean;
+    interface ParsedTransform {
+        matrix: AffineMatrix2;
+        malformed: boolean;
+    }
+    declare function parseTransformList(value: string | undefined | null): ParsedTransform;
+    declare function parseTransform(value: string | undefined | null): AffineMatrix2;
+    declare function transformSegment(m: AffineMatrix2, seg: SvgSegment): SvgSegment;
+    declare function transformSubpath(m: AffineMatrix2, sp: SvgSubpath): SvgSubpath;
+    interface SvgDocumentOptions {
+        readonly unit: string | undefined;
+        readonly strokeWidth: number | undefined;
+        readonly margin: number | undefined;
+        readonly tolerance: number;
+        readonly property: string;
+    }
+    interface SvgPathOptions {
+        readonly flipY: boolean;
+        readonly tolerance: number;
+        readonly property: string;
+    }
+    declare const svgNumber: (value: number) => string;
+    declare const pathDataOf: (path: DrawingPath, options: SvgPathOptions) => string;
+    declare const svgDocumentOf: (parts: readonly DrawingPart[], options: SvgDocumentOptions) => string;
+    type XmlAttributes = Record<string, string>;
+    interface XmlNode {
+        tag: string;
+        prefix: string;
+        namespace?: string;
+        attrs: XmlAttributes;
+        attrNamespaces?: XmlAttributes;
+        children: XmlNode[];
+        text?: string;
+    }
+    declare function parseXml(input: string): XmlNode | undefined;
+    declare const QUADRATIC_DEGREE = 2;
+    declare const CUBIC_DEGREE = 3;
+    declare const SVG_ARC_PIECE: number;
+    declare const EDGE_ON_SHARE = 1e-12;
+    declare const SVG_DECIMALS = 6;
+    declare const TRAILING_FRACTION_ZEROS: RegExp;
+    declare const LEAST_VIEW_SPAN: number;
+    declare const SVG_JOIN_DISTANCE = 1e-9;
+    declare const STROKE_SHARE: number;
+    declare const MARGIN_SHARE: number;
+    declare const SVG_UNITS: Readonly<Record<string, readonly [
+        string,
+        number
+    ]>>;
+    declare const ID_UNSAFE: RegExp;
+    declare const PATH_COLOR = "#000000";
+    declare class WorkBudget {
+        readonly capacity: number;
+        private used;
+        constructor(capacity: number);
+        static forInput(inputSize: number, perUnit: number, floor: number, ceiling?: number): WorkBudget;
+        get spent(): number;
+        get remaining(): number;
+        get exhausted(): boolean;
+        spend(units: number): boolean;
+        affords(units: number): boolean;
+    }
     declare const CRC32_POLYNOMIAL = 3988292384;
     declare const CRC32_ALL_ONES = 4294967295;
     declare const BYTE_MASK = 255;
@@ -14088,12 +15104,37 @@ declare namespace Bit {
     declare function zipStoredParts<T>(records: readonly ZipStoredRecord<T>[], modified?: Date): (Uint8Array<ArrayBuffer> | T)[];
     declare function zipStored(files: readonly ZipFile[], modified?: Date): Uint8Array<ArrayBuffer>;
     declare function zipStoredBlob(files: readonly ZipFile[], modified?: Date): Blob;
+    type AffineMatrix2 = readonly [
+        number,
+        number,
+        number,
+        number,
+        number,
+        number
+    ];
+    declare const AFFINE_IDENTITY2: AffineMatrix2;
+    declare const affineProduct2: (first: AffineMatrix2, second: AffineMatrix2) => AffineMatrix2;
+    declare const affinePoint2: (matrix: AffineMatrix2, point: Base.Point2) => Base.Point2;
+    declare const affineTranslation2: (x: number, y: number) => AffineMatrix2;
+    declare const affineScaling2: (x: number, y: number) => AffineMatrix2;
+    declare const affineAreaScale2: (matrix: AffineMatrix2) => number;
     type Point2 = Inputs.Base.Point2;
     type Point3 = Inputs.Base.Point3;
     declare const arcThroughThreePoints: (start: Point3, middle: Point3, end: Point3) => ThreePointArc | undefined;
     declare const pointsOnArc: (arc: ThreePointArc, start: Point3, end: Point3, segments: number) => Point3[];
     declare const pointOnCubic2: (from: Point2, control1: Point2, control2: Point2, to: Point2, t: number) => Point2;
     declare const pointOnCubic3: (from: Point3, control1: Point3, control2: Point3, to: Point3, t: number) => Point3;
+    type Point2 = Inputs.Base.Point2;
+    interface EllipseArc2 {
+        center: Point2;
+        rx: number;
+        ry: number;
+        xAxisRotation: number;
+        startAngle: number;
+        deltaAngle: number;
+    }
+    declare const ellipseArcOfEndpoints2: (from: Point2, to: Point2, radiusX: number, radiusY: number, xAxisRotation: number, largeArc: boolean, sweep: boolean) => EllipseArc2 | undefined;
+    declare const affineEllipseArc2: (matrix: AffineMatrix2, arc: EllipseArc2) => EllipseArc2;
     type Vec3 = Inputs.Base.Vector3;
     declare const PARALLEL_SINE = 1e-9;
     interface FrameAxes {
@@ -14157,6 +15198,58 @@ declare namespace Bit {
     declare const transportedAxes: (points: readonly Point3[], tangents: readonly Vec3[], first: Vec3) => Vec3[];
     declare const sweepMatrices: (points: readonly Point3[], tangents: readonly Vec3[], xAxes: readonly Vec3[]) => Inputs.Base.TransformMatrix[];
     declare const roundedPath3: (points: readonly Point3[], radius: number, segmentsFor: (sweep: number) => number) => Point3[];
+    declare const NESTING_BOX_MARGIN = 0.01;
+    declare const INTERIOR_SCANLINES: number[];
+    declare const COINCIDENT_AREA_SHARE = 1e-9;
+    declare const SWEEP_CANDIDATES_PER_PAIR = 1000;
+    declare const SWEEP_STEPS_PER_BOX = 20;
+    declare const SWEEP_STEPS_PER_CANDIDATE = 2;
+    type Point2 = Inputs.Base.Point2;
+    type FillRule2 = "nonzero" | "evenOdd";
+    interface Box2 {
+        min: Point2;
+        max: Point2;
+    }
+    interface NestingOutline2 {
+        points: Point2[];
+        area: number;
+        box: Box2;
+        inner?: Point2;
+    }
+    interface FilledRegion2 {
+        outer: number;
+        holes: number[];
+    }
+    declare const boxOf2: (points: readonly Point2[]) => Box2;
+    declare const boxesOverlap2: (a: Box2, b: Box2) => boolean;
+    declare const interiorPoint2: (points: readonly Point2[], box?: Box2) => Point2 | undefined;
+    declare const nestingOutlineOf2: (points: Point2[]) => NestingOutline2;
+    declare function overlappingBoxPairs2(boxes: readonly Box2[]): [
+        number,
+        number
+    ][];
+    declare function overlappingBoxPairs2(boxes: readonly Box2[], most: number, budget?: WorkBudget): [
+        number,
+        number
+    ][] | undefined;
+    declare const segmentsCross2: (p1: Point2, p2: Point2, q1: Point2, q2: Point2) => boolean;
+    declare function outlinesCross2(outlines: readonly NestingOutline2[], pairs: readonly (readonly [
+        number,
+        number
+    ])[]): boolean;
+    declare function outlinesCross2(outlines: readonly NestingOutline2[], pairs: readonly (readonly [
+        number,
+        number
+    ])[], budget: WorkBudget): boolean | undefined;
+    declare function nestedOutlines2(outlines: readonly NestingOutline2[], pairs: readonly (readonly [
+        number,
+        number
+    ])[]): number[][];
+    declare function nestedOutlines2(outlines: readonly NestingOutline2[], pairs: readonly (readonly [
+        number,
+        number
+    ])[], budget: WorkBudget): number[][] | undefined;
+    declare const filledRegions2: (outlines: readonly NestingOutline2[], ancestors: readonly (readonly number[])[], rule: FillRule2) => FilledRegion2[];
     type Point2 = Inputs.Base.Point2;
     declare const signedArea2: (points: readonly Point2[]) => number;
     declare const wound2: (points: readonly Point2[], counterClockwise: boolean) => Point2[];
@@ -14223,6 +15316,7 @@ declare namespace Bit {
     declare const length3: (a: Vec3) => number;
     declare const between3: (a: Vec3, b: Vec3, share: number) => Vec3;
     declare const distance3: (a: Vec3, b: Vec3) => number;
+    declare const distanceToSegment3: (point: Vec3, start: Vec3, end: Vec3) => number;
     interface ThreePointArc {
         readonly center: Inputs.Base.Point3;
         readonly x: Inputs.Base.Vector3;
@@ -14372,9 +15466,44 @@ declare namespace Bit {
     declare function treesNested(first: TriangleTree, second: TriangleTree): boolean;
     declare function pointsOnTree(tree: TriangleTree, most: number): Vec[];
     declare function treeBox(tree: TriangleTree): TreeBox | undefined;
+    declare class Drawing {
+        private readonly dxfOf;
+        private readonly svgOf;
+        constructor(dxfOf: () => Dxf, svgOf: () => Svg);
+        lineSegment(inputs: Inputs.IO.DrawingLineSegmentDto): Inputs.IO.DrawingLineSegmentDto;
+        arcSegment(inputs: Inputs.IO.DrawingArcSegmentDto): Inputs.IO.DrawingArcSegmentDto;
+        circleSegment(inputs: Inputs.IO.DrawingCircleSegmentDto): Inputs.IO.DrawingCircleSegmentDto;
+        polylineSegment(inputs: Inputs.IO.DrawingPolylineSegmentDto): Inputs.IO.DrawingPolylineSegmentDto;
+        splineSegment(inputs: Inputs.IO.DrawingSplineSegmentDto): Inputs.IO.DrawingSplineSegmentDto;
+        ellipseSegment(inputs: Inputs.IO.DrawingEllipseSegmentDto): Inputs.IO.DrawingEllipseSegmentDto;
+        path(inputs: Inputs.IO.DrawingPathDto): Inputs.IO.DrawingPathDto;
+        part(inputs: Inputs.IO.DrawingPartDto): Inputs.IO.DrawingPartDto;
+        svgToDxf(inputs: Inputs.IO.SvgToDxfDto): Inputs.IO.SvgToDxfResultDto;
+        dxfToSvg(inputs: Inputs.IO.DxfToSvgDto): Inputs.IO.DxfToSvgResultDto;
+    }
+    declare class Dxf {
+        private readonly dxfGenerator;
+        lineSegment(inputs: Inputs.IO.DxfLineSegmentDto): Inputs.IO.DxfLineSegmentDto;
+        arcSegment(inputs: Inputs.IO.DxfArcSegmentDto): Inputs.IO.DxfArcSegmentDto;
+        circleSegment(inputs: Inputs.IO.DxfCircleSegmentDto): Inputs.IO.DxfCircleSegmentDto;
+        polylineSegment(inputs: Inputs.IO.DxfPolylineSegmentDto): Inputs.IO.DxfPolylineSegmentDto;
+        splineSegment(inputs: Inputs.IO.DxfSplineSegmentDto): Inputs.IO.DxfSplineSegmentDto;
+        ellipseSegment(inputs: Inputs.IO.DxfEllipseSegmentDto): Inputs.IO.DxfEllipseSegmentDto;
+        path(inputs: Inputs.IO.DxfPathDto): Inputs.IO.DxfPathDto;
+        pathsPart(inputs: Inputs.IO.DxfPathsPartDto): Inputs.IO.DxfPathsPartDto;
+        dxfCreate(inputs: Inputs.IO.DxfModelDto): string;
+        dxfRead(inputs: Inputs.IO.DxfReadDto): Inputs.IO.DxfDrawingDto;
+    }
     declare class IoBitByBit {
+        drawing: Drawing;
         dxf: Dxf;
+        svg: Svg;
         constructor();
+    }
+    declare class Svg {
+        svgCreate(inputs: Inputs.IO.SvgModelDto): string;
+        pathData(inputs: Inputs.IO.SvgPathDataDto): string;
+        svgRead(inputs: Inputs.IO.SvgReadDto): Inputs.IO.SvgDrawingDto;
     }
     declare class Line {
         private readonly vector;
@@ -14384,6 +15513,7 @@ declare namespace Bit {
         getStartPoint(inputs: Inputs.Line.LineDto): Inputs.Base.Point3;
         getEndPoint(inputs: Inputs.Line.LineDto): Inputs.Base.Point3;
         length(inputs: Inputs.Line.LineDto): number;
+        distanceToPoint(inputs: Inputs.Line.LinePointDistanceDto): number;
         reverse(inputs: Inputs.Line.LineDto): Inputs.Base.Line3;
         transformLine(inputs: Inputs.Line.TransformLineDto): Inputs.Base.Line3;
         transformsForLines(inputs: Inputs.Line.TransformsLinesDto): Inputs.Base.Line3[];
@@ -14569,7 +15699,9 @@ declare namespace Bit {
         private readonly transforms;
         private readonly vector;
         private readonly lists;
-        constructor(geometryHelper: GeometryHelper, transforms: Transforms, vector: Vector, lists: Lists);
+        private readonly settings;
+        constructor(geometryHelper: GeometryHelper, transforms: Transforms, vector: Vector, lists: Lists, settings?: () => BitbybitSettings);
+        private onGround;
         transformPoint(inputs: Inputs.Point.TransformPointDto): Inputs.Base.Point3;
         transformPoints(inputs: Inputs.Point.TransformPointsDto): Inputs.Base.Point3[];
         transformsForPoints(inputs: Inputs.Point.TransformsForPointsDto): Inputs.Base.Point3[];
@@ -14652,6 +15784,8 @@ declare namespace Bit {
         private segmentsFor;
     }
     declare class Recipes {
+        private readonly settings;
+        constructor(settings?: () => BitbybitSettings);
         check(inputs: Inputs.Recipes.RecipeDto): RecipeIssue[];
         read(inputs: Inputs.Recipes.RecipeDto): Inputs.Base.Recipe;
         surfaceMeshes(inputs: Inputs.Recipes.RecipeSurfaceMeshesDto): (RecipeSurfaceMesh | undefined)[];
@@ -14659,7 +15793,8 @@ declare namespace Bit {
     }
     declare class TextBitByBit {
         private readonly point;
-        constructor(point: Point);
+        private readonly settings;
+        constructor(point: Point, settings?: () => BitbybitSettings);
         create(inputs: Inputs.Text.TextDto): string;
         split(inputs: Inputs.Text.TextSplitDto): string[];
         replaceAll(inputs: Inputs.Text.TextReplaceDto): string;
@@ -14696,6 +15831,7 @@ declare namespace Bit {
         regexSplit(inputs: Inputs.Text.TextRegexDto): string[];
         vectorChar(inputs: Inputs.Text.VectorCharDto): Models.Text.VectorCharData;
         vectorText(inputs: Inputs.Text.VectorTextDto): Models.Text.VectorTextData[];
+        private onGround;
         private vectorParamsChar;
         private translateLine;
     }
@@ -15158,6 +16294,7 @@ declare namespace Bit {
         readonly frame: Frame;
         readonly engineering: Engineering;
         readonly recipes: Recipes;
+        readonly io: IoBitByBit;
         readonly line: Line;
         readonly polyline: Polyline;
         readonly occt: OCCTW & OCCT;
