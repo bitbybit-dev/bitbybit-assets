@@ -4180,8 +4180,10 @@ declare namespace BABYLON.GUI {
         /** @internal */
         _isFullscreen: boolean;
         private _fullscreenViewport;
-        private _idealWidth;
-        private _idealHeight;
+        /** @internal */
+        _idealWidth: number;
+        /** @internal */
+        _idealHeight: number;
         private _useSmallestIdeal;
         private _renderAtIdealSize;
         private _focusedControl;
@@ -7642,6 +7644,7 @@ declare namespace BABYLON.GUI {
          */
         _processObservables(type: number, x: number, y: number, pi: BABYLON.Nullable<BABYLON.PointerInfoBase>, pointerId: number, buttonIndex: number, deltaX?: number, deltaY?: number): boolean;
         private _getStyleProperty;
+        private _getFont;
         private _prepareFont;
         /**
          * A control has a dimension fully defined if that dimension doesn't depend on the parent's dimension.
@@ -7672,6 +7675,7 @@ declare namespace BABYLON.GUI {
         parse(serializedObject: any, host?: AdvancedDynamicTexture, urlRewriter?: (url: string) => string): Control;
         /**
          * Serializes the current control
+         * Preserves the live layout and cached font metrics when adaptive scaling is enabled.
          * @param serializationObject defined the JSON serialized object
          * @param force if the control should be serialized even if the isSerializable flag is set to false (default false)
          * @param allowCanvas defines if the control is allowed to use a Canvas2D object to serialize (true by default)

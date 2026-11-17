@@ -1,0 +1,22 @@
+{
+  "thinEngineOnly": {
+    "main": 156227,
+    "async": -1
+  },
+  "sceneOnly": {
+    "main": 696116,
+    "async": -1
+  },
+  "minStandardMaterial": {
+    "main": 1488202,
+    "async": -1
+  },
+  "minGridMaterial": {
+    "main": 1112820,
+    "async": -1
+  },
+  "engineOnly": {
+    "main": 487520,
+    "async": -1
+  }
+}

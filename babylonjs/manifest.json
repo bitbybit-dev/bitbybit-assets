@@ -1,7 +1,7 @@
 {
-  "version": "9.32.0",
-  "snapshotTimestamp": 1792656370672,
-  "snapshotSha256": "0af02029f20798c56341d6923ebda64c0c4d68447ff5ca1c853c7cb26d80991c",
+  "version": "9.35.0",
+  "snapshotTimestamp": 1793993986827,
+  "snapshotSha256": "e23327d362842af781dcbce7c01c6ddf27197a6da313ef4769d12714b7246cab",
   "havok": {
     "package": "@babylonjs/havok",
     "version": "1.3.13",
@@ -15,8 +15,8 @@
     },
     {
       "path": "babylon.d.ts",
-      "bytes": 7664571,
-      "sha256": "73f18f9753d1f014a1fa1683425bd48dd6635c24888fd887f6a94a41c6a0d589"
+      "bytes": 7767642,
+      "sha256": "01195437e73e7dcebd707f9d49bd223758dc75961655ea17350e11be5a9538fb"
     },
     {
       "path": "babylon.ktx2Decoder.d.ts",
@@ -26,22 +26,22 @@
     {
       "path": "babylon.ktx2Decoder.js",
       "bytes": 24450,
-      "sha256": "13ded50e97d0ab521ef0a7f207f95e19d476f67b9e3eda796d11cdd3f787df90"
+      "sha256": "e96fa2442cf53dbfb0710966b7c832fc0a91e599c2bc8992ed01d88afb1f1df9"
     },
     {
       "path": "babylon.ktx2Decoder.js.map",
-      "bytes": 106794,
-      "sha256": "b3b9a245326ca9abffcc7c16129068b79b57fc1a2428bd02717741b635b2297b"
+      "bytes": 106830,
+      "sha256": "df6016cd9cd80326ecb34f43356c5c54d936e9954ea9729b160d0261814c4444"
     },
     {
       "path": "babylon.ktx2Decoder.max.js",
       "bytes": 24450,
-      "sha256": "13ded50e97d0ab521ef0a7f207f95e19d476f67b9e3eda796d11cdd3f787df90"
+      "sha256": "e96fa2442cf53dbfb0710966b7c832fc0a91e599c2bc8992ed01d88afb1f1df9"
     },
     {
       "path": "babylon.ktx2Decoder.max.js.map",
-      "bytes": 106794,
-      "sha256": "b3b9a245326ca9abffcc7c16129068b79b57fc1a2428bd02717741b635b2297b"
+      "bytes": 106830,
+      "sha256": "df6016cd9cd80326ecb34f43356c5c54d936e9954ea9729b160d0261814c4444"
     },
     {
       "path": "babylon.ktx2Decoder.module.d.ts",
@@ -49,9 +49,39 @@
       "sha256": "c1f3114d1df6c5728ec5c2e63ca6089558e40aba03448fa14b8f87d0b812bd0b"
     },
     {
+      "path": "babylon.ktx2Encoder.d.ts",
+      "bytes": 54,
+      "sha256": "b0d99165b3f71207a55e2cb9f231098e5aa092209eee9e71b52dd8d9b81d26c6"
+    },
+    {
+      "path": "babylon.ktx2Encoder.js",
+      "bytes": 4308,
+      "sha256": "5a97d4a4bf87d2976d878cef9286bb0ac59cfaefe275bdaadbafb70f183b9abe"
+    },
+    {
+      "path": "babylon.ktx2Encoder.js.map",
+      "bytes": 14805,
+      "sha256": "860050b86b0e535660c38e5160f146e81dfb7bd99d190e8b319579aad86d362b"
+    },
+    {
+      "path": "babylon.ktx2Encoder.max.js",
+      "bytes": 4308,
+      "sha256": "5a97d4a4bf87d2976d878cef9286bb0ac59cfaefe275bdaadbafb70f183b9abe"
+    },
+    {
+      "path": "babylon.ktx2Encoder.max.js.map",
+      "bytes": 14805,
+      "sha256": "860050b86b0e535660c38e5160f146e81dfb7bd99d190e8b319579aad86d362b"
+    },
+    {
+      "path": "babylon.ktx2Encoder.module.d.ts",
+      "bytes": 133,
+      "sha256": "aa1301acf430b59a85faeccd75f6ddcdd2b6619836503cf9fa156499e4ee3dab"
+    },
+    {
       "path": "babylon.max.js.map",
-      "bytes": 30391105,
-      "sha256": "0ad3b6d0cfcfc8531ab35a60220370c5488dd0dc801c8e924ce9ea99b8a25fa9"
+      "bytes": 30860399,
+      "sha256": "3f2413d1783027e3acaa06a276a5ecd3a416c6e0133d0d7a25109a7cb7fe7e65"
     },
     {
       "path": "babylonUsdImporter/4/README.md",
@@ -132,6 +162,41 @@
       "path": "babylonUsdImporter/5/zlib.license",
       "bytes": 1002,
       "sha256": "e32ff4e00d9d94930537635291da39e7e612703334bf6fde8c7f1686fe8a45a2"
+    },
+    {
+      "path": "basisEncoder/v2_50/LICENSE",
+      "bytes": 11347,
+      "sha256": "065fcf48d6af21c0b75e23be5ed5753aee75c892e1c2cf178fa6736305614a5c"
+    },
+    {
+      "path": "basisEncoder/v2_50/LICENSES/Apache-2.0.txt",
+      "bytes": 10273,
+      "sha256": "3813a29779a0f57428cdc4a15eee600a22dc3e3a549106a22826837ef47537ca"
+    },
+    {
+      "path": "basisEncoder/v2_50/LICENSES/BSD-3-clause.txt",
+      "bytes": 4978,
+      "sha256": "849b4babf98a7400533c3e359ebd372b3d29b252eb2e466abfff80940b480188"
+    },
+    {
+      "path": "basisEncoder/v2_50/LICENSES/MIT.txt",
+      "bytes": 2253,
+      "sha256": "e6dab01bed712a1c5c9a627b0d21b86445092c95a15b7f0779d5a471c187c480"
+    },
+    {
+      "path": "basisEncoder/v2_50/NOTICE",
+      "bytes": 998,
+      "sha256": "a710c77f53231533f19fbc00e04a7109077f2dec74232b62a96f2ac1a1c04c85"
+    },
+    {
+      "path": "basisEncoder/v2_50/basis_encoder.js",
+      "bytes": 103878,
+      "sha256": "d225ce1e7012609bcfbe338351c8778d95eb1c19d404314d513b2b2df94a6ffb"
+    },
+    {
+      "path": "basisEncoder/v2_50/basis_encoder.wasm",
+      "bytes": 3287321,
+      "sha256": "48d4e39ccaa1e290a17d00c13b353a728227bb439108d5e6c944fe6ab80552db"
     },
     {
       "path": "basisTranscoder/1/basis_transcoder.js",
@@ -224,9 +289,14 @@
       "sha256": "e08d38c0f98cd8ab3a79282c0a00c14071002e778c602afb47841bf9e2d5112d"
     },
     {
+      "path": "fileSizes.json",
+      "bytes": 316,
+      "sha256": "4e4a6b6f4e7d3b27c77f5fc27644d4dcd969c47f8892d2182538c7f833da6c0a"
+    },
+    {
       "path": "glTF2Interface/babylon.glTF2Interface.d.ts",
-      "bytes": 48206,
-      "sha256": "72b13e84ced766140d1d0606083d04c3d113608283fb0dfe8bd22f3cebe5966b"
+      "bytes": 48692,
+      "sha256": "99d814534d258b88495e846950a81f7f52c6124db6987792590af2a8f0a2ea80"
     },
     {
       "path": "glTF2Interface/babylonjs-gltf2interface.stub.ts",
@@ -255,8 +325,8 @@
     },
     {
       "path": "gui/babylon.gui.d.ts",
-      "bytes": 343730,
-      "sha256": "ea7de13cf13eed29bbe9718163cdcec151d5f2edc75f1a2d15ad35f78e6dea2a"
+      "bytes": 343901,
+      "sha256": "6dfb4bfd5d0d86c980cf9d30753ddcc4c1e94f73c1452b3423b9d9aabb252dee"
     },
     {
       "path": "havok/HavokPhysics.wasm",
@@ -267,6 +337,11 @@
       "path": "havok/HavokPhysics_umd.js",
       "bytes": 67605,
       "sha256": "f378353fc44b33ee2c66b3110490ecfa72993a47652a3e57ba49c752f175f864"
+    },
+    {
+      "path": "havok/LICENSE",
+      "bytes": 1090,
+      "sha256": "1196da268a72f71d527156d33063e0a6abb191089105a616d56d257d9093d1cf"
     },
     {
       "path": "ktx2Transcoders/1/msc_basis_transcoder.js",
@@ -370,8 +445,8 @@
     },
     {
       "path": "sceneJs.js",
-      "bytes": 21595,
-      "sha256": "7f46277d5bb6a31060f20ae35ae74daed7fb42d4bbf535c61ab3263b1ed2d728"
+      "bytes": 21882,
+      "sha256": "69a989fa0f236bf49eef8c8bc9df1e140f2d02865f596159854c1beeeaa062e3"
     },
     {
       "path": "sceneTs.js",
@@ -391,7 +466,7 @@
     {
       "path": "timestamp.js",
       "bytes": 94,
-      "sha256": "634760c495eabb3c73a873ad7da11c1a1c3b22c1a033cd53c667503e109219e8"
+      "sha256": "1b4abfdc8261c7924e08a61c3caa131b6785b2ea56e245f442188ce91418b389"
     },
     {
       "path": "twgsl/twgsl.js",
