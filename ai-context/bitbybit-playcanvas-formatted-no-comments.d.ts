@@ -381,6 +381,15 @@ declare namespace Bit {
                 leftHanded = "leftHanded",
                 rightHanded = "rightHanded"
             }
+            enum upAxisConversionEnum {
+                keep = "keep",
+                zUpToYUp = "zUpToYUp",
+                yUpToZUp = "yUpToZUp"
+            }
+            enum loopFillRuleEnum {
+                evenOdd = "evenOdd",
+                nonZero = "nonZero"
+            }
             enum colorMapStrategyEnum {
                 firstColorForAll = "firstColorForAll",
                 lastColorRemainder = "lastColorRemainder",
@@ -1346,22 +1355,25 @@ declare namespace Bit {
                 minSharpAngle?: number | undefined;
             }
             class BuildRecipeDto {
-                constructor(recipe?: Base.Recipe, circularSegments?: number, adjustZtoY?: boolean, emptyWhenFailed?: boolean);
+                constructor(recipe?: Base.Recipe, circularSegments?: number, adjustZtoY?: boolean, emptyWhenFailed?: boolean, upAxis?: Base.upAxisConversionEnum);
                 recipe: Base.Recipe;
                 circularSegments?: number | undefined;
+                upAxis?: Base.upAxisConversionEnum | undefined;
                 adjustZtoY?: boolean | undefined;
                 emptyWhenFailed?: boolean | undefined;
             }
             class RecipeSurfaceMeshesDto {
-                constructor(recipe?: Base.Recipe, roots?: number[], adjustZtoY?: boolean);
+                constructor(recipe?: Base.Recipe, roots?: number[], adjustZtoY?: boolean, upAxis?: Base.upAxisConversionEnum);
                 recipe: Base.Recipe;
                 roots?: number[] | undefined;
+                upAxis?: Base.upAxisConversionEnum | undefined;
                 adjustZtoY?: boolean | undefined;
             }
             class BuildRecipeMeshesDto {
-                constructor(recipe?: Base.Recipe, circularSegments?: number, adjustZtoY?: boolean, emptyWhenFailed?: boolean, minSharpAngle?: number);
+                constructor(recipe?: Base.Recipe, circularSegments?: number, adjustZtoY?: boolean, emptyWhenFailed?: boolean, minSharpAngle?: number, upAxis?: Base.upAxisConversionEnum);
                 recipe: Base.Recipe;
                 circularSegments?: number | undefined;
+                upAxis?: Base.upAxisConversionEnum | undefined;
                 adjustZtoY?: boolean | undefined;
                 emptyWhenFailed?: boolean | undefined;
                 minSharpAngle?: number | undefined;
@@ -1963,9 +1975,10 @@ declare namespace Bit {
                 elements?: string[] | undefined;
             }
             class GeometryToShapesDto<T> {
-                constructor(model?: T, elements?: string[], adjustZtoY?: boolean, emptyWhenFailed?: boolean, facetedMeshes?: boolean, maxTriangles?: number);
+                constructor(model?: T, elements?: string[], adjustZtoY?: boolean, emptyWhenFailed?: boolean, facetedMeshes?: boolean, maxTriangles?: number, upAxis?: Base.upAxisConversionEnum);
                 model: T;
                 elements?: string[] | undefined;
+                upAxis?: Base.upAxisConversionEnum | undefined;
                 adjustZtoY?: boolean | undefined;
                 emptyWhenFailed?: boolean | undefined;
                 facetedMeshes?: boolean | undefined;
@@ -2049,7 +2062,7 @@ declare namespace Bit {
             };
             type TDocStdDocumentPointer = {
                 hash: number;
-                type: "occ-entity";
+                type: "occ-document";
             };
             type TopoDSShapePointer = TopoDSVertexPointer | TopoDSEdgePointer | TopoDSWirePointer | TopoDSFacePointer | TopoDSShellPointer | TopoDSSolidPointer | TopoDSCompoundPointer;
             enum joinTypeEnum {
@@ -3795,12 +3808,13 @@ declare namespace Bit {
                 internal?: boolean | undefined;
             }
             class ShapeToMeshDto<T> {
-                constructor(shape?: T, precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, isoCurvesU?: number, isoCurvesV?: number, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3, angularDeflection?: number, relativeDeflection?: boolean, precisionShare?: number);
+                constructor(shape?: T, precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, isoCurvesU?: number, isoCurvesV?: number, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3, angularDeflection?: number, relativeDeflection?: boolean, precisionShare?: number, upAxis?: Base.upAxisConversionEnum);
                 shape: T;
                 precision?: number | undefined;
                 angularDeflection?: number | undefined;
                 relativeDeflection?: boolean | undefined;
                 precisionShare?: number | undefined;
+                upAxis?: Base.upAxisConversionEnum | undefined;
                 adjustYtoZ?: boolean | undefined;
                 computeMetadata?: boolean | undefined;
                 keepMeshData?: boolean | undefined;
@@ -3812,9 +3826,10 @@ declare namespace Bit {
                 draftDirection?: Base.Vector3 | undefined;
             }
             class ShapeFacesToPolygonPointsDto<T> {
-                constructor(shape?: T, precision?: number, adjustYtoZ?: boolean, reversedPoints?: boolean);
+                constructor(shape?: T, precision?: number, adjustYtoZ?: boolean, reversedPoints?: boolean, upAxis?: Base.upAxisConversionEnum);
                 shape: T;
                 precision?: number | undefined;
+                upAxis?: Base.upAxisConversionEnum | undefined;
                 adjustYtoZ?: boolean | undefined;
                 reversedPoints?: boolean | undefined;
             }
@@ -3824,12 +3839,13 @@ declare namespace Bit {
                 precision?: number | undefined;
             }
             class ShapesToMeshesDto<T> {
-                constructor(shapes?: T[], precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, isoCurvesU?: number, isoCurvesV?: number, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3, angularDeflection?: number, relativeDeflection?: boolean, precisionShare?: number);
+                constructor(shapes?: T[], precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, isoCurvesU?: number, isoCurvesV?: number, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3, angularDeflection?: number, relativeDeflection?: boolean, precisionShare?: number, upAxis?: Base.upAxisConversionEnum);
                 shapes: T[];
                 precision?: number | undefined;
                 angularDeflection?: number | undefined;
                 relativeDeflection?: boolean | undefined;
                 precisionShare?: number | undefined;
+                upAxis?: Base.upAxisConversionEnum | undefined;
                 adjustYtoZ?: boolean | undefined;
                 computeMetadata?: boolean | undefined;
                 keepMeshData?: boolean | undefined;
@@ -3841,11 +3857,12 @@ declare namespace Bit {
                 draftDirection?: Base.Vector3 | undefined;
             }
             class DocToMeshDto<U> {
-                constructor(document?: U, precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, angularDeflection?: number, relativeDeflection?: boolean);
+                constructor(document?: U, precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, angularDeflection?: number, relativeDeflection?: boolean, upAxis?: Base.upAxisConversionEnum);
                 document: U;
                 precision?: number | undefined;
                 angularDeflection?: number | undefined;
                 relativeDeflection?: boolean | undefined;
+                upAxis?: Base.upAxisConversionEnum | undefined;
                 adjustYtoZ?: boolean | undefined;
                 computeMetadata?: boolean | undefined;
                 keepMeshData?: boolean | undefined;
@@ -3853,11 +3870,12 @@ declare namespace Bit {
                 forceFaceDeflection?: boolean | undefined;
             }
             class DocToMeshesDto<U> {
-                constructor(document?: U, precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, angularDeflection?: number, relativeDeflection?: boolean);
+                constructor(document?: U, precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, angularDeflection?: number, relativeDeflection?: boolean, upAxis?: Base.upAxisConversionEnum);
                 document: U;
                 precision?: number | undefined;
                 angularDeflection?: number | undefined;
                 relativeDeflection?: boolean | undefined;
+                upAxis?: Base.upAxisConversionEnum | undefined;
                 adjustYtoZ?: boolean | undefined;
                 computeMetadata?: boolean | undefined;
                 keepMeshData?: boolean | undefined;
@@ -3865,19 +3883,21 @@ declare namespace Bit {
                 forceFaceDeflection?: boolean | undefined;
             }
             class SaveStepDto<T> {
-                constructor(shape?: T, fileName?: string, adjustYtoZ?: boolean, tryDownload?: boolean, unit?: Base.unitOfLengthEnum);
+                constructor(shape?: T, fileName?: string, adjustYtoZ?: boolean, tryDownload?: boolean, unit?: Base.unitOfLengthEnum, upAxis?: Base.upAxisConversionEnum);
                 shape: T;
                 fileName?: string | undefined;
+                upAxis?: Base.upAxisConversionEnum | undefined;
                 adjustYtoZ?: boolean | undefined;
                 fromRightHanded?: boolean | undefined;
                 tryDownload?: boolean | undefined;
                 unit?: Base.unitOfLengthEnum | undefined;
             }
             class SaveStlDto<T> {
-                constructor(shape?: T, fileName?: string, precision?: number, adjustYtoZ?: boolean, tryDownload?: boolean, binary?: boolean);
+                constructor(shape?: T, fileName?: string, precision?: number, adjustYtoZ?: boolean, tryDownload?: boolean, binary?: boolean, upAxis?: Base.upAxisConversionEnum);
                 shape: T;
                 fileName?: string | undefined;
                 precision?: number | undefined;
+                upAxis?: Base.upAxisConversionEnum | undefined;
                 adjustYtoZ?: boolean | undefined;
                 tryDownload?: boolean | undefined;
                 binary?: boolean | undefined;
@@ -3927,22 +3947,25 @@ declare namespace Bit {
                 tryDownload?: boolean | undefined;
             }
             class ImportStepIgesFromTextDto {
-                constructor(text?: string, fileType?: fileTypeEnum, adjustZtoY?: boolean, unit?: Base.unitOfLengthEnum);
+                constructor(text?: string, fileType?: fileTypeEnum, adjustZtoY?: boolean, unit?: Base.unitOfLengthEnum, upAxis?: Base.upAxisConversionEnum);
                 text: string;
                 fileType?: fileTypeEnum | undefined;
+                upAxis?: Base.upAxisConversionEnum | undefined;
                 adjustZtoY?: boolean | undefined;
                 unit?: Base.unitOfLengthEnum | undefined;
             }
             class ImportStepIgesDto {
-                constructor(assetFile?: File, adjustZtoY?: boolean, unit?: Base.unitOfLengthEnum);
+                constructor(assetFile?: File, adjustZtoY?: boolean, unit?: Base.unitOfLengthEnum, upAxis?: Base.upAxisConversionEnum);
                 assetFile: File;
+                upAxis?: Base.upAxisConversionEnum | undefined;
                 adjustZtoY?: boolean | undefined;
                 unit?: Base.unitOfLengthEnum | undefined;
             }
             class LoadStepOrIgesDto {
-                constructor(filetext?: string | ArrayBuffer, fileName?: string, adjustZtoY?: boolean, unit?: Base.unitOfLengthEnum);
+                constructor(filetext?: string | ArrayBuffer, fileName?: string, adjustZtoY?: boolean, unit?: Base.unitOfLengthEnum, upAxis?: Base.upAxisConversionEnum);
                 filetext: string | ArrayBuffer;
                 fileName?: string | undefined;
+                upAxis?: Base.upAxisConversionEnum | undefined;
                 adjustZtoY?: boolean | undefined;
                 unit?: Base.unitOfLengthEnum | undefined;
             }
@@ -4012,6 +4035,7 @@ declare namespace Bit {
                 nodeNameFormat?: gltfNameFormatEnum | undefined;
                 meshNameFormat?: gltfNameFormatEnum | undefined;
                 transformFormat?: gltfTransformFormatEnum | undefined;
+                upAxis?: Base.upAxisConversionEnum | undefined;
                 adjustZtoY?: boolean | undefined;
                 scale?: number | undefined;
             }
@@ -4083,24 +4107,43 @@ declare namespace Bit {
                 name?: string | undefined;
                 colorRgba?: Base.ColorRGBA | undefined;
             }
-            class SetDocLabelColorDto<T> {
-                constructor(document?: T, label?: string, r?: number, g?: number, b?: number, a?: number);
+            abstract class SetDocLabelColorSharedDto<T> {
                 document: T;
-                label: string;
                 r?: number | undefined;
                 g?: number | undefined;
                 b?: number | undefined;
                 a?: number | undefined;
             }
-            class SetDocLabelNameDto<T> {
-                constructor(document?: T, label?: string, name?: string);
+            class SetDocLabelColorDto<T> extends SetDocLabelColorSharedDto<T> {
+                constructor(document?: T, label?: string, r?: number, g?: number, b?: number, a?: number);
+                label: string;
+            }
+            class SetDocLabelColorsDto<T> extends SetDocLabelColorSharedDto<T> {
+                constructor(document?: T, labels?: string[], r?: number, g?: number, b?: number, a?: number);
+                labels: string[];
+            }
+            abstract class SetDocLabelNameSharedDto<T> {
                 document: T;
+            }
+            class SetDocLabelNameDto<T> extends SetDocLabelNameSharedDto<T> {
+                constructor(document?: T, label?: string, name?: string);
                 label: string;
                 name?: string | undefined;
+            }
+            class SetDocLabelNamesDto<T> extends SetDocLabelNameSharedDto<T> {
+                constructor(document?: T, labels?: string[], names?: string[]);
+                labels: string[];
+                names: string[];
             }
             class DocumentQueryDto<T> {
                 constructor(document?: T);
                 document: T;
+            }
+            class DocumentAnnotationsDto<T> {
+                constructor(document?: T, deflection?: number, upAxis?: Base.upAxisConversionEnum);
+                document: T;
+                deflection?: number | undefined;
+                upAxis?: Base.upAxisConversionEnum | undefined;
             }
             class DocumentLabelQueryDto<T> {
                 constructor(document?: T, label?: string);
@@ -4144,6 +4187,94 @@ declare namespace Bit {
                 dracoQuantizeColorBits?: number | undefined;
                 dracoQuantizeGenericBits?: number | undefined;
                 dracoUnifiedQuantization?: boolean | undefined;
+            }
+            enum pmiShapeKindEnum {
+                part = "part",
+                face = "face",
+                edge = "edge",
+                vertex = "vertex"
+            }
+            enum pmiDimensionTypeEnum {
+                linearDistance = "Location_LinearDistance",
+                angle = "Location_Angular",
+                diameter = "Size_Diameter",
+                radius = "Size_Radius",
+                curveLength = "Size_CurveLength"
+            }
+            enum pmiToleranceTypeEnum {
+                flatness = "Flatness",
+                circularity = "CircularityOrRoundness",
+                cylindricity = "Cylindricity",
+                profileOfSurface = "ProfileOfSurface",
+                perpendicularity = "Perpendicularity",
+                parallelism = "Parallelism",
+                position = "Position"
+            }
+            enum pmiMaterialConditionEnum {
+                none = "none",
+                maximum = "maximum",
+                least = "least"
+            }
+            class PmiShapeDto {
+                constructor(part?: string, kind?: pmiShapeKindEnum, index?: number);
+                part: string;
+                kind?: pmiShapeKindEnum | undefined;
+                index?: number | undefined;
+            }
+            class PmiPresentationDto {
+                constructor(plane?: Base.Frame, textPoint?: Base.Point3, lines?: Base.Point3[][], fills?: Base.Point3[][], name?: string);
+                plane?: Base.Frame | undefined;
+                textPoint?: Base.Point3 | undefined;
+                lines?: Base.Point3[][] | undefined;
+                fills?: Base.Point3[][] | undefined;
+                name?: string | undefined;
+            }
+            class PmiDimensionDto {
+                constructor(type?: pmiDimensionTypeEnum, value?: number, shapeRefs?: PmiShapeDto[], otherShapeRefs?: PmiShapeDto[], upperTolerance?: number, lowerTolerance?: number, name?: string, start?: Base.Point3, end?: Base.Point3, normal?: Base.Vector3, direction?: Base.Vector3, offset?: number, textHeight?: number, decimalPlaces?: number, presentation?: PmiPresentationDto);
+                type?: pmiDimensionTypeEnum | undefined;
+                value: number;
+                shapeRefs: PmiShapeDto[];
+                otherShapeRefs?: PmiShapeDto[] | undefined;
+                upperTolerance?: number | undefined;
+                lowerTolerance?: number | undefined;
+                name?: string | undefined;
+                start?: Base.Point3 | undefined;
+                end?: Base.Point3 | undefined;
+                normal?: Base.Vector3 | undefined;
+                direction?: Base.Vector3 | undefined;
+                offset?: number | undefined;
+                textHeight?: number | undefined;
+                decimalPlaces?: number | undefined;
+                presentation?: PmiPresentationDto | undefined;
+            }
+            class PmiDatumDto {
+                constructor(letter?: string, shapeRefs?: PmiShapeDto[], name?: string, presentation?: PmiPresentationDto);
+                letter?: string | undefined;
+                shapeRefs: PmiShapeDto[];
+                name?: string | undefined;
+                presentation?: PmiPresentationDto | undefined;
+            }
+            class PmiToleranceDto {
+                constructor(type?: pmiToleranceTypeEnum, value?: number, shapeRefs?: PmiShapeDto[], datumLetters?: string[], diameterZone?: boolean, material?: pmiMaterialConditionEnum, name?: string, presentation?: PmiPresentationDto);
+                type?: pmiToleranceTypeEnum | undefined;
+                value: number;
+                shapeRefs: PmiShapeDto[];
+                datumLetters?: string[] | undefined;
+                diameterZone?: boolean | undefined;
+                material?: pmiMaterialConditionEnum | undefined;
+                name?: string | undefined;
+                presentation?: PmiPresentationDto | undefined;
+            }
+            class AddDocumentPmiDto<T> {
+                constructor(document?: T, dimensions?: PmiDimensionDto[], datums?: PmiDatumDto[], tolerances?: PmiToleranceDto[]);
+                document: T;
+                dimensions?: PmiDimensionDto[] | undefined;
+                datums?: PmiDatumDto[] | undefined;
+                tolerances?: PmiToleranceDto[] | undefined;
+            }
+            class RemoveDocumentPmiDto<T> {
+                constructor(document?: T);
+                document: T;
             }
             class CompoundShapesDto<T> {
                 constructor(shapes?: T[]);
@@ -5023,13 +5154,24 @@ declare namespace Bit {
                 frames: Base.Frame[];
                 keep?: sectionKeepEnum | undefined;
             }
+            class HatchedSectionByFrameDto<T> {
+                constructor(shapes?: T[], frame?: Base.Frame, pattern?: IO.hatchPatternEnum, angle?: number, spacing?: number, neighbourAngles?: boolean, curveTolerance?: number, tolerance?: number);
+                shapes: T[];
+                frame: Base.Frame;
+                pattern?: IO.hatchPatternEnum | undefined;
+                angle?: number | undefined;
+                spacing?: number | undefined;
+                neighbourAngles?: boolean | undefined;
+                curveTolerance?: number | undefined;
+                tolerance?: number | undefined;
+            }
             class SplitFaceByWiresDto<T, U> {
                 constructor(shape?: T, wires?: U[]);
                 shape: T;
                 wires: U[];
             }
             class HiddenLinesDto<T> {
-                constructor(shape?: T, frame?: Base.Frame, exact?: boolean, smoothEdges?: boolean, hiddenEdges?: boolean, focus?: number, precision?: number);
+                constructor(shape?: T, frame?: Base.Frame, exact?: boolean, smoothEdges?: boolean, hiddenEdges?: boolean, focus?: number, precision?: number, tidy?: boolean);
                 shape: T;
                 frame: Base.Frame;
                 exact?: boolean | undefined;
@@ -5037,6 +5179,7 @@ declare namespace Bit {
                 hiddenEdges?: boolean | undefined;
                 focus?: number | undefined;
                 precision?: number | undefined;
+                tidy?: boolean | undefined;
             }
             class HolesDto<T> {
                 constructor(shape?: T, frames?: Base.Frame[], diameter?: number, depth?: number, tipAngle?: number);
@@ -5126,9 +5269,10 @@ declare namespace Bit {
                 nonManifold?: boolean | undefined;
             }
             class LoadStlDto {
-                constructor(stlData?: string | ArrayBuffer | Uint8Array | File | Blob, asFaces?: boolean, adjustZtoY?: boolean);
+                constructor(stlData?: string | ArrayBuffer | Uint8Array | File | Blob, asFaces?: boolean, adjustZtoY?: boolean, upAxis?: Base.upAxisConversionEnum);
                 stlData: string | ArrayBuffer | Uint8Array | File | Blob;
                 asFaces?: boolean | undefined;
+                upAxis?: Base.upAxisConversionEnum | undefined;
                 adjustZtoY?: boolean | undefined;
             }
             class LoadBrepDto {
@@ -5174,18 +5318,20 @@ declare namespace Bit {
                 warnings: string[];
             }
             class SaveObjDto<T> {
-                constructor(shape?: T, fileName?: string, precision?: number, adjustYtoZ?: boolean, tryDownload?: boolean);
+                constructor(shape?: T, fileName?: string, precision?: number, adjustYtoZ?: boolean, tryDownload?: boolean, upAxis?: Base.upAxisConversionEnum);
                 shape: T;
                 fileName?: string | undefined;
                 precision?: number | undefined;
+                upAxis?: Base.upAxisConversionEnum | undefined;
                 adjustYtoZ?: boolean | undefined;
                 tryDownload?: boolean | undefined;
             }
             class SavePlyDto<T> {
-                constructor(shape?: T, fileName?: string, precision?: number, adjustYtoZ?: boolean, tryDownload?: boolean);
+                constructor(shape?: T, fileName?: string, precision?: number, adjustYtoZ?: boolean, tryDownload?: boolean, upAxis?: Base.upAxisConversionEnum);
                 shape: T;
                 fileName?: string | undefined;
                 precision?: number | undefined;
+                upAxis?: Base.upAxisConversionEnum | undefined;
                 adjustYtoZ?: boolean | undefined;
                 tryDownload?: boolean | undefined;
             }
@@ -5293,8 +5439,9 @@ declare namespace Bit {
                 tolerance?: number | undefined;
             }
             class BuildRecipeDto {
-                constructor(recipe?: Base.Recipe, adjustZtoY?: boolean, emptyWhenFailed?: boolean, facetedMeshes?: boolean, maxTriangles?: number);
+                constructor(recipe?: Base.Recipe, adjustZtoY?: boolean, emptyWhenFailed?: boolean, facetedMeshes?: boolean, maxTriangles?: number, upAxis?: Base.upAxisConversionEnum);
                 recipe: Base.Recipe;
+                upAxis?: Base.upAxisConversionEnum | undefined;
                 adjustZtoY?: boolean | undefined;
                 emptyWhenFailed?: boolean | undefined;
                 facetedMeshes?: boolean | undefined;
@@ -5660,12 +5807,12 @@ declare namespace Bit {
             }
         }
         declare namespace Draw {
-            type DrawOptions = DrawOcctShapeOptions | DrawBasicGeometryOptions | DrawManifoldOrCrossSectionOptions | DrawFrameOptions | DrawRecipeMeshesOptions;
+            type DrawOptions = DrawOcctShapeOptions | DrawBasicGeometryOptions | DrawManifoldOrCrossSectionOptions | DrawFrameOptions | DrawRecipeMeshesOptions | DrawOcctDocumentOptions | DrawHatchedSectionOptions;
             interface ShapeWithAppearance {
                 shape: Inputs.OCCT.TopoDSShapePointer;
                 appearance?: Models.OCCT.DesignBuiltAppearance | undefined;
             }
-            type Entity = number[] | Base.Point3 | Base.Line3 | Base.Segment3 | Base.Polyline3 | Base.Frame | Base.VerbCurve | Base.VerbSurface | Inputs.OCCT.TopoDSShapePointer | ShapeWithAppearance | Models.OCCT.DesignBuildResult<Inputs.OCCT.TopoDSShapePointer> | Models.OCCT.DesignSection<Inputs.OCCT.TopoDSShapePointer> | Inputs.OCCT.DecomposedMeshDto | Inputs.Manifold.ManifoldPointer | Inputs.Manifold.CrossSectionPointer | Inputs.Manifold.DecomposedManifoldMeshDto | Inputs.Manifold.RecipeMeshesDto | Inputs.JSCAD.JSCADEntity | Inputs.Tag.TagDto | CustomGeometryDrawable | number[][] | Base.Point3[] | Base.Line3[] | Base.Segment3[] | Base.Polyline3[] | Base.Frame[] | Base.VerbCurve[] | Base.VerbSurface[] | Inputs.OCCT.TopoDSShapePointer[] | ShapeWithAppearance[] | Inputs.OCCT.DecomposedMeshDto[] | Inputs.Manifold.ManifoldPointer[] | Inputs.Manifold.CrossSectionPointer[] | Inputs.Manifold.DecomposedManifoldMeshDto[] | Inputs.JSCAD.JSCADEntity[] | Inputs.Tag.TagDto[];
+            type Entity = number[] | Base.Point3 | Base.Line3 | Base.Segment3 | Base.Polyline3 | Base.Frame | Base.VerbCurve | Base.VerbSurface | Inputs.OCCT.TopoDSShapePointer | ShapeWithAppearance | Models.OCCT.DesignBuildResult<Inputs.OCCT.TopoDSShapePointer> | Models.OCCT.DesignSection<Inputs.OCCT.TopoDSShapePointer> | Inputs.OCCT.TDocStdDocumentPointer | Models.OCCT.DocumentAnnotations | Models.OCCT.HatchedSection<Inputs.OCCT.TopoDSShapePointer> | Inputs.OCCT.DecomposedMeshDto | Inputs.Manifold.ManifoldPointer | Inputs.Manifold.CrossSectionPointer | Inputs.Manifold.DecomposedManifoldMeshDto | Inputs.Manifold.RecipeMeshesDto | Inputs.JSCAD.JSCADEntity | Inputs.Tag.TagDto | CustomGeometryDrawable | number[][] | Base.Point3[] | Base.Line3[] | Base.Segment3[] | Base.Polyline3[] | Base.Frame[] | Base.VerbCurve[] | Base.VerbSurface[] | Inputs.OCCT.TopoDSShapePointer[] | ShapeWithAppearance[] | Inputs.OCCT.DecomposedMeshDto[] | Inputs.Manifold.ManifoldPointer[] | Inputs.Manifold.CrossSectionPointer[] | Inputs.Manifold.DecomposedManifoldMeshDto[] | Inputs.JSCAD.JSCADEntity[] | Inputs.Tag.TagDto[];
             interface BitByBitMeta {
                 type: drawingTypes;
                 options: DrawOptions;
@@ -5758,6 +5905,45 @@ declare namespace Bit {
                 draftDirection?: Base.Vector3 | undefined;
                 analysisMin?: number | undefined;
                 analysisMax?: number | undefined;
+            }
+            class DrawMeshingOptions {
+                constructor(precision?: number, angularDeflection?: number, relativeDeflection?: boolean, forceFaceDeflection?: boolean, allowQualityDecrease?: boolean);
+                precision?: number | undefined;
+                angularDeflection?: number | undefined;
+                relativeDeflection?: boolean | undefined;
+                forceFaceDeflection?: boolean | undefined;
+                allowQualityDecrease?: boolean | undefined;
+            }
+            class DrawEdgesOptions {
+                constructor(edgeColour?: Base.Color, edgeWidth?: number, edgeOpacity?: number);
+                edgeColour?: Base.Color | undefined;
+                edgeWidth?: number | undefined;
+                edgeOpacity?: number | undefined;
+            }
+            class DrawAnnotationsOptions {
+                constructor(annotationsView?: string, annotationColour?: Base.Color, annotationWidth?: number, annotationsFilled?: boolean);
+                annotationsView?: string | undefined;
+                annotationColour?: Base.Color | undefined;
+                annotationWidth?: number | undefined;
+                annotationsFilled?: boolean | undefined;
+            }
+            class DrawOcctDocumentOptions {
+                constructor(upAxis?: Base.upAxisConversionEnum, meshing?: DrawMeshingOptions, drawEdges?: boolean, edges?: DrawEdgesOptions, drawAnnotations?: boolean, annotations?: DrawAnnotationsOptions);
+                upAxis?: Base.upAxisConversionEnum | undefined;
+                meshing?: DrawMeshingOptions | undefined;
+                drawEdges?: boolean | undefined;
+                edges?: DrawEdgesOptions | undefined;
+                drawAnnotations?: boolean | undefined;
+                annotations?: DrawAnnotationsOptions | undefined;
+            }
+            class DrawHatchedSectionOptions {
+                constructor(precision?: number, faceColour?: Base.Color, drawEdges?: boolean, edges?: DrawEdgesOptions, hatchColour?: Base.Color, hatchWidth?: number);
+                precision?: number | undefined;
+                faceColour?: Base.Color | undefined;
+                drawEdges?: boolean | undefined;
+                edges?: DrawEdgesOptions | undefined;
+                hatchColour?: Base.Color | undefined;
+                hatchWidth?: number | undefined;
             }
             class DrawBasicGeometryOptions {
                 constructor(colours?: string | string[], size?: number, opacity?: number, updatable?: boolean, hidden?: boolean, drawTwoSided?: boolean, backFaceColour?: Base.Color, backFaceOpacity?: number, colorMapStrategy?: Base.colorMapStrategyEnum, arrowSize?: number, arrowAngle?: number);
@@ -5884,7 +6070,10 @@ declare namespace Bit {
                 manifold = "manifold",
                 recipeMeshes = "recipeMeshes",
                 tag = "tag",
-                tags = "tags"
+                tags = "tags",
+                occtDocument = "occtDocument",
+                occtAnnotations = "occtAnnotations",
+                occtHatchedSection = "occtHatchedSection"
             }
         }
         declare namespace PlayCanvasCamera {
@@ -6693,6 +6882,18 @@ declare namespace Bit {
                 center = "center",
                 dotted = "dotted"
             }
+            enum hatchPatternEnum {
+                solid = "solid",
+                ansi31 = "ansi31",
+                ansi32 = "ansi32",
+                ansi37 = "ansi37"
+            }
+            enum dimensionKindEnum {
+                linear = "linear",
+                diameter = "diameter",
+                radius = "radius",
+                angular = "angular"
+            }
             class DrawingLineSegmentDto {
                 constructor(start?: Base.Point2 | Base.Point3, end?: Base.Point2 | Base.Point3);
                 start: Base.Point2 | Base.Point3;
@@ -6739,12 +6940,76 @@ declare namespace Bit {
                 constructor(segments?: (DrawingLineSegmentDto | DrawingArcSegmentDto | DrawingCircleSegmentDto | DrawingPolylineSegmentDto | DrawingSplineSegmentDto | DrawingEllipseSegmentDto)[]);
                 segments: (DrawingLineSegmentDto | DrawingArcSegmentDto | DrawingCircleSegmentDto | DrawingPolylineSegmentDto | DrawingSplineSegmentDto | DrawingEllipseSegmentDto)[];
             }
+            class DrawingTextDto {
+                constructor(text?: string, position?: Base.Point2 | Base.Point3, height?: number, anchor?: "start" | "middle" | "end", rotation?: number, widthFactor?: number);
+                text: string;
+                position: Base.Point2 | Base.Point3;
+                height?: number | undefined;
+                anchor?: "start" | "middle" | "end" | undefined;
+                rotation?: number | undefined;
+                widthFactor?: number | undefined;
+            }
+            class DrawingTextSizeDto {
+                width: number;
+                above: number;
+                below: number;
+            }
+            class DrawingHatchDto {
+                constructor(boundaries?: DrawingPathDto[], pattern?: hatchPatternEnum, angle?: number, spacing?: number);
+                boundaries: DrawingPathDto[];
+                pattern?: hatchPatternEnum | undefined;
+                angle?: number | undefined;
+                spacing?: number | undefined;
+            }
+            class DrawingHatchRegionDto {
+                constructor(boundaries?: DrawingPathDto[], pattern?: hatchPatternEnum, angle?: number, spacing?: number, tolerance?: number);
+                boundaries: DrawingPathDto[];
+                pattern?: hatchPatternEnum | undefined;
+                angle?: number | undefined;
+                spacing?: number | undefined;
+                tolerance?: number | undefined;
+            }
             class DrawingPartDto {
-                constructor(layer?: string, color?: Base.Color, paths?: DrawingPathDto[], lineType?: lineTypeEnum);
+                constructor(layer?: string, color?: Base.Color, paths?: DrawingPathDto[], lineType?: lineTypeEnum, lineWeight?: number, texts?: DrawingTextDto[], hatches?: DrawingHatchDto[]);
                 layer?: string | undefined;
                 color?: Base.Color | undefined;
                 paths: DrawingPathDto[];
                 lineType?: lineTypeEnum | undefined;
+                lineWeight?: number | undefined;
+                texts?: DrawingTextDto[] | undefined;
+                hatches?: DrawingHatchDto[] | undefined;
+            }
+            class DrawingScalePartsDto {
+                constructor(parts?: DrawingPartDto[], factor?: number);
+                parts: DrawingPartDto[];
+                factor?: number | undefined;
+            }
+            class DrawingDimensionDto {
+                constructor(kind?: dimensionKindEnum, start?: Base.Point2, end?: Base.Point2, direction?: Base.Vector2, offset?: number, angle?: number, value?: number, decimalPlaces?: number, upperTolerance?: number, lowerTolerance?: number, textHeight?: number, arrowLength?: number);
+                kind?: dimensionKindEnum | undefined;
+                start: Base.Point2;
+                end: Base.Point2;
+                direction?: Base.Vector2 | undefined;
+                offset?: number | undefined;
+                angle?: number | undefined;
+                value?: number | undefined;
+                decimalPlaces?: number | undefined;
+                upperTolerance?: number | undefined;
+                lowerTolerance?: number | undefined;
+                textHeight?: number | undefined;
+                arrowLength?: number | undefined;
+            }
+            class DrawingExtentDto {
+                min: Base.Point2;
+                max: Base.Point2;
+            }
+            class DrawingDimensionPictureDto {
+                lines: Base.Point2[][];
+                fills: Base.Point2[][];
+                textStrokes: Base.Point2[][];
+                text: DrawingTextDto;
+                textPoint: Base.Point2;
+                extent: DrawingExtentDto;
             }
             class DxfLineSegmentDto extends DrawingLineSegmentDto {
             }
@@ -6763,12 +7028,13 @@ declare namespace Bit {
             class DxfPathsPartDto extends DrawingPartDto {
             }
             class DxfModelDto {
-                constructor(dxfPathsParts?: DrawingPartDto[], colorFormat?: "aci" | "truecolor", acadVersion?: "AC1009" | "AC1015", unit?: Base.unitOfLengthEnum, curveTolerance?: number);
+                constructor(dxfPathsParts?: DrawingPartDto[], colorFormat?: "aci" | "truecolor", acadVersion?: "AC1009" | "AC1015", unit?: Base.unitOfLengthEnum, curveTolerance?: number, lineTypeScale?: number);
                 dxfPathsParts: DrawingPartDto[];
                 colorFormat?: "aci" | "truecolor" | undefined;
                 acadVersion?: "AC1009" | "AC1015" | undefined;
                 unit?: Base.unitOfLengthEnum | undefined;
                 curveTolerance?: number | undefined;
+                lineTypeScale?: number | undefined;
             }
             class DxfReadDto {
                 constructor(dxf?: string | Uint8Array, includeHiddenLayers?: boolean);
@@ -6782,18 +7048,20 @@ declare namespace Bit {
                 warnings: string[];
             }
             class SvgModelDto {
-                constructor(parts?: DrawingPartDto[], unit?: Base.unitOfLengthEnum, strokeWidth?: number, margin?: number, tolerance?: number);
+                constructor(parts?: DrawingPartDto[], unit?: Base.unitOfLengthEnum, strokeWidth?: number, margin?: number, tolerance?: number, lineTypeScale?: number);
                 parts: DrawingPartDto[];
                 unit?: Base.unitOfLengthEnum | undefined;
                 strokeWidth?: number | undefined;
                 margin?: number | undefined;
                 tolerance?: number | undefined;
+                lineTypeScale?: number | undefined;
             }
             class SvgPathDataDto {
-                constructor(path?: DrawingPathDto, flipY?: boolean, tolerance?: number);
+                constructor(path?: DrawingPathDto, flipY?: boolean, tolerance?: number, cubicsOnly?: boolean);
                 path: DrawingPathDto;
                 flipY?: boolean | undefined;
                 tolerance?: number | undefined;
+                cubicsOnly?: boolean | undefined;
             }
             class SvgReadDto {
                 constructor(svg?: string, unit?: Base.unitOfLengthEnum, includeInvisible?: boolean);
@@ -7367,6 +7635,11 @@ declare namespace Bit {
                 points: Base.Point3[];
                 holes?: Base.Point3[][] | undefined;
             }
+            class TriangulateLoopsDto {
+                constructor(loops?: Base.Point3[][], fillRule?: Base.loopFillRuleEnum);
+                loops: Base.Point3[][];
+                fillRule?: Base.loopFillRuleEnum | undefined;
+            }
             class MeshesWithinDto {
                 constructor(mesh1?: Base.Mesh3, mesh2?: Base.Mesh3, distance?: number);
                 mesh1: Base.Mesh3;
@@ -7701,9 +7974,10 @@ declare namespace Bit {
                 recipe: Base.Recipe;
             }
             class RecipeSurfaceMeshesDto {
-                constructor(recipe?: Base.Recipe, roots?: number[], adjustZtoY?: boolean);
+                constructor(recipe?: Base.Recipe, roots?: number[], adjustZtoY?: boolean, upAxis?: Base.upAxisConversionEnum);
                 recipe: Base.Recipe;
                 roots?: number[] | undefined;
+                upAxis?: Base.upAxisConversionEnum | undefined;
                 adjustZtoY?: boolean | undefined;
             }
             class RecipeSourceDto {
@@ -10009,6 +10283,47 @@ declare namespace Bit {
                 shape: T;
                 histories: ShapeHistory[];
             }
+            type DocumentAnnotationKind = "dimension" | "tolerance" | "datum";
+            interface DocumentAnnotations {
+                annotations: DocumentAnnotation[];
+                views: DocumentSavedView[];
+                leftOut: DocumentAnnotationsLeftOut;
+            }
+            interface DocumentAnnotation {
+                label: string;
+                kind: DocumentAnnotationKind;
+                type: string;
+                name: string;
+                value: number;
+                attached: number;
+                product?: number | undefined;
+                instance?: number | undefined;
+                plane?: DocumentAnnotationPlane | undefined;
+                textPoint?: Base.Point3 | undefined;
+                lines: Base.Point3[][];
+                fills: Base.Point3[][];
+                facing?: Base.Vector3 | undefined;
+            }
+            interface DocumentAnnotationPlane {
+                origin: Base.Point3;
+                normal: Base.Vector3;
+                direction: Base.Vector3;
+            }
+            interface DocumentSavedView {
+                label: string;
+                name: string;
+                isParallel: boolean;
+                eye: Base.Point3;
+                direction: Base.Vector3;
+                up: Base.Vector3;
+                width: number;
+                height: number;
+                annotations: string[];
+            }
+            interface DocumentAnnotationsLeftOut {
+                annotations: number;
+                views: number;
+            }
             interface ObjFiles {
                 obj: string;
                 mtl: string;
@@ -10029,6 +10344,8 @@ declare namespace Bit {
                 upperBound?: number | undefined;
                 shapes: string[];
                 otherShapes: string[];
+                shapeRefs: Inputs.OCCT.PmiShapeDto[];
+                otherShapeRefs: Inputs.OCCT.PmiShapeDto[];
             }
             interface PmiTolerance {
                 label: string;
@@ -10037,11 +10354,17 @@ declare namespace Bit {
                 value: number;
                 shapes: string[];
                 datums: string[];
+                shapeRefs: Inputs.OCCT.PmiShapeDto[];
+                datumLetters: string[];
+                diameterZone: boolean;
+                material: Inputs.OCCT.pmiMaterialConditionEnum;
             }
             interface PmiDatum {
                 label: string;
                 name: string;
                 shapes: string[];
+                letter: string;
+                shapeRefs: Inputs.OCCT.PmiShapeDto[];
             }
             declare class ShapeWithId<U> {
                 id: string;
@@ -10088,6 +10411,27 @@ declare namespace Bit {
             interface HiddenLinesResult<T> {
                 visible: T;
                 hidden: T;
+            }
+            interface HiddenLinesByKindResult<T> {
+                sharp: T;
+                outline: T;
+                smooth: T;
+                hiddenSharp: T;
+                hiddenOutline: T;
+                hiddenSmooth: T;
+            }
+            interface HatchedSection<T> {
+                frame: Base.Frame;
+                shapes: HatchedSectionShape<T>[];
+            }
+            interface HatchedSectionShape<T> {
+                angle: number;
+                caps: HatchedSectionCap<T>[];
+            }
+            interface HatchedSectionCap<T> {
+                face: T;
+                lines: T;
+                hatch: IO.DrawingHatchDto;
             }
             interface SketchLineCommand {
                 type: "line";
@@ -12704,8 +13048,16 @@ declare namespace Bit {
         loadStepToDoc(inputs: Inputs.OCCT.LoadStepToDocDto): Promise<Inputs.OCCT.TDocStdDocumentPointer>;
         loadGltfToDoc(inputs: Inputs.OCCT.LoadGltfToDocDto): Promise<Inputs.OCCT.TDocStdDocumentPointer>;
         loadObjToDoc(inputs: Inputs.OCCT.LoadObjToDocDto): Promise<Inputs.OCCT.TDocStdDocumentPointer>;
-        setDocLabelColor(inputs: Inputs.OCCT.SetDocLabelColorDto<Inputs.OCCT.TDocStdDocumentPointer>): Promise<boolean>;
-        setDocLabelName(inputs: Inputs.OCCT.SetDocLabelNameDto<Inputs.OCCT.TDocStdDocumentPointer>): Promise<boolean>;
+        setDocLabelColor(inputs: Inputs.OCCT.SetDocLabelColorDto<Inputs.OCCT.TDocStdDocumentPointer>): Promise<Inputs.OCCT.TDocStdDocumentPointer>;
+        setDocLabelName(inputs: Inputs.OCCT.SetDocLabelNameDto<Inputs.OCCT.TDocStdDocumentPointer>): Promise<Inputs.OCCT.TDocStdDocumentPointer>;
+        setDocLabelColors(inputs: Inputs.OCCT.SetDocLabelColorsDto<Inputs.OCCT.TDocStdDocumentPointer>): Promise<Inputs.OCCT.TDocStdDocumentPointer>;
+        setDocLabelNames(inputs: Inputs.OCCT.SetDocLabelNamesDto<Inputs.OCCT.TDocStdDocumentPointer>): Promise<Inputs.OCCT.TDocStdDocumentPointer>;
+        createPmiShape(inputs: Inputs.OCCT.PmiShapeDto): Promise<Inputs.OCCT.PmiShapeDto>;
+        createPmiDimension(inputs: Inputs.OCCT.PmiDimensionDto): Promise<Inputs.OCCT.PmiDimensionDto>;
+        createPmiDatum(inputs: Inputs.OCCT.PmiDatumDto): Promise<Inputs.OCCT.PmiDatumDto>;
+        createPmiTolerance(inputs: Inputs.OCCT.PmiToleranceDto): Promise<Inputs.OCCT.PmiToleranceDto>;
+        addDocumentPmi(inputs: Inputs.OCCT.AddDocumentPmiDto<Inputs.OCCT.TDocStdDocumentPointer>): Promise<Inputs.OCCT.TDocStdDocumentPointer>;
+        removeDocumentPmi(inputs: Inputs.OCCT.RemoveDocumentPmiDto<Inputs.OCCT.TDocStdDocumentPointer>): Promise<Inputs.OCCT.TDocStdDocumentPointer>;
         exportDocumentToStep(inputs: Inputs.OCCT.ExportDocumentToStepDto<Inputs.OCCT.TDocStdDocumentPointer>): Promise<Uint8Array>;
         exportDocumentToGltf(inputs: Inputs.OCCT.ExportDocumentToGltfDto<Inputs.OCCT.TDocStdDocumentPointer>): Promise<Uint8Array>;
         exportDocumentToGltfWithDraco(inputs: Inputs.OCCT.ExportDocumentToGltfWithDracoDto<Inputs.OCCT.TDocStdDocumentPointer>): Promise<Uint8Array>;
@@ -12723,6 +13075,7 @@ declare namespace Bit {
         getLabelInfo(inputs: Inputs.OCCT.DocumentLabelQueryDto<Inputs.OCCT.TDocStdDocumentPointer>): Promise<Models.OCCT.LabelInfo>;
         getAssemblyHierarchy(inputs: Inputs.OCCT.DocumentQueryDto<Inputs.OCCT.TDocStdDocumentPointer>): Promise<Models.OCCT.AssemblyHierarchyResult>;
         getDocumentPmi(inputs: Inputs.OCCT.DocumentQueryDto<Inputs.OCCT.TDocStdDocumentPointer>): Promise<Models.OCCT.DocumentPmi>;
+        getDocumentAnnotations(inputs: Inputs.OCCT.DocumentAnnotationsDto<Inputs.OCCT.TDocStdDocumentPointer>): Promise<Models.OCCT.DocumentAnnotations>;
     }
     declare class OCCTBooleans {
         private readonly occWorkerManager;
@@ -12999,9 +13352,11 @@ declare namespace Bit {
         splitByFrame(inputs: Inputs.OCCT.SplitByFrameDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.SplitByFrameResult<Inputs.OCCT.TopoDSCompoundPointer>>;
         sectionByFrames(inputs: Inputs.OCCT.SectionByFramesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSCompoundPointer[][]>;
         cutByFrames(inputs: Inputs.OCCT.CutByFramesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSCompoundPointer[]>;
+        hatchedSectionByFrame(inputs: Inputs.OCCT.HatchedSectionByFrameDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.HatchedSection<Inputs.OCCT.TopoDSShapePointer>>;
         splitFaceByWires(inputs: Inputs.OCCT.SplitFaceByWiresDto<Inputs.OCCT.TopoDSFacePointer, Inputs.OCCT.TopoDSWirePointer | Inputs.OCCT.TopoDSEdgePointer>): Promise<Inputs.OCCT.TopoDSFacePointer[]>;
         offset3DWire(inputs: Inputs.OCCT.Offset3DWireDto<Inputs.OCCT.TopoDSWirePointer>): Promise<Inputs.OCCT.TopoDSWirePointer>;
         hiddenLines(inputs: Inputs.OCCT.HiddenLinesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.HiddenLinesResult<Inputs.OCCT.TopoDSCompoundPointer>>;
+        hiddenLinesByKind(inputs: Inputs.OCCT.HiddenLinesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.HiddenLinesByKindResult<Inputs.OCCT.TopoDSCompoundPointer>>;
     }
     declare class OCCTBearingsAnsi {
         private readonly occWorkerManager;
@@ -13655,6 +14010,11 @@ declare namespace Bit {
         optionsSimple(inputs: Inputs.Draw.DrawBasicGeometryOptions): Inputs.Draw.DrawBasicGeometryOptions;
         optionsFrame(inputs: Inputs.Draw.DrawFrameOptions): Inputs.Draw.DrawFrameOptions;
         optionsOcctShape(inputs: Inputs.Draw.DrawOcctShapeOptions): Inputs.Draw.DrawOcctShapeOptions;
+        optionsOcctDocument(inputs: Inputs.Draw.DrawOcctDocumentOptions): Inputs.Draw.DrawOcctDocumentOptions;
+        optionsMeshing(inputs: Inputs.Draw.DrawMeshingOptions): Inputs.Draw.DrawMeshingOptions;
+        optionsEdges(inputs: Inputs.Draw.DrawEdgesOptions): Inputs.Draw.DrawEdgesOptions;
+        optionsAnnotations(inputs: Inputs.Draw.DrawAnnotationsOptions): Inputs.Draw.DrawAnnotationsOptions;
+        optionsHatchedSection(inputs: Inputs.Draw.DrawHatchedSectionOptions): Inputs.Draw.DrawHatchedSectionOptions;
         optionsRecipeMeshes(inputs: Inputs.Draw.DrawRecipeMeshesOptions): Inputs.Draw.DrawRecipeMeshesOptions;
         setRecipeElementsVisible(inputs: Inputs.Draw.RecipeElementsVisibilityDto<pc.Entity>): void;
         setRecipeElementsColour(inputs: Inputs.Draw.RecipeElementsColourDto<pc.Entity>): void;
@@ -14129,9 +14489,10 @@ declare namespace Bit {
     declare const angleWithinTurn: (angle: number, turn: number) => number;
     declare const ellipseFramePoint: (frame: EllipseFrame, angle: number) => Point3;
     declare const conicArcOfEllipseArc: (arc: EllipseArc2) => ConicArc;
-    declare const conicArcSamples: (arc: ConicArc, tolerance: number) => Point3[];
+    declare const conicArcSamples: (arc: ConicArc, tolerance: number, budget?: WorkBudget) => Point3[];
     declare const conicArcAsNurbs: (arc: ConicArc) => NurbsCurveForm;
     declare const bulgeArcOf: (start: Point3, end: Point3, bulge: number) => ConicArc;
+    declare const bulgeOfSweep: (sweep: number) => number;
     declare const conicArcExtremes: (arc: ConicArc, axes?: readonly number[]) => Point3[];
     declare const principalArcOf: (arc: ConicArc) => ConicArc;
     type Point3 = Inputs.Base.Point3;
@@ -14179,11 +14540,30 @@ declare namespace Bit {
     declare const refinedSurfaceMesh: (uv: readonly Point2[], positions: readonly Point3[], loops: readonly (readonly number[])[], pointAt: (u: number, v: number) => Point3) => RefinedSurfaceMesh;
     declare function crc32(data: Uint8Array): number;
     declare const writerBudgetOf: (parts: readonly DrawingPart[]) => WorkBudget;
+    declare const ARROW_WIDTH_SHARE: number;
+    declare const TEXT_GAP_SHARE: number;
+    declare const EXTENSION_GAP_SHARE: number;
+    declare const EXTENSION_OVERSHOOT_SHARE: number;
+    declare const ARROWS_INSIDE_ROOM: number;
+    declare const ARROW_TAIL_SHARE: number;
+    declare const ARC_TOLERANCE_SHARE: number;
+    declare const MOST_DECIMAL_PLACES = 15;
+    declare const TOLERANCE_DECIMAL_PLACES = 6;
+    declare const UPRIGHT_SLACK = 1e-9;
+    declare const DIAMETER_SIGN = "\u2300";
+    declare const RADIUS_SIGN = "R";
+    declare const DEGREE_SIGN = "\u00B0";
+    declare const PLUS_MINUS_SIGN = "\u00B1";
+    declare const dimensionExtentOf: (dimension: Resolved.IO.DrawingDimensionDto) => Inputs.IO.DrawingExtentDto;
+    declare const dimensionPictureOf: (dimension: Resolved.IO.DrawingDimensionDto) => Inputs.IO.DrawingDimensionPictureDto;
+    type Point2 = Inputs.Base.Point2;
     type Point3 = Inputs.Base.Point3;
     type Vec3 = Inputs.Base.Vector3;
     declare const ocsAxesOf: (normal: Vec3) => FrameAxes;
     declare const circleArcOf: (segment: DrawingCircle | DrawingArc) => ConicArc;
     declare const ellipseArcOf: (segment: DrawingEllipse) => ConicArc;
+    declare const pointsMeet: (a: Point2 | undefined, b: Point2) => boolean;
+    declare const meetsReversed: (end: Point2 | undefined, start: Point2, finish: Point2) => boolean;
     declare const polylineSpans: (polyline: DrawingPolyline) => number;
     declare const polylineSpanEnd: (polyline: DrawingPolyline, span: number) => Point3;
     declare const bulgeArcOfSpan: (polyline: DrawingPolyline, span: number) => ConicArc | undefined;
@@ -14191,9 +14571,28 @@ declare namespace Bit {
     declare const drawingBounds: (parts: readonly DrawingPart[], tolerance: number, budget?: WorkBudget) => DrawingBounds | undefined;
     declare const drawingSize: (bounds: DrawingBounds | undefined, axes?: number) => number;
     declare const patternUnitOf: (bounds: DrawingBounds | undefined) => number;
+    type Point2 = Inputs.Base.Point2;
+    type Segment2 = Inputs.Base.Segment2;
+    declare const hatchOutlinesOf: (hatch: DrawingHatch, tolerance: number, budget?: WorkBudget) => Point2[][];
+    declare const clippedHatchLinesOf: (hatch: DrawingHatch, tolerance: number, property: string, budget?: WorkBudget) => Segment2[];
+    declare const hatchFamiliesOf: (hatch: DrawingHatch) => DrawingHatchFamily[];
+    declare const hatchLinesOf: (hatch: DrawingHatch, tolerance: number, property: string, budget?: WorkBudget) => Segment2[];
+    declare const drawingLoopsOf: (paths: readonly DrawingPath[], tolerance: number, budget?: WorkBudget) => DrawingLoop[];
+    declare const isDrawable: (value: unknown) => value is number;
+    declare const finiteNumber: (value: unknown, property: string) => number;
     declare const positiveNumber: (value: unknown, property: string) => number;
+    declare const segmentKindOf: (segment: unknown) => DrawingSegment["kind"] | undefined;
     declare const drawingPathOf: (path: Inputs.IO.DrawingPathDto | undefined, property: string) => DrawingPath;
+    declare const drawingTextOf: (text: unknown, property: string) => DrawingText;
+    declare const drawingHatchOf: (hatch: unknown, property: string) => DrawingHatch;
     declare const drawingPartsOf: (parts: readonly unknown[] | undefined, property: string) => DrawingPart[];
+    declare const scaledDrawingParts: (parts: readonly unknown[] | undefined, factor: unknown, property: string) => Inputs.IO.DrawingPartDto[];
+    type Point3 = Inputs.Base.Point3;
+    declare const textInked: (text: DrawingText) => boolean;
+    declare const textStartOf: (text: DrawingText) => Point3;
+    declare const textEndOf: (text: DrawingText) => Point3;
+    declare const textCornersOf: (text: DrawingText) => Point3[];
+    declare const textStrokesOf: (text: DrawingText) => Point3[][];
     type Point3 = Inputs.Base.Point3;
     type Vec3 = Inputs.Base.Vector3;
     interface DrawingLine {
@@ -14241,19 +14640,76 @@ declare namespace Bit {
     interface DrawingPath {
         readonly segments: readonly DrawingSegment[];
     }
+    type DrawingTextAnchor = "start" | "middle" | "end";
+    interface DrawingText {
+        readonly value: string;
+        readonly position: Point3;
+        readonly height: number;
+        readonly anchor: DrawingTextAnchor;
+        readonly rotation: number;
+        readonly rotationDegrees: number;
+        readonly widthFactor: number;
+        readonly width: number;
+    }
+    interface DrawingHatch {
+        readonly boundaries: readonly DrawingPath[];
+        readonly pattern: Inputs.IO.hatchPatternEnum;
+        readonly angle: number;
+        readonly spacing: number;
+    }
+    interface DrawingHatchFamily {
+        readonly turn: HatchFamilyTurn;
+        readonly angle: number;
+        readonly direction: Inputs.Base.Point2;
+        readonly across: Inputs.Base.Point2;
+        readonly phase: number;
+    }
+    interface DrawingLoop {
+        readonly points: readonly Inputs.Base.Point2[];
+        readonly bulges: readonly number[];
+    }
     interface DrawingPart {
         readonly layer: string;
         readonly color: string;
         readonly lineType: Inputs.IO.lineTypeEnum;
+        readonly lineWeight: number | undefined;
         readonly paths: readonly DrawingPath[];
+        readonly texts: readonly DrawingText[];
+        readonly hatches: readonly DrawingHatch[];
     }
     interface DrawingBounds {
         readonly min: Point3;
         readonly max: Point3;
     }
+    interface DrawingDimension {
+        readonly kind: Inputs.IO.dimensionKindEnum;
+        readonly start: Inputs.Base.Point2;
+        readonly end: Inputs.Base.Point2;
+        readonly direction: Inputs.Base.Vector2 | undefined;
+        readonly offset: number;
+        readonly sweep: number;
+        readonly text: string;
+        readonly textHeight: number;
+        readonly arrowLength: number;
+    }
+    interface DimensionLayout {
+        readonly lines: Inputs.Base.Point2[][];
+        readonly fills: Inputs.Base.Point2[][];
+        readonly text: DrawingText;
+    }
+    interface DimensionLine {
+        readonly from: Inputs.Base.Point2;
+        readonly to: Inputs.Base.Point2;
+        readonly arrowAtFrom: boolean;
+    }
+    interface TextInk {
+        readonly low: number;
+        readonly high: number;
+    }
     declare const SAME_POINT = 1e-10;
     declare const PERPENDICULAR_COSINE = 1e-9;
     declare const FULL_TURN_DEGREES = 360;
+    declare const QUARTER_TURN_DEGREES = 90;
     declare const ARBITRARY_AXIS_LIMIT: number;
     declare const FORBIDDEN_LAYER_CHARACTERS: RegExp;
     declare const FIRST_PRINTABLE_CODE = 32;
@@ -14271,6 +14727,21 @@ declare namespace Bit {
     declare const WRITER_WORK_FLOOR: number;
     declare const WRITER_WORK_CEILING: number;
     declare const NUMBERS_PER_PART = 1;
+    declare const NUMBERS_PER_TEXT = 8;
+    declare const NUMBERS_PER_CHARACTER = 64;
+    declare const NUMBERS_PER_HATCH = 4;
+    declare const LONGEST_TEXT = 2000;
+    declare const CONTROL_CHARACTER: RegExp;
+    declare const JOIN_DISTANCE = 1e-9;
+    declare const MOST_HATCH_LINES = 200000;
+    declare const LEAST_LOOP_CORNERS = 3;
+    type HatchFamilyTurn = 0 | typeof QUARTER_TURN_DEGREES;
+    declare const HATCH_FAMILIES: Readonly<Record<string, readonly (readonly [
+        HatchFamilyTurn,
+        number
+    ])[]>>;
+    declare const ANCHOR_SHARES: Readonly<Record<"start" | "middle" | "end", number>>;
+    declare const TEXT_ANCHORS: ReadonlySet<string>;
     declare const NUMBERS_PER_VERTEX = 4;
     declare const NUMBERS_PER_CURVE: Readonly<Record<"line" | "circle" | "arc" | "ellipse", number>>;
     interface LineTypePattern {
@@ -14279,6 +14750,9 @@ declare namespace Bit {
         readonly elements: readonly number[];
     }
     declare const LINE_TYPE_PATTERNS: Readonly<Record<string, LineTypePattern>>;
+    declare const dxfTextValue: (value: string) => string;
+    declare const writeText: (context: DxfEntityContext, text: DrawingText, style: DxfEntityStyle) => void;
+    declare const writeHatch: (context: DxfEntityContext, hatch: DrawingHatch, style: DxfEntityStyle, property: string) => void;
     type Rgb = readonly [
         number,
         number,
@@ -14291,6 +14765,7 @@ declare namespace Bit {
         readonly layer: string;
         readonly color: string;
         readonly lineType: Inputs.IO.lineTypeEnum | undefined;
+        readonly lineWeight: number | undefined;
     }
     interface DxfEntityContext {
         readonly text: DxfText;
@@ -14298,12 +14773,21 @@ declare namespace Bit {
         readonly owner: string;
         readonly colorFormat: "aci" | "truecolor";
         readonly curveTolerance: number;
+        readonly measurement: DxfMeasurement;
     }
+    declare const isModern: (context: DxfEntityContext) => boolean;
+    declare const openEntity: (context: DxfEntityContext, kind: string, style: DxfEntityStyle, owner?: string) => string;
     declare const writeSegment: (context: DxfEntityContext, segment: DrawingSegment, style: DxfEntityStyle) => void;
     declare const dxfTextOf: (data: unknown, property: string) => string;
     declare class DxfGenerator {
         generateDxf(model: Resolved.IO.DxfModelDto): string;
     }
+    declare const planarTurnOf: (map: FrameAxes) => PlanarTurn | undefined;
+    declare const plainDxfText: (value: string) => string;
+    declare const readTextOf: (record: DxfEntityRecord) => ReadText | string | undefined;
+    declare const placedText: (text: ReadText, turn: PlanarTurn, map: FrameAxes) => ReadText;
+    declare const readHatchOf: (record: DxfEntityRecord, measurement: DxfMeasurement) => ReadHatch | string | undefined;
+    declare const placedHatch: (hatch: ReadHatch, turn: PlanarTurn, map: FrameAxes, isPlaced: boolean) => ReadHatch;
     type DxfSegment = Inputs.IO.DrawingPathDto["segments"][number];
     declare const conicSegmentDto: (conic: ReadConic) => DxfSegment | undefined;
     declare const drawingDtoOf: (drawing: ReadDrawing) => Inputs.IO.DxfDrawingDto;
@@ -14324,6 +14808,12 @@ declare namespace Bit {
     declare const polylineSegments: (polyline: ReadPolyline) => ReadSegment[];
     declare const mappedSegments: (map: FrameAxes, segment: ReadSegment) => ReadSegment[];
     declare const principalConicOf: (conic: ReadConic) => PrincipalConic | undefined;
+    type Point3 = Inputs.Base.Point3;
+    type Vec3 = Inputs.Base.Vector3;
+    declare const segmentWork: (segment: ReadSegment) => number;
+    declare const recordPointOf: (record: DxfEntityRecord, codes: readonly number[], fallback?: Point3) => Point3;
+    declare const recordNormalOf: (record: DxfEntityRecord) => Vec3;
+    declare const readSegmentsOf: (record: DxfEntityRecord) => OwnSegments;
     type Point3 = Inputs.Base.Point3;
     type Vec3 = Inputs.Base.Vector3;
     interface DxfGroup {
@@ -14368,14 +14858,41 @@ declare namespace Bit {
         readonly closed: boolean;
     }
     type ReadSegment = ReadLine | ReadConic | ReadPolyline | ReadSpline | ReadFitSpline;
+    interface OwnSegments {
+        readonly segments: readonly ReadSegment[];
+        readonly work: number;
+        readonly flaw: string | undefined;
+        readonly skipped: string | undefined;
+    }
     interface ReadStyle {
         readonly layer: string;
         readonly color: string;
         readonly lineType: Inputs.IO.lineTypeEnum;
     }
+    interface PlanarTurn {
+        readonly scale: number;
+        readonly rotation: number;
+    }
+    interface ReadText {
+        readonly value: string;
+        readonly position: Point3;
+        readonly height: number;
+        readonly anchor: "start" | "middle" | "end";
+        readonly rotation: number;
+        readonly widthFactor: number;
+    }
+    interface ReadHatch {
+        readonly boundaries: readonly (readonly ReadSegment[])[];
+        readonly pattern: Inputs.IO.hatchPatternEnum;
+        readonly angle: number;
+        readonly spacing: number;
+        readonly simplified: boolean;
+    }
     interface ReadEntity {
         readonly style: ReadStyle;
         readonly segments: readonly ReadSegment[];
+        readonly text?: ReadText;
+        readonly hatch?: ReadHatch;
     }
     interface ReadLayer {
         readonly name: string;
@@ -14419,6 +14936,7 @@ declare namespace Bit {
     declare const DEGREES_PER_TURN = 360;
     declare const SAME_SCALE = 1e-9;
     declare const UNIT_CODES: ReadonlyMap<number, Inputs.Base.unitOfLengthEnum>;
+    declare const IMPERIAL_UNIT_CODES: ReadonlySet<number>;
     declare const UNIT_NAMES: ReadonlyMap<number, string>;
     declare const DRAWN_ENTITIES: Set<string>;
     declare const Y_OFFSET = 10;
@@ -14460,8 +14978,72 @@ declare namespace Bit {
         readonly elevation: 38;
         readonly space: 67;
     };
-    declare const readDxfDrawing: (text: string, includeHidden: boolean) => ReadDrawing;
+    declare const ANNOTATED_ENTITIES: Set<string>;
+    declare const ANNOTATION_GROUP: {
+        readonly text: 1;
+        readonly otherY: 21;
+        readonly height: 40;
+        readonly widthFactor: 41;
+        readonly patternScale: 41;
+        readonly edgeWeight: 42;
+        readonly baseX: 43;
+        readonly baseY: 44;
+        readonly offsetX: 45;
+        readonly offsetY: 46;
+        readonly dash: 49;
+        readonly patternAngle: 52;
+        readonly lineAngle: 53;
+        readonly solid: 70;
+        readonly justified: 72;
+        readonly edgeType: 72;
+        readonly hasBulge: 72;
+        readonly verticalJustified: 73;
+        readonly counterclockwise: 73;
+        readonly rational: 73;
+        readonly closedLoop: 73;
+        readonly periodic: 74;
+        readonly lineCount: 78;
+        readonly dashCount: 79;
+        readonly loopCount: 91;
+        readonly loopFlags: 92;
+        readonly vertexCount: 93;
+        readonly edgeDegree: 94;
+        readonly knotCount: 95;
+        readonly pointCount: 96;
+        readonly sources: 97;
+        readonly fitCount: 97;
+        readonly owner: 330;
+    };
+    declare const TEXT_JUSTIFIED: {
+        readonly left: 0;
+        readonly center: 1;
+        readonly right: 2;
+        readonly aligned: 3;
+        readonly middle: 4;
+        readonly fit: 5;
+    };
+    declare const TEXT_VERTICAL: {
+        readonly baseline: 0;
+        readonly bottom: 1;
+        readonly middle: 2;
+        readonly top: 3;
+    };
+    declare const MIDDLE_DROP_SHARE = 0.5;
+    declare const HATCH_EDGE: {
+        readonly line: 1;
+        readonly arc: 2;
+        readonly ellipse: 3;
+        readonly spline: 4;
+    };
+    declare const HATCH_POLYLINE_FLAG = 2;
+    declare const TEXT_CODES: RegExp;
+    declare const TEXT_CONTROLS: RegExp;
+    declare const SAME_TURN = 1e-9;
+    declare const SAME_ANGLE_DEGREES = 0.000001;
+    declare const readDxfDrawing: (text: string, includeHidden: boolean, annotated?: boolean) => ReadDrawing;
     type DxfVersion = "AC1009" | "AC1015";
+    type DxfMeasurement = "imperial" | "metric";
+    declare const dxfMeasurementOf: (unit: string | undefined) => DxfMeasurement;
     interface DxfLayerRow {
         readonly name: string;
         readonly color: string;
@@ -14526,6 +15108,8 @@ declare namespace Bit {
     declare const numberOf: (record: DxfEntityRecord, code: number, fallback: number) => number;
     declare const numbersOf: (record: DxfEntityRecord, code: number) => number[];
     declare const decodedText: (value: string) => string;
+    declare const sectionsOf: (groups: readonly DxfGroup[]) => Map<string, DxfGroup[]>;
+    declare const headerGroupOf: (header: readonly DxfGroup[], name: string) => DxfGroup | undefined;
     declare const DXF_FIRST_HANDLE = 32;
     declare const DXF_INSUNITS: Readonly<Record<string, string>>;
     declare const DXF_IMPERIAL_MEASUREMENT = "0";
@@ -14601,6 +15185,16 @@ declare namespace Bit {
     declare const DXF_RATIONAL_FLAG = 4;
     declare const DXF_POLYLINE_3D_FLAG = 8;
     declare const DXF_MAX_NAME_LENGTH = 255;
+    declare const DXF_LINE_WEIGHTS: number[];
+    declare const DXF_LINE_WEIGHTS_PER_MILLIMETRE = 100;
+    declare const DXF_TEXT_STYLE = "Standard";
+    declare const DXF_CODED_BACKSLASH = "\\U+005C";
+    declare const DXF_CHARACTER_CODE_START: RegExp;
+    declare const DXF_FIT_JUSTIFICATION = "5";
+    declare const DXF_POLYLINE_BOUNDARY = "3";
+    declare const DXF_HATCH_NAMES: Readonly<Record<string, string>>;
+    declare const DXF_HATCH_NATIVE_ANGLE = 45;
+    declare const DXF_HATCH_NATIVE_SPACING: Readonly<Record<DxfMeasurement, Readonly<Record<string, number>>>>;
     declare const bytesOfData: (data: unknown) => Uint8Array | undefined;
     declare const GLB_MAGIC = 1179937895;
     declare const GLB_VERSION = 2;
@@ -14969,7 +15563,7 @@ declare namespace Bit {
         readonly moves: readonly SvgMove[];
         readonly closed: boolean;
     }
-    declare const strokeOf: (segment: DrawingSegment, tolerance: number, budget?: WorkBudget) => SvgStroke;
+    declare const strokeOf: (segment: DrawingSegment, tolerance: number, budget?: WorkBudget, cubicsOnly?: boolean) => SvgStroke;
     declare const reversedStroke: (stroke: SvgStroke) => SvgStroke;
     declare const strokeEnd: (stroke: SvgStroke) => Point2;
     type StyleProps = Record<string, string>;
@@ -15006,11 +15600,13 @@ declare namespace Bit {
         readonly unit: string | undefined;
         readonly strokeWidth: number | undefined;
         readonly margin: number | undefined;
+        readonly lineTypeScale: number | undefined;
         readonly tolerance: number;
         readonly property: string;
     }
     interface SvgPathOptions {
         readonly flipY: boolean;
+        readonly cubicsOnly: boolean;
         readonly tolerance: number;
         readonly property: string;
     }
@@ -15035,7 +15631,6 @@ declare namespace Bit {
     declare const SVG_DECIMALS = 6;
     declare const TRAILING_FRACTION_ZEROS: RegExp;
     declare const LEAST_VIEW_SPAN: number;
-    declare const SVG_JOIN_DISTANCE = 1e-9;
     declare const STROKE_SHARE: number;
     declare const MARGIN_SHARE: number;
     declare const SVG_UNITS: Readonly<Record<string, readonly [
@@ -15044,6 +15639,8 @@ declare namespace Bit {
     ]>>;
     declare const ID_UNSAFE: RegExp;
     declare const PATH_COLOR = "#000000";
+    declare const PATTERN_ID_RADIX = 16;
+    declare const PATTERN_ID_DIGITS = 8;
     declare class WorkBudget {
         readonly capacity: number;
         private used;
@@ -15165,6 +15762,7 @@ declare namespace Bit {
     declare const snappedLength: (value: number, from: UnitOfLength, to: UnitOfLength) => number;
     declare const tableLength: (value: number, from: UnitOfLength, table: UnitOfLength) => number;
     declare function lengthsConverted<T extends Readonly<Record<K, number>>, K extends keyof T>(record: T, fields: readonly K[], from: UnitOfLength, to: UnitOfLength): T;
+    declare function filledLoopTriangles(positions: ArrayLike<number>, loops: readonly (readonly number[])[], rule: FillRule2): number[];
     declare const RIGID_TOLERANCE = 1e-7;
     declare const LINEAR_COLUMN_STARTS: readonly [
         0,
@@ -15427,6 +16025,42 @@ declare namespace Bit {
         readonly nodes?: readonly GltfNode[];
     }
     type UnitOfLength = `${Inputs.Base.unitOfLengthEnum}`;
+    type StrokePoint = readonly [
+        number,
+        number
+    ];
+    interface StrokeGlyph {
+        readonly advance: number;
+        readonly strokes: readonly (readonly StrokePoint[])[];
+    }
+    interface StrokeFontMarks {
+        readonly height: number;
+        readonly above: Readonly<Record<number, readonly (number | undefined)[]>>;
+        readonly below: Readonly<Record<number, readonly (number | undefined)[]>>;
+    }
+    interface StrokeOverlay {
+        readonly base: number;
+        readonly strokes: readonly (number | undefined)[];
+    }
+    interface StrokeFontLetters {
+        readonly height: number;
+        readonly overlaid: Readonly<Record<number, StrokeOverlay>>;
+        readonly drawn: Readonly<Record<number, readonly (number | undefined)[]>>;
+    }
+    interface StrokeComposition {
+        readonly base: number;
+        readonly above: number | undefined;
+        readonly below: number | undefined;
+    }
+    interface StrokeFontInk {
+        readonly lowest: number;
+        readonly highest: number;
+    }
+    interface StrokeFontFacts {
+        readonly lowest: number;
+        readonly highest: number;
+        readonly glyphs: Map<number, StrokeGlyph>;
+    }
     declare const signedVolumeOf: (positions: ArrayLike<number>, indices: ArrayLike<number>, start?: number, end?: number) => number;
     declare function computeVertexNormals(positions: ArrayLike<number>, indices: ArrayLike<number>): number[];
     declare const creasedVertices: (positions: ArrayLike<number>, indices: ArrayLike<number>, minSharpAngle: number) => CreasedVertices;
@@ -15466,6 +16100,24 @@ declare namespace Bit {
     declare function treesNested(first: TriangleTree, second: TriangleTree): boolean;
     declare function pointsOnTree(tree: TriangleTree, most: number): Vec[];
     declare function treeBox(tree: TriangleTree): TreeBox | undefined;
+    declare function strokeGlyph(font: VectorFont, code: number): StrokeGlyph;
+    declare function strokeFontInk(font: VectorFont): StrokeFontInk;
+    declare function strokeTextAdvance(font: VectorFont, text: string): number;
+    declare function strokeTextStrokes(font: VectorFont, text: string): StrokePoint[][];
+    declare const STROKE_LETTERS: StrokeFontLetters;
+    declare const UNKNOWN_GLYPH = 63;
+    declare const FIRST_COMPOSED = 128;
+    declare const LAST_UNIT = 65535;
+    declare const MOST_UNITS = 3;
+    declare const SOFT_DOTTED: ReadonlySet<number>;
+    declare const SOFT_DOT_FLOOR = 15;
+    declare const MARK_GAP = 1.25;
+    declare const MARK_RISE = 4;
+    declare const LEAST_RISE_SHARE = 0.25;
+    declare const FULL_MARK_ADVANCE = 10;
+    declare const BASELINE_REACH = 1;
+    declare const OGONEK = 808;
+    declare const STROKE_MARKS: StrokeFontMarks;
     declare class Drawing {
         private readonly dxfOf;
         private readonly svgOf;
@@ -15478,6 +16130,16 @@ declare namespace Bit {
         ellipseSegment(inputs: Inputs.IO.DrawingEllipseSegmentDto): Inputs.IO.DrawingEllipseSegmentDto;
         path(inputs: Inputs.IO.DrawingPathDto): Inputs.IO.DrawingPathDto;
         part(inputs: Inputs.IO.DrawingPartDto): Inputs.IO.DrawingPartDto;
+        scaleParts(inputs: Inputs.IO.DrawingScalePartsDto): Inputs.IO.DrawingPartDto[];
+        text(inputs: Inputs.IO.DrawingTextDto): Inputs.IO.DrawingTextDto;
+        hatch(inputs: Inputs.IO.DrawingHatchDto): Inputs.IO.DrawingHatchDto;
+        hatchLines(inputs: Inputs.IO.DrawingHatchDto): Inputs.Base.Segment2[];
+        clippedHatchLines(inputs: Inputs.IO.DrawingHatchRegionDto): Inputs.Base.Segment2[];
+        hatchOutlines(inputs: Inputs.IO.DrawingHatchRegionDto): Inputs.Base.Point2[][];
+        textSize(inputs: Inputs.IO.DrawingTextDto): Inputs.IO.DrawingTextSizeDto;
+        textStrokes(inputs: Inputs.IO.DrawingTextDto): Inputs.Base.Point3[][];
+        dimensionPicture(inputs: Inputs.IO.DrawingDimensionDto): Inputs.IO.DrawingDimensionPictureDto;
+        dimensionExtent(inputs: Inputs.IO.DrawingDimensionDto): Inputs.IO.DrawingExtentDto;
         svgToDxf(inputs: Inputs.IO.SvgToDxfDto): Inputs.IO.SvgToDxfResultDto;
         dxfToSvg(inputs: Inputs.IO.DxfToSvgDto): Inputs.IO.DxfToSvgResultDto;
     }
@@ -15682,6 +16344,7 @@ declare namespace Bit {
         meshMeshIntersectionPoints(inputs: Inputs.Mesh.MeshMeshToleranceDto): Inputs.Base.Point3[][];
         private computeIntersectionPoint;
         triangulatePolygon(inputs: Inputs.Mesh.PolygonWithHolesDto): Inputs.Base.Mesh3;
+        triangulateLoops(inputs: Inputs.Mesh.TriangulateLoopsDto): Inputs.Base.Mesh3;
         signedVolume(inputs: Inputs.Mesh.MeshDto): number;
         meshesWithin(inputs: Inputs.Mesh.MeshesWithinDto): boolean;
         isPointInside(inputs: Inputs.Mesh.MeshPointDto): boolean;

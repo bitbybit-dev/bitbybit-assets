@@ -1158,6 +1158,26 @@ declare namespace Bit {
                 rightHanded = "rightHanded"
             }
             /**
+                 * How a result is turned between the two up axes geometry comes in: `keep` leaves it as it is,
+                 * `zUpToYUp` turns a Z-up file or recipe into this library's Y-up, and `yUpToZUp` turns a Y-up
+                 * model into Z-up for a tool that treats Z as up. Each method says which of them it takes.
+                 */
+            enum upAxisConversionEnum {
+                keep = "keep",
+                zUpToYUp = "zUpToYUp",
+                yUpToZUp = "yUpToZUp"
+            }
+            /**
+                 * How closed loops decide what lies inside them. Under `evenOdd` a point is inside when a ray
+                 * from it crosses the loops an odd number of times, whichever way each loop runs, so the loop
+                 * inside an `O` leaves its middle open; under `nonZero` the loops' directions count, and a loop
+                 * inside another running the same way fills it.
+                 */
+            enum loopFillRuleEnum {
+                evenOdd = "evenOdd",
+                nonZero = "nonZero"
+            }
+            /**
                  * Defines how colors are mapped to entities when there are more entities than colors.
                  * - firstColorForAll: Uses the first color for all entities (legacy behavior)
                  * - lastColorRemainder: Maps colors 1:1, then uses last color for remaining entities
@@ -5054,7 +5074,7 @@ declare namespace Bit {
              * @beta
              */
             class BuildRecipeDto {
-                constructor(recipe?: Base.Recipe, circularSegments?: number, adjustZtoY?: boolean, emptyWhenFailed?: boolean);
+                constructor(recipe?: Base.Recipe, circularSegments?: number, adjustZtoY?: boolean, emptyWhenFailed?: boolean, upAxis?: Base.upAxisConversionEnum);
                 /**
                  * The recipe: steps such as polygons, extrusions and cuts, and the roots to build from them, as
                  * a package that describes geometry as data writes it.
@@ -5071,9 +5091,17 @@ declare namespace Bit {
                  */
                 circularSegments?: number | undefined;
                 /**
-                 * When true, each solid turns a quarter turn about X so the recipe's Z points along Y, which is
-                 * up when drawn: `(x, y, z)` becomes `(x, z, -y)`.
-                 * @default false
+                 * `zUpToYUp` turns each solid a quarter turn about X so the recipe's Z points along Y, and
+                 * `(x, y, z)` becomes `(x, z, -y)`; `keep` leaves them. `yUpToZUp` is refused.
+                 * @default keep
+                 */
+                upAxis?: Base.upAxisConversionEnum | undefined;
+                /**
+                 * When true, the solids turn as `upAxis` `zUpToYUp` does; false, its old default, decides nothing.
+                 * True wins over `upAxis` at its default; beside another chosen turn it is refused.
+                 * @deprecated Give `upAxis` instead; this flag goes in the next major version.
+                 * @default undefined
+                 * @optional true
                  */
                 adjustZtoY?: boolean | undefined;
                 /**
@@ -5090,7 +5118,7 @@ declare namespace Bit {
              * @beta
              */
             class RecipeSurfaceMeshesDto {
-                constructor(recipe?: Base.Recipe, roots?: number[], adjustZtoY?: boolean);
+                constructor(recipe?: Base.Recipe, roots?: number[], adjustZtoY?: boolean, upAxis?: Base.upAxisConversionEnum);
                 /**
                  * The recipe: steps such as polygons, extrusions and triangle meshes, and the roots to build
                  * from them, as a package that describes geometry as data writes it.
@@ -5105,9 +5133,17 @@ declare namespace Bit {
                  */
                 roots?: number[] | undefined;
                 /**
-                 * When true, each mesh turns a quarter turn about X so the recipe's Z points along Y, as
-                 * `recipes.build` turns its solids: `(x, y, z)` becomes `(x, z, -y)`.
-                 * @default false
+                 * Whether the meshes turn: `zUpToYUp` turns each a quarter turn about X so the recipe's Z points
+                 * along Y, as `recipes.build` turns its solids; `keep` leaves them. `yUpToZUp` is refused.
+                 * @default keep
+                 */
+                upAxis?: Base.upAxisConversionEnum | undefined;
+                /**
+                 * When true, the meshes turn as `upAxis` `zUpToYUp` does; false, its old default, decides nothing.
+                 * True wins over `upAxis` at its default; beside another chosen turn it is refused.
+                 * @deprecated Give `upAxis` instead; this flag goes in the next major version.
+                 * @default undefined
+                 * @optional true
                  */
                 adjustZtoY?: boolean | undefined;
             }
@@ -5118,7 +5154,7 @@ declare namespace Bit {
              * @beta
              */
             class BuildRecipeMeshesDto {
-                constructor(recipe?: Base.Recipe, circularSegments?: number, adjustZtoY?: boolean, emptyWhenFailed?: boolean, minSharpAngle?: number);
+                constructor(recipe?: Base.Recipe, circularSegments?: number, adjustZtoY?: boolean, emptyWhenFailed?: boolean, minSharpAngle?: number, upAxis?: Base.upAxisConversionEnum);
                 /**
                  * The recipe: steps such as polygons, extrusions and cuts, and the roots to draw from them, as
                  * a package that describes geometry as data writes it.
@@ -5134,9 +5170,17 @@ declare namespace Bit {
                  */
                 circularSegments?: number | undefined;
                 /**
-                 * When true, every placement turns a quarter turn about X so the recipe's Z points along Y,
-                 * which is up when drawn: `(x, y, z)` becomes `(x, z, -y)`.
-                 * @default false
+                 * Whether the placements turn: `zUpToYUp` turns each a quarter turn about X so the recipe's Z
+                 * points along Y, which is up when drawn; `keep` leaves them. `yUpToZUp` is refused.
+                 * @default keep
+                 */
+                upAxis?: Base.upAxisConversionEnum | undefined;
+                /**
+                 * When true, the placements turn as `upAxis` `zUpToYUp` does; false, its old default, decides
+                 * nothing. True wins over `upAxis` at its default; beside another chosen turn it is refused.
+                 * @deprecated Give `upAxis` instead; this flag goes in the next major version.
+                 * @default undefined
+                 * @optional true
                  */
                 adjustZtoY?: boolean | undefined;
                 /**
@@ -7847,7 +7891,7 @@ declare namespace Bit {
              * model's recipe as OpenCascade shapes.
              */
             class GeometryToShapesDto<T> {
-                constructor(model?: T, elements?: string[], adjustZtoY?: boolean, emptyWhenFailed?: boolean, facetedMeshes?: boolean, maxTriangles?: number);
+                constructor(model?: T, elements?: string[], adjustZtoY?: boolean, emptyWhenFailed?: boolean, facetedMeshes?: boolean, maxTriangles?: number, upAxis?: Base.upAxisConversionEnum);
                 /**
                  * The model whose elements are built.
                  * @default undefined
@@ -7861,9 +7905,17 @@ declare namespace Bit {
                  */
                 elements?: string[] | undefined;
                 /**
-                 * When true, the shapes turn a quarter turn about X so the model's Z points along Y, which is up
-                 * when drawn: `(x, y, z)` becomes `(x, z, -y)`.
-                 * @default true
+                 * `zUpToYUp` turns the shapes a quarter turn about X so the model's Z points along Y, and
+                 * `(x, y, z)` becomes `(x, z, -y)`; `keep` leaves them. `yUpToZUp` is refused.
+                 * @default zUpToYUp
+                 */
+                upAxis?: Base.upAxisConversionEnum | undefined;
+                /**
+                 * When false, the shapes keep their axes as `keep` does; true, its old default, decides nothing.
+                 * False wins over `upAxis` at its default; beside another chosen turn it is refused.
+                 * @deprecated Give `upAxis` instead; this flag goes in the next major version.
+                 * @default undefined
+                 * @optional true
                  */
                 adjustZtoY?: boolean | undefined;
                 /**
@@ -8209,10 +8261,13 @@ declare namespace Bit {
              * A handle to an OpenCascade document - the container used for assemblies, holding a shape
              * hierarchy along with names, colors and placements. This is what STEP assembly import and export
              * work against, as opposed to a single loose shape.
+             *
+             * Like a shape handle it is a small reference to an object the kernel holds, tagged as a document
+             * so a draw call knows it from a shape; free it with `assembly.manager.deleteDocument`.
              */
             type TDocStdDocumentPointer = {
                 hash: number;
-                type: "occ-entity";
+                type: "occ-document";
             };
             /**
              * Any shape handle, whatever its kind - vertex, edge, wire, face, shell, solid or compound.
@@ -11674,13 +11729,14 @@ declare namespace Bit {
                  */
                 edge: U;
                 /**
-                 * The radius in model units at each position in `paramsU`; the lists must have the same length.
+                 * The radius in model units, above 0, at each position in `paramsU`; the lists must have the
+                 * same length.
                  * @default undefined
                  */
                 radiusList: number[];
                 /**
-                 * Where each radius applies: the first position is the curve's start, the last its end, those
-                 * between fractions of its parameter, which match its length only on lines and arcs.
+                 * Where each radius applies: a fraction of the edge's length from the start of its curve, 0 to 1,
+                 * in any order; an end without one takes the nearest radius.
                  * @default undefined
                  */
                 paramsU: number[];
@@ -11708,8 +11764,8 @@ declare namespace Bit {
                  */
                 radiusLists: number[][];
                 /**
-                 * One list per edge of positions, read as in `filletEdgeVariableRadius` (first and last at the
-                 * ends of the edge's curve), each pairing with the matching list in `radiusLists`.
+                 * One list of positions per edge, each a fraction of that edge's own length as
+                 * `filletEdgeVariableRadius` reads it, pairing with the matching list in `radiusLists`.
                  * @default undefined
                  */
                 paramsULists: number[][];
@@ -11731,13 +11787,14 @@ declare namespace Bit {
                  */
                 edges: U[];
                 /**
-                 * The radius in model units at each position in `paramsU`; the lists must have the same length.
+                 * The radius in model units, above 0, at each position in `paramsU`; the lists must have the
+                 * same length.
                  * @default undefined
                  */
                 radiusList: number[];
                 /**
-                 * Where each radius applies on every edge, read as for `filletEdgeVariableRadius`: first and
-                 * last positions at the curve's ends, those between along its parameter.
+                 * Where each radius applies on every edge, read as for `filletEdgeVariableRadius`: a fraction of
+                 * each edge's own length from the start of its curve.
                  * @default undefined
                  */
                 paramsU: number[];
@@ -15120,6 +15177,8 @@ declare namespace Bit {
                 /**
                  * The rounding radius, in model units.
                  * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
                  * @step 0.1
                  */
                 radius?: number | undefined;
@@ -15165,6 +15224,8 @@ declare namespace Bit {
                 /**
                  * How far the bevel reaches back from the corner along its edges, in model units.
                  * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
                  * @step 0.1
                  */
                 distance?: number | undefined;
@@ -15367,7 +15428,7 @@ declare namespace Bit {
              * add each face's iso curves and a surface analysis value at every vertex.
              */
             class ShapeToMeshDto<T> {
-                constructor(shape?: T, precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, isoCurvesU?: number, isoCurvesV?: number, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3, angularDeflection?: number, relativeDeflection?: boolean, precisionShare?: number);
+                constructor(shape?: T, precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, isoCurvesU?: number, isoCurvesV?: number, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3, angularDeflection?: number, relativeDeflection?: boolean, precisionShare?: number, upAxis?: Base.upAxisConversionEnum);
                 /**
                  * The shape to triangulate.
                  * @default undefined
@@ -15408,9 +15469,17 @@ declare namespace Bit {
                  */
                 precisionShare?: number | undefined;
                 /**
-                 * When true, the mesh is made Z-up for tools that treat Z as up: turned a quarter about X under
-                 * right-handed conventions, with Y and Z swapped otherwise.
-                 * @default false
+                 * `yUpToZUp` makes the mesh Z-up for tools that treat Z as up, turned about X when right-handed,
+                 * else with Y and Z swapped; `keep` leaves it. `zUpToYUp` is refused.
+                 * @default keep
+                 */
+                upAxis?: Base.upAxisConversionEnum | undefined;
+                /**
+                 * When true, the mesh turns as `upAxis` `yUpToZUp` does; false, its old default, decides nothing.
+                 * True wins over `upAxis` at its default; beside another chosen turn it is refused.
+                 * @deprecated Give `upAxis` instead; this flag goes in the next major version.
+                 * @default undefined
+                 * @optional true
                  */
                 adjustYtoZ?: boolean | undefined;
                 /**
@@ -15472,7 +15541,7 @@ declare namespace Bit {
              * shape as three points.
              */
             class ShapeFacesToPolygonPointsDto<T> {
-                constructor(shape?: T, precision?: number, adjustYtoZ?: boolean, reversedPoints?: boolean);
+                constructor(shape?: T, precision?: number, adjustYtoZ?: boolean, reversedPoints?: boolean, upAxis?: Base.upAxisConversionEnum);
                 /**
                  * The shape to triangulate.
                  * @default undefined
@@ -15489,9 +15558,17 @@ declare namespace Bit {
                  */
                 precision?: number | undefined;
                 /**
-                 * When true, the points are made Z-up for tools that treat Z as up: turned a quarter about X under
-                 * right-handed conventions, with Y and Z swapped otherwise.
-                 * @default false
+                 * `yUpToZUp` makes the points Z-up for tools that treat Z as up, turned about X when right-handed,
+                 * else with Y and Z swapped; `keep` leaves them. `zUpToYUp` is refused.
+                 * @default keep
+                 */
+                upAxis?: Base.upAxisConversionEnum | undefined;
+                /**
+                 * When true, the points turn as `upAxis` `yUpToZUp` does; false, its old default, decides nothing.
+                 * True wins over `upAxis` at its default; beside another chosen turn it is refused.
+                 * @deprecated Give `upAxis` instead; this flag goes in the next major version.
+                 * @default undefined
+                 * @optional true
                  */
                 adjustYtoZ?: boolean | undefined;
                 /**
@@ -15528,7 +15605,7 @@ declare namespace Bit {
              * settings, iso curves and surface analysis included.
              */
             class ShapesToMeshesDto<T> {
-                constructor(shapes?: T[], precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, isoCurvesU?: number, isoCurvesV?: number, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3, angularDeflection?: number, relativeDeflection?: boolean, precisionShare?: number);
+                constructor(shapes?: T[], precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, isoCurvesU?: number, isoCurvesV?: number, surfaceAnalysis?: surfaceAnalysisEnum, draftDirection?: Base.Vector3, angularDeflection?: number, relativeDeflection?: boolean, precisionShare?: number, upAxis?: Base.upAxisConversionEnum);
                 /**
                  * The shapes to triangulate, one mesh per shape.
                  * @default undefined
@@ -15569,9 +15646,17 @@ declare namespace Bit {
                  */
                 precisionShare?: number | undefined;
                 /**
-                 * When true, the meshes are made Z-up for tools that treat Z as up: turned a quarter about X under
-                 * right-handed conventions, with Y and Z swapped otherwise.
-                 * @default false
+                 * `yUpToZUp` makes the meshes Z-up for tools that treat Z as up, turned about X when right-handed,
+                 * else with Y and Z swapped; `keep` leaves them. `zUpToYUp` is refused.
+                 * @default keep
+                 */
+                upAxis?: Base.upAxisConversionEnum | undefined;
+                /**
+                 * When true, the meshes turn as `upAxis` `yUpToZUp` does; false, its old default, decides nothing.
+                 * True wins over `upAxis` at its default; beside another chosen turn it is refused.
+                 * @deprecated Give `upAxis` instead; this flag goes in the next major version.
+                 * @default undefined
+                 * @optional true
                  */
                 adjustYtoZ?: boolean | undefined;
                 /**
@@ -15633,7 +15718,7 @@ declare namespace Bit {
              * shapes into one mesh with the document's colors.
              */
             class DocToMeshDto<U> {
-                constructor(document?: U, precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, angularDeflection?: number, relativeDeflection?: boolean);
+                constructor(document?: U, precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, angularDeflection?: number, relativeDeflection?: boolean, upAxis?: Base.upAxisConversionEnum);
                 /**
                  * The assembly document whose top-level shapes are meshed together; their face colors end up in
                  * the mesh's color groups.
@@ -15666,9 +15751,17 @@ declare namespace Bit {
                  */
                 relativeDeflection?: boolean | undefined;
                 /**
-                 * When true, the mesh is made Z-up for tools that treat Z as up: turned a quarter about X under
-                 * right-handed conventions, with Y and Z swapped otherwise.
-                 * @default false
+                 * `zUpToYUp` turns the mesh from the file's Z-up into Y-up, as `io.loadSTEPorIGES` turns a
+                 * shape; `yUpToZUp` makes it Z-up for tools that treat Z as up; `keep` leaves it.
+                 * @default keep
+                 */
+                upAxis?: Base.upAxisConversionEnum | undefined;
+                /**
+                 * When true, the mesh turns as `upAxis` `yUpToZUp` does; false, its old default, decides nothing.
+                 * True wins over `upAxis` at its default; beside another chosen turn it is refused.
+                 * @deprecated Give `upAxis` instead; this flag goes in the next major version.
+                 * @default undefined
+                 * @optional true
                  */
                 adjustYtoZ?: boolean | undefined;
                 /**
@@ -15701,7 +15794,7 @@ declare namespace Bit {
              * shape into its own mesh with the document's colors.
              */
             class DocToMeshesDto<U> {
-                constructor(document?: U, precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, angularDeflection?: number, relativeDeflection?: boolean);
+                constructor(document?: U, precision?: number, adjustYtoZ?: boolean, computeMetadata?: boolean, keepMeshData?: boolean, allowQualityDecrease?: boolean, forceFaceDeflection?: boolean, angularDeflection?: number, relativeDeflection?: boolean, upAxis?: Base.upAxisConversionEnum);
                 /**
                  * The assembly document whose top-level shapes are meshed one by one; each shape's face colors
                  * end up in its mesh's color groups.
@@ -15734,9 +15827,17 @@ declare namespace Bit {
                  */
                 relativeDeflection?: boolean | undefined;
                 /**
-                 * When true, the meshes are made Z-up for tools that treat Z as up: turned a quarter about X under
-                 * right-handed conventions, with Y and Z swapped otherwise.
-                 * @default false
+                 * `zUpToYUp` turns the meshes from the file's Z-up into Y-up, as `io.loadSTEPorIGES` turns a
+                 * shape; `yUpToZUp` makes them Z-up for tools that treat Z as up; `keep` leaves them.
+                 * @default keep
+                 */
+                upAxis?: Base.upAxisConversionEnum | undefined;
+                /**
+                 * When true, the meshes turn as `upAxis` `yUpToZUp` does; false, its old default, decides nothing.
+                 * True wins over `upAxis` at its default; beside another chosen turn it is refused.
+                 * @deprecated Give `upAxis` instead; this flag goes in the next major version.
+                 * @default undefined
+                 * @optional true
                  */
                 adjustYtoZ?: boolean | undefined;
                 /**
@@ -15769,7 +15870,7 @@ declare namespace Bit {
              * file.
              */
             class SaveStepDto<T> {
-                constructor(shape?: T, fileName?: string, adjustYtoZ?: boolean, tryDownload?: boolean, unit?: Base.unitOfLengthEnum);
+                constructor(shape?: T, fileName?: string, adjustYtoZ?: boolean, tryDownload?: boolean, unit?: Base.unitOfLengthEnum, upAxis?: Base.upAxisConversionEnum);
                 /**
                  * The shape written to the file.
                  * @default undefined
@@ -15781,13 +15882,21 @@ declare namespace Bit {
                  */
                 fileName?: string | undefined;
                 /**
-                 * When true, the file is written Z-up for CAD programs. With the conventions set, the file shows
-                 * what the screen shows either way; without them this swaps Y and Z.
-                 * @default false
+                 * `yUpToZUp` writes the file Z-up for CAD programs, Y and Z swapped when no conventions are set;
+                 * `keep` writes the model's axes. `zUpToYUp` is refused.
+                 * @default keep
+                 */
+                upAxis?: Base.upAxisConversionEnum | undefined;
+                /**
+                 * When true, the file is turned as `upAxis` `yUpToZUp` does; false, its old default, decides
+                 * nothing. True wins over `upAxis` at its default; beside another chosen turn it is refused.
+                 * @deprecated Give `upAxis` instead; this flag goes in the next major version.
+                 * @default undefined
+                 * @optional true
                  */
                 adjustYtoZ?: boolean | undefined;
                 /**
-                 * When true, `adjustYtoZ` turns the shape 90 degrees about X instead of swapping, for a
+                 * When true, `upAxis` `yUpToZUp` turns the shape 90 degrees about X instead of swapping, for a
                  * right-handed scene.
                  * @deprecated Set the conventions once instead, `bitbybit.setConventions(1)`, which maps
                  * every file for the engine in use.
@@ -15812,7 +15921,7 @@ declare namespace Bit {
              * writes it as an STL file.
              */
             class SaveStlDto<T> {
-                constructor(shape?: T, fileName?: string, precision?: number, adjustYtoZ?: boolean, tryDownload?: boolean, binary?: boolean);
+                constructor(shape?: T, fileName?: string, precision?: number, adjustYtoZ?: boolean, tryDownload?: boolean, binary?: boolean, upAxis?: Base.upAxisConversionEnum);
                 /**
                  * The shape written to the file.
                  * @default undefined
@@ -15830,9 +15939,17 @@ declare namespace Bit {
                  */
                 precision?: number | undefined;
                 /**
-                 * When true, the file is written Z-up for CAD programs. With the conventions set, the file shows
-                 * what the screen shows either way; without them this swaps Y and Z.
-                 * @default false
+                 * `yUpToZUp` writes the file Z-up for CAD programs, Y and Z swapped when no conventions are set;
+                 * `keep` writes the model's axes. `zUpToYUp` is refused.
+                 * @default keep
+                 */
+                upAxis?: Base.upAxisConversionEnum | undefined;
+                /**
+                 * When true, the file is turned as `upAxis` `yUpToZUp` does; false, its old default, decides
+                 * nothing. True wins over `upAxis` at its default; beside another chosen turn it is refused.
+                 * @deprecated Give `upAxis` instead; this flag goes in the next major version.
+                 * @default undefined
+                 * @optional true
                  */
                 adjustYtoZ?: boolean | undefined;
                 /**
@@ -16071,7 +16188,7 @@ declare namespace Bit {
              * a shape.
              */
             class ImportStepIgesFromTextDto {
-                constructor(text?: string, fileType?: fileTypeEnum, adjustZtoY?: boolean, unit?: Base.unitOfLengthEnum);
+                constructor(text?: string, fileType?: fileTypeEnum, adjustZtoY?: boolean, unit?: Base.unitOfLengthEnum, upAxis?: Base.upAxisConversionEnum);
                 /**
                  * The full text of the STEP or IGES file.
                  * @default undefined
@@ -16083,8 +16200,17 @@ declare namespace Bit {
                  */
                 fileType?: fileTypeEnum | undefined;
                 /**
-                 * When true, the shape is turned so the file's Z-up becomes this library's Y-up.
-                 * @default true
+                 * Whether the shape turns: `zUpToYUp` turns the file's Z-up into this library's Y-up, and `keep`
+                 * leaves the file's axes. `yUpToZUp` is refused.
+                 * @default zUpToYUp
+                 */
+                upAxis?: Base.upAxisConversionEnum | undefined;
+                /**
+                 * When false, the shape keeps its axes as `keep` does; true, its old default, decides nothing.
+                 * False wins over `upAxis` at its default; beside another chosen turn it is refused.
+                 * @deprecated Give `upAxis` instead; this flag goes in the next major version.
+                 * @default undefined
+                 * @optional true
                  */
                 adjustZtoY?: boolean | undefined;
                 /**
@@ -16097,15 +16223,24 @@ declare namespace Bit {
              * A STEP or IGES file for the core `occt.io.loadSTEPorIGES`, which reads it into a shape.
              */
             class ImportStepIgesDto {
-                constructor(assetFile?: File, adjustZtoY?: boolean, unit?: Base.unitOfLengthEnum);
+                constructor(assetFile?: File, adjustZtoY?: boolean, unit?: Base.unitOfLengthEnum, upAxis?: Base.upAxisConversionEnum);
                 /**
                  * The file to read; its extension decides whether it is STEP or IGES.
                  * @default undefined
                  */
                 assetFile: File;
                 /**
-                 * When true, the shape is turned so the file's Z-up becomes this library's Y-up.
-                 * @default true
+                 * Whether the shape turns: `zUpToYUp` turns the file's Z-up into this library's Y-up, and `keep`
+                 * leaves the file's axes. `yUpToZUp` is refused.
+                 * @default zUpToYUp
+                 */
+                upAxis?: Base.upAxisConversionEnum | undefined;
+                /**
+                 * When false, the shape keeps its axes as `keep` does; true, its old default, decides nothing.
+                 * False wins over `upAxis` at its default; beside another chosen turn it is refused.
+                 * @deprecated Give `upAxis` instead; this flag goes in the next major version.
+                 * @default undefined
+                 * @optional true
                  */
                 adjustZtoY?: boolean | undefined;
                 /**
@@ -16119,7 +16254,7 @@ declare namespace Bit {
              * into a shape.
              */
             class LoadStepOrIgesDto {
-                constructor(filetext?: string | ArrayBuffer, fileName?: string, adjustZtoY?: boolean, unit?: Base.unitOfLengthEnum);
+                constructor(filetext?: string | ArrayBuffer, fileName?: string, adjustZtoY?: boolean, unit?: Base.unitOfLengthEnum, upAxis?: Base.upAxisConversionEnum);
                 /**
                  * The file's text for `.step`, `.stp`, `.iges` and `.igs`, or an ArrayBuffer for the compressed
                  * `.stpz` and `.igz` forms.
@@ -16133,8 +16268,17 @@ declare namespace Bit {
                  */
                 fileName?: string | undefined;
                 /**
-                 * When true, the shape is turned so the file's Z-up becomes this library's Y-up.
-                 * @default true
+                 * Whether the shape turns: `zUpToYUp` turns the file's Z-up into this library's Y-up, and `keep`
+                 * leaves the file's axes. `yUpToZUp` is refused.
+                 * @default zUpToYUp
+                 */
+                upAxis?: Base.upAxisConversionEnum | undefined;
+                /**
+                 * When false, the shape keeps its axes as `keep` does; true, its old default, decides nothing.
+                 * False wins over `upAxis` at its default; beside another chosen turn it is refused.
+                 * @deprecated Give `upAxis` instead; this flag goes in the next major version.
+                 * @default undefined
+                 * @optional true
                  */
                 adjustZtoY?: boolean | undefined;
                 /**
@@ -16211,9 +16355,9 @@ declare namespace Bit {
                  */
                 meshRelative?: boolean | undefined;
                 /**
-                 * When true, extra vertices are added inside curved faces for a closer fit, at the cost of
-                 * speed.
-                 * @default false
+                 * When true, flat and cylindrical faces get vertices inside them, not only along their edges;
+                 * when false, triangles can cut straight across a wide cylindrical face such as a bore.
+                 * @default true
                  */
                 internalVerticesMode?: boolean | undefined;
                 /**
@@ -16399,9 +16543,9 @@ declare namespace Bit {
                  */
                 meshRelative?: boolean | undefined;
                 /**
-                 * When true, extra vertices are added inside curved faces for a closer fit, at the cost of
-                 * speed.
-                 * @default false
+                 * When true, flat and cylindrical faces get vertices inside them, not only along their edges;
+                 * when false, triangles can cut straight across a wide cylindrical face such as a bore.
+                 * @default true
                  */
                 internalVerticesMode?: boolean | undefined;
                 /**
@@ -16452,8 +16596,17 @@ declare namespace Bit {
                  */
                 transformFormat?: gltfTransformFormatEnum | undefined;
                 /**
-                 * When true, the file's Z-up is turned into glTF's Y-up; false keeps Z up.
-                 * @default true
+                 * Whether the model turns: `zUpToYUp` turns the file's Z-up into glTF's Y-up, and `keep` keeps
+                 * Z up. `yUpToZUp` is refused.
+                 * @default zUpToYUp
+                 */
+                upAxis?: Base.upAxisConversionEnum | undefined;
+                /**
+                 * When false, the model keeps its axes as `keep` does; true, its old default, decides nothing.
+                 * False wins over `upAxis` at its default; beside another chosen turn it is refused.
+                 * @deprecated Give `upAxis` instead; this flag goes in the next major version.
+                 * @default undefined
+                 * @optional true
                  */
                 adjustZtoY?: boolean | undefined;
                 /**
@@ -16801,20 +16954,14 @@ declare namespace Bit {
                 colorRgba?: Base.ColorRGBA | undefined;
             }
             /**
-             * A document, a label and a color for `assembly.manager.setDocLabelColor`.
+             * A document and a color, shared by `SetDocLabelColorDto` and `SetDocLabelColorsDto`.
              */
-            class SetDocLabelColorDto<T> {
-                constructor(document?: T, label?: string, r?: number, g?: number, b?: number, a?: number);
+            abstract class SetDocLabelColorSharedDto<T> {
                 /**
                  * The document from `buildAssemblyDocument` or `loadStepToDoc`.
                  * @default undefined
                  */
                 document: T;
-                /**
-                 * The label of the part, instance or assembly to color, such as `0:1:1:1`.
-                 * @default undefined
-                 */
-                label: string;
                 /**
                  * The red channel, from 0 to 1.
                  * @default 0.5
@@ -16849,15 +16996,45 @@ declare namespace Bit {
                 a?: number | undefined;
             }
             /**
-             * A document, a label and a name for `assembly.manager.setDocLabelName`.
+             * A document, a label and a color for `assembly.manager.setDocLabelColor`.
              */
-            class SetDocLabelNameDto<T> {
-                constructor(document?: T, label?: string, name?: string);
+            class SetDocLabelColorDto<T> extends SetDocLabelColorSharedDto<T> {
+                constructor(document?: T, label?: string, r?: number, g?: number, b?: number, a?: number);
+                /**
+                 * The label of the part, instance or assembly to color, such as `0:1:1:1`.
+                 * @default undefined
+                 */
+                label: string;
+            }
+            /**
+             * A document, labels and one color for `assembly.manager.setDocLabelColors`, which gives every
+             * label the color in one change.
+             * @beta
+             */
+            class SetDocLabelColorsDto<T> extends SetDocLabelColorSharedDto<T> {
+                constructor(document?: T, labels?: string[], r?: number, g?: number, b?: number, a?: number);
+                /**
+                 * The labels of the parts, instances or assemblies to color, such as `0:1:1:1`; each takes the
+                 * one color.
+                 * @default undefined
+                 */
+                labels: string[];
+            }
+            /**
+             * The document labels are renamed in, shared by `SetDocLabelNameDto` and `SetDocLabelNamesDto`.
+             */
+            abstract class SetDocLabelNameSharedDto<T> {
                 /**
                  * The document from `buildAssemblyDocument` or `loadStepToDoc`.
                  * @default undefined
                  */
                 document: T;
+            }
+            /**
+             * A document, a label and a name for `assembly.manager.setDocLabelName`.
+             */
+            class SetDocLabelNameDto<T> extends SetDocLabelNameSharedDto<T> {
+                constructor(document?: T, label?: string, name?: string);
                 /**
                  * The label of the part, instance or assembly to rename, such as `0:1:1:1`.
                  * @default undefined
@@ -16870,6 +17047,24 @@ declare namespace Bit {
                 name?: string | undefined;
             }
             /**
+             * A document, labels and a name for each for `assembly.manager.setDocLabelNames`, which renames
+             * every label in one change.
+             * @beta
+             */
+            class SetDocLabelNamesDto<T> extends SetDocLabelNameSharedDto<T> {
+                constructor(document?: T, labels?: string[], names?: string[]);
+                /**
+                 * The labels of the parts, instances or assemblies to rename, such as `0:1:1:1`.
+                 * @default undefined
+                 */
+                labels: string[];
+                /**
+                 * The new name of each label in `labels`, in the same order; the lists are equally long.
+                 * @default undefined
+                 */
+                names: string[];
+            }
+            /**
              * A document for the queries that read it whole, such as `assembly.query.getDocumentParts` and
              * `getAssemblyHierarchy`, and for deleting it.
              */
@@ -16880,6 +17075,38 @@ declare namespace Bit {
                  * @default undefined
                  */
                 document: T;
+            }
+            /**
+             * A document and how closely the curves of its annotations are followed, for
+             * `assembly.query.getDocumentAnnotations`. Experimental: what that method gives back may still change.
+             * @beta
+             */
+            class DocumentAnnotationsDto<T> {
+                constructor(document?: T, deflection?: number, upAxis?: Base.upAxisConversionEnum);
+                /**
+                 * The document from `loadStepToDoc` or another loader, holding the annotations a STEP AP242
+                 * file brings along.
+                 * @default undefined
+                 */
+                document: T;
+                /**
+                 * How far, in the document's units, a curved annotation line may stray from its curve; smaller
+                 * draws circles and arcs with more points, up to about 130 points a circle.
+                 * @default 0.1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.01
+                 */
+                deflection?: number | undefined;
+                /**
+                 * Whether the annotations and saved views turn, as `docToMesh` with the same `upAxis` turns the
+                 * parts: `zUpToYUp` from Z-up into Y-up, `yUpToZUp` into Z-up, and `keep` leaves the
+                 * document's axes.
+                 * @default keep
+                 * @beta
+                 */
+                upAxis?: Base.upAxisConversionEnum | undefined;
             }
             /**
              * A document and one label for the queries that read a single label, such as
@@ -16969,9 +17196,9 @@ declare namespace Bit {
                  */
                 meshAngle?: number | undefined;
                 /**
-                 * When true, extra vertices are added inside curved faces for a closer fit, at the cost of
-                 * speed.
-                 * @default false
+                 * When true, flat and cylindrical faces get vertices inside them, not only along their edges;
+                 * when false, triangles can cut straight across a wide cylindrical face such as a bore.
+                 * @default true
                  */
                 internalVerticesMode?: boolean | undefined;
                 /**
@@ -17082,6 +17309,368 @@ declare namespace Bit {
                  * @default false
                  */
                 dracoUnifiedQuantization?: boolean | undefined;
+            }
+            /**
+             * Which shape of a part a dimension, datum or tolerance refers to: the whole `part`, or one `face`,
+             * `edge` or `vertex` of it.
+             * @beta
+             */
+            enum pmiShapeKindEnum {
+                part = "part",
+                face = "face",
+                edge = "edge",
+                vertex = "vertex"
+            }
+            /**
+             * What a dimension states, under the names `assembly.query.getDocumentPmi` reads back:
+             * `linearDistance` and `angle` measure from one shape to another, `diameter`, `radius` and
+             * `curveLength` the size of one.
+             * @beta
+             */
+            enum pmiDimensionTypeEnum {
+                linearDistance = "Location_LinearDistance",
+                angle = "Location_Angular",
+                diameter = "Size_Diameter",
+                radius = "Size_Radius",
+                curveLength = "Size_CurveLength"
+            }
+            /**
+             * What a geometric tolerance controls, under the names `assembly.query.getDocumentPmi` reads back.
+             * `flatness`, `circularity` and `cylindricity` refer to no datum, `perpendicularity` and
+             * `parallelism` need one, `position` and `profileOfSurface` take either.
+             * @beta
+             */
+            enum pmiToleranceTypeEnum {
+                flatness = "Flatness",
+                circularity = "CircularityOrRoundness",
+                cylindricity = "Cylindricity",
+                profileOfSurface = "ProfileOfSurface",
+                perpendicularity = "Perpendicularity",
+                parallelism = "Parallelism",
+                position = "Position"
+            }
+            /**
+             * The material condition a tolerance applies at: `none`, or at the `maximum` or the `least`
+             * material of its feature, the circled M or L after its value.
+             * @beta
+             */
+            enum pmiMaterialConditionEnum {
+                none = "none",
+                maximum = "maximum",
+                least = "least"
+            }
+            /**
+             * One shape of a part in a document, for the `shapeRefs` of `assembly.manager.createPmiDimension`,
+             * `createPmiDatum` and `createPmiTolerance`, and for `createPmiShape`, which describes one;
+             * `assembly.query.getDocumentPmi` gives the same form.
+             * @beta
+             */
+            class PmiShapeDto {
+                constructor(part?: string, kind?: pmiShapeKindEnum, index?: number);
+                /**
+                 * The label of the part, such as `0:1:1:1`, as `assembly.query.getDocumentParts` lists it: a
+                 * part, not an assembly or an instance that places one.
+                 * @default undefined
+                 */
+                part: string;
+                /**
+                 * Whether the whole part is meant, or one face, edge or vertex of it.
+                 * @default face
+                 */
+                kind?: pmiShapeKindEnum | undefined;
+                /**
+                 * Which face, edge or vertex, counting from 0 as `shapes.face.getFace`, `shapes.edge.getEdge`
+                 * and `shapes.vertex.getVertices` count them on the part's shape; the whole part ignores it.
+                 * @default 0
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 1
+                 */
+                index?: number | undefined;
+            }
+            /**
+             * A presentation drawn by the caller, in the part's own axes and units: its name, plane, text point,
+             * lines and filled marks. An annotation `assembly.query.getDocumentAnnotations` read is one as it is.
+             * @beta
+             */
+            class PmiPresentationDto {
+                constructor(plane?: Base.Frame, textPoint?: Base.Point3, lines?: Base.Point3[][], fills?: Base.Point3[][], name?: string);
+                /**
+                 * The plane it is drawn in: its `origin`, its `normal` facing the reader and its X axis
+                 * `direction`. A text point and fills need one.
+                 * @default undefined
+                 * @optional true
+                 */
+                plane?: Base.Frame | undefined;
+                /**
+                 * Where its text is attached, inside the box of its lines and fills: a STEP file keeps this
+                 * point as the plane's origin. Left out, it is the plane's origin.
+                 * @default undefined
+                 * @optional true
+                 */
+                textPoint?: Base.Point3 | undefined;
+                /**
+                 * Its lines, each a polyline of two or more points, no two neighbours in one place.
+                 * @default undefined
+                 * @optional true
+                 */
+                lines?: Base.Point3[][] | undefined;
+                /**
+                 * Its filled marks: closed loops of three or more points in the plane, the first not repeated; a
+                 * loop inside another is a hole, and loops never cross.
+                 * @default undefined
+                 * @optional true
+                 */
+                fills?: Base.Point3[][] | undefined;
+                /**
+                 * The name readers show for it; left out, the item's own `name`.
+                 * @default undefined
+                 * @optional true
+                 */
+                name?: string | undefined;
+            }
+            /**
+             * A dimension for `assembly.manager.createPmiDimension` and `addDocumentPmi`: what it states, the
+             * shapes it measures, and where its picture is drawn, in the part's own axes and units.
+             * @beta
+             */
+            class PmiDimensionDto {
+                constructor(type?: pmiDimensionTypeEnum, value?: number, shapeRefs?: PmiShapeDto[], otherShapeRefs?: PmiShapeDto[], upperTolerance?: number, lowerTolerance?: number, name?: string, start?: Base.Point3, end?: Base.Point3, normal?: Base.Vector3, direction?: Base.Vector3, offset?: number, textHeight?: number, decimalPlaces?: number, presentation?: PmiPresentationDto);
+                /**
+                 * What the dimension states; `linearDistance` and `angle` need `otherShapeRefs`, the sizes take
+                 * none.
+                 * @default linearDistance
+                 */
+                type?: pmiDimensionTypeEnum | undefined;
+                /**
+                 * The nominal value, in the document's length unit, or in degrees for an `angle`.
+                 * @default undefined
+                 * @minimum 0
+                 */
+                value: number;
+                /**
+                 * The shapes it measures, or measures from, each a part and one face, edge or vertex of it.
+                 * @default undefined
+                 */
+                shapeRefs: PmiShapeDto[];
+                /**
+                 * The shapes a `linearDistance` or an `angle` measures to; an empty list counts as none.
+                 * @default undefined
+                 * @optional true
+                 */
+                otherShapeRefs?: PmiShapeDto[] | undefined;
+                /**
+                 * How far above the value the measure may lie, in degrees for an `angle`. Left out with
+                 * `lowerTolerance`, there is no tolerance; left out alone, it is 0.
+                 * @default undefined
+                 * @optional true
+                 * @minimum 0
+                 */
+                upperTolerance?: number | undefined;
+                /**
+                 * How far below the value the measure may lie, as an amount. Left out with `upperTolerance`, the
+                 * dimension has no tolerance; left out alone, it is 0.
+                 * @default undefined
+                 * @optional true
+                 * @minimum 0
+                 */
+                lowerTolerance?: number | undefined;
+                /**
+                 * The name of the picture `start` and `end` draw, which readers show and `getDocumentAnnotations`
+                 * reads back; a `presentation` without a name of its own takes it.
+                 * @default undefined
+                 * @optional true
+                 */
+                name?: string | undefined;
+                /**
+                 * For `linearDistance` and `curveLength` the first point measured, for the others the center of
+                 * the circle or angle; without it and `end`, nothing is drawn.
+                 * @default undefined
+                 * @optional true
+                 */
+                start?: Base.Point3 | undefined;
+                /**
+                 * For `linearDistance` and `curveLength` the second point measured; for `diameter` and `radius` a
+                 * point of the circle; for an `angle` a point on its first arm, where the arc passes.
+                 * @default undefined
+                 * @optional true
+                 */
+                end?: Base.Point3 | undefined;
+                /**
+                 * The picture's plane normal, facing the reader; an angle turns counterclockwise about it. Left
+                 * out, +Z, or -Y when `start` to `end` runs along Z.
+                 * @default undefined
+                 * @optional true
+                 */
+                normal?: Base.Vector3 | undefined;
+                /**
+                 * For `linearDistance`, the direction the distance is measured along; left out, from `start` to
+                 * `end`. Other types ignore it.
+                 * @default undefined
+                 * @optional true
+                 */
+                direction?: Base.Vector3 | undefined;
+                /**
+                 * For `linearDistance` and `curveLength`, how far the dimension line stands from `start`, to the
+                 * left of the measured direction seen from `normal`; negative puts it right.
+                 * @default 10
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 */
+                offset?: number | undefined;
+                /**
+                 * The height of the picture's digits, in the document's length unit; its arrows are as long.
+                 * @default 3.5
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 */
+                textHeight?: number | undefined;
+                /**
+                 * How many decimals the picture writes the value with; trailing zeros are dropped.
+                 * @default 2
+                 * @minimum 0
+                 * @maximum 15
+                 * @step 1
+                 */
+                decimalPlaces?: number | undefined;
+                /**
+                 * A presentation drawn by the caller, or an annotation read back, used instead of the picture
+                 * `start` and `end` draw; one with no lines and no fills counts as none.
+                 * @default undefined
+                 * @optional true
+                 */
+                presentation?: PmiPresentationDto | undefined;
+            }
+            /**
+             * A datum for `assembly.manager.createPmiDatum` and `addDocumentPmi`: its letter and the shapes it
+             * is taken from. A tolerance added in the same call must refer to it.
+             * @beta
+             */
+            class PmiDatumDto {
+                constructor(letter?: string, shapeRefs?: PmiShapeDto[], name?: string, presentation?: PmiPresentationDto);
+                /**
+                 * One to three capital letters, A to Z, naming one datum in the document; a letter it already
+                 * has is given again only on that datum's shapes.
+                 * @default A
+                 */
+                letter?: string | undefined;
+                /**
+                 * The shapes the datum is taken from.
+                 * @default undefined
+                 */
+                shapeRefs: PmiShapeDto[];
+                /**
+                 * The name of its `presentation`, when that has none of its own.
+                 * @default undefined
+                 * @optional true
+                 */
+                name?: string | undefined;
+                /**
+                 * A presentation drawn by the caller, or an annotation read back; left out, or with no lines and
+                 * no fills, the datum is written without one.
+                 * @default undefined
+                 * @optional true
+                 */
+                presentation?: PmiPresentationDto | undefined;
+            }
+            /**
+             * A geometric tolerance for `assembly.manager.createPmiTolerance` and `addDocumentPmi`: what it
+             * controls, its value, the shapes it applies to and the datums it refers to.
+             * @beta
+             */
+            class PmiToleranceDto {
+                constructor(type?: pmiToleranceTypeEnum, value?: number, shapeRefs?: PmiShapeDto[], datumLetters?: string[], diameterZone?: boolean, material?: pmiMaterialConditionEnum, name?: string, presentation?: PmiPresentationDto);
+                /**
+                 * What the tolerance controls.
+                 * @default flatness
+                 */
+                type?: pmiToleranceTypeEnum | undefined;
+                /**
+                 * The width of its tolerance zone, in the document's length unit.
+                 * @default undefined
+                 * @minimum 0
+                 */
+                value: number;
+                /**
+                 * The shapes it applies to.
+                 * @default undefined
+                 */
+                shapeRefs: PmiShapeDto[];
+                /**
+                 * The letters of the datums it refers to, primary first, at most three, each given in the same
+                 * call, a datum the document has again on its own shapes.
+                 * @default undefined
+                 * @optional true
+                 */
+                datumLetters?: string[] | undefined;
+                /**
+                 * When true, the zone is a cylinder, written with the diameter sign before the value; only
+                 * `position`, `perpendicularity` and `parallelism` take it.
+                 * @default false
+                 */
+                diameterZone?: boolean | undefined;
+                /**
+                 * The material condition it applies at; only `position`, `perpendicularity` and `parallelism`
+                 * take one other than `none`.
+                 * @default none
+                 */
+                material?: pmiMaterialConditionEnum | undefined;
+                /**
+                 * The name of its `presentation`, when that has none of its own.
+                 * @default undefined
+                 * @optional true
+                 */
+                name?: string | undefined;
+                /**
+                 * A presentation drawn by the caller, or an annotation read back; left out, or with no lines and
+                 * no fills, the tolerance is written without one.
+                 * @default undefined
+                 * @optional true
+                 */
+                presentation?: PmiPresentationDto | undefined;
+            }
+            /**
+             * A document and the dimensions, datums and tolerances `assembly.manager.addDocumentPmi` adds to it,
+             * all at once or none of them; what `assembly.query.getDocumentPmi` reads fits each list.
+             * @beta
+             */
+            class AddDocumentPmiDto<T> {
+                constructor(document?: T, dimensions?: PmiDimensionDto[], datums?: PmiDatumDto[], tolerances?: PmiToleranceDto[]);
+                /**
+                 * The document from `buildAssemblyDocument` or `loadStepToDoc`.
+                 * @default undefined
+                 */
+                document: T;
+                /**
+                 * Dimensions to write, each from `createPmiDimension` or given as an object.
+                 * @default undefined
+                 * @optional true
+                 */
+                dimensions?: PmiDimensionDto[] | undefined;
+                /**
+                 * The datums to add; each must be referred to by one of `tolerances`.
+                 * @default undefined
+                 * @optional true
+                 */
+                datums?: PmiDatumDto[] | undefined;
+                /**
+                 * The geometric tolerances to add.
+                 * @default undefined
+                 * @optional true
+                 */
+                tolerances?: PmiToleranceDto[] | undefined;
+            }
+            /**
+             * A document whose dimensions, datums and tolerances `assembly.manager.removeDocumentPmi` removes.
+             * @beta
+             */
+            class RemoveDocumentPmiDto<T> {
+                constructor(document?: T);
+                /**
+                 * The document from `buildAssemblyDocument` or `loadStepToDoc`.
+                 * @default undefined
+                 */
+                document: T;
             }
             /**
              * Shapes for `shapes.compound.makeCompound`, which packs them into one compound without joining
@@ -21053,6 +21642,69 @@ declare namespace Bit {
                 keep?: sectionKeepEnum | undefined;
             }
             /**
+             * Shapes, the frame whose plane cuts them and how the cut faces are hatched, for
+             * `operations.hatchedSectionByFrame`, which gives each shape's cut faces with their hatch as edges
+             * and as drawing data.
+             * @beta
+             */
+            class HatchedSectionByFrameDto<T> {
+                constructor(shapes?: T[], frame?: Base.Frame, pattern?: IO.hatchPatternEnum, angle?: number, spacing?: number, neighbourAngles?: boolean, curveTolerance?: number, tolerance?: number);
+                /**
+                 * The shapes to cut, such as the parts of an assembly; each gives its own cut faces.
+                 * @default undefined
+                 */
+                shapes: T[];
+                /**
+                 * The plane to cut along, through the frame's origin square to its normal, which points at the
+                 * side taken away; the hatch data takes its direction as X.
+                 * @default undefined
+                 */
+                frame: Base.Frame;
+                /**
+                 * What the cut faces are filled with: single lines, pairs, crossed lines or solid ink.
+                 * @default ansi31
+                 */
+                pattern?: IO.hatchPatternEnum | undefined;
+                /**
+                 * The angle of the hatch lines in degrees, counterclockwise from the frame's direction.
+                 * @default 45
+                 */
+                angle?: number | undefined;
+                /**
+                 * The distance between the hatch lines, in model units.
+                 * @default 3
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.1
+                 */
+                spacing?: number | undefined;
+                /**
+                 * When true, a shape whose cut faces come within `spacing` of an earlier shape's is hatched at
+                 * another angle, `angle` plus 90, 30, 120, 60 or 150.
+                 * @default true
+                 */
+                neighbourAngles?: boolean | undefined;
+                /**
+                 * How far, in model units, a curved cut edge may stray from the straight pieces the hatch lines
+                 * are clipped against.
+                 * @default 0.01
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.001
+                 */
+                curveTolerance?: number | undefined;
+                /**
+                 * How close the ends of two section edges must lie to be joined into one wire, in model units.
+                 * @default 1e-7
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.00001
+                 */
+                tolerance?: number | undefined;
+            }
+            /**
              * A face and the edges or wires that cut it for `operations.splitFaceByWires`, which returns the
              * pieces of the face.
              */
@@ -21071,11 +21723,12 @@ declare namespace Bit {
                 wires: U[];
             }
             /**
-             * A shape, a view frame and drawing options for `operations.hiddenLines`, which draws the edges seen
-             * from the frame and the edges hidden behind faces, flat on the XZ plane.
+             * A shape, a view frame and drawing options for `operations.hiddenLines` and
+             * `operations.hiddenLinesByKind`, which draw the edges seen from the frame and the edges hidden
+             * behind faces, flat on the XZ plane.
              */
             class HiddenLinesDto<T> {
-                constructor(shape?: T, frame?: Base.Frame, exact?: boolean, smoothEdges?: boolean, hiddenEdges?: boolean, focus?: number, precision?: number);
+                constructor(shape?: T, frame?: Base.Frame, exact?: boolean, smoothEdges?: boolean, hiddenEdges?: boolean, focus?: number, precision?: number, tidy?: boolean);
                 /**
                  * The shape to draw.
                  * @default undefined
@@ -21100,8 +21753,8 @@ declare namespace Bit {
                  */
                 smoothEdges?: boolean | undefined;
                 /**
-                 * When true, the edges that faces cover are collected in `hidden`; when false, `hidden` stays
-                 * empty.
+                 * When true, the edges that faces cover are drawn too; when false, the hidden part of the
+                 * result stays empty.
                  * @default true
                  */
                 hiddenEdges?: boolean | undefined;
@@ -21124,6 +21777,12 @@ declare namespace Bit {
                  * @step 0.001
                  */
                 precision?: number | undefined;
+                /**
+                 * When true, the drawing is tidied: a curve seen edge-on becomes a line, and a hidden edge
+                 * lying wholly under other edges is left out.
+                 * @default false
+                 */
+                tidy?: boolean | undefined;
             }
             /**
              * A shape, the frames to drill at and the size of the holes for `features.holes`;
@@ -21569,7 +22228,7 @@ declare namespace Bit {
              * or one face that carries the whole mesh.
              */
             class LoadStlDto {
-                constructor(stlData?: string | ArrayBuffer | Uint8Array | File | Blob, asFaces?: boolean, adjustZtoY?: boolean);
+                constructor(stlData?: string | ArrayBuffer | Uint8Array | File | Blob, asFaces?: boolean, adjustZtoY?: boolean, upAxis?: Base.upAxisConversionEnum);
                 /**
                  * The STL file, ASCII or binary: the text of an ASCII file, or the file as ArrayBuffer,
                  * Uint8Array, File or Blob.
@@ -21583,8 +22242,17 @@ declare namespace Bit {
                  */
                 asFaces?: boolean | undefined;
                 /**
-                 * When true, the file's Z-up is turned into this library's Y-up.
-                 * @default true
+                 * Whether the shape turns: `zUpToYUp` turns the file's Z-up into this library's Y-up, and `keep`
+                 * leaves the file's axes. `yUpToZUp` is refused.
+                 * @default zUpToYUp
+                 */
+                upAxis?: Base.upAxisConversionEnum | undefined;
+                /**
+                 * When false, the shape keeps its axes as `keep` does; true, its old default, decides nothing.
+                 * False wins over `upAxis` at its default; beside another chosen turn it is refused.
+                 * @deprecated Give `upAxis` instead; this flag goes in the next major version.
+                 * @default undefined
+                 * @optional true
                  */
                 adjustZtoY?: boolean | undefined;
             }
@@ -21762,7 +22430,7 @@ declare namespace Bit {
              * writes it as an OBJ file with the material library its `mtllib` line names.
              */
             class SaveObjDto<T> {
-                constructor(shape?: T, fileName?: string, precision?: number, adjustYtoZ?: boolean, tryDownload?: boolean);
+                constructor(shape?: T, fileName?: string, precision?: number, adjustYtoZ?: boolean, tryDownload?: boolean, upAxis?: Base.upAxisConversionEnum);
                 /**
                  * The shape written to the file.
                  * @default undefined
@@ -21784,9 +22452,17 @@ declare namespace Bit {
                  */
                 precision?: number | undefined;
                 /**
-                 * When true, the file is written Z-up for CAD programs. With the conventions set, the file shows
-                 * what the screen shows either way; without them this swaps Y and Z.
-                 * @default false
+                 * `yUpToZUp` writes the file Z-up for CAD programs, Y and Z swapped when no conventions are set;
+                 * `keep` writes the model's axes. `zUpToYUp` is refused.
+                 * @default keep
+                 */
+                upAxis?: Base.upAxisConversionEnum | undefined;
+                /**
+                 * When true, the file is turned as `upAxis` `yUpToZUp` does; false, its old default, decides
+                 * nothing. True wins over `upAxis` at its default; beside another chosen turn it is refused.
+                 * @deprecated Give `upAxis` instead; this flag goes in the next major version.
+                 * @default undefined
+                 * @optional true
                  */
                 adjustYtoZ?: boolean | undefined;
                 /**
@@ -21801,7 +22477,7 @@ declare namespace Bit {
              * writes it as an ASCII PLY file with normals.
              */
             class SavePlyDto<T> {
-                constructor(shape?: T, fileName?: string, precision?: number, adjustYtoZ?: boolean, tryDownload?: boolean);
+                constructor(shape?: T, fileName?: string, precision?: number, adjustYtoZ?: boolean, tryDownload?: boolean, upAxis?: Base.upAxisConversionEnum);
                 /**
                  * The shape written to the file.
                  * @default undefined
@@ -21822,9 +22498,17 @@ declare namespace Bit {
                  */
                 precision?: number | undefined;
                 /**
-                 * When true, the file is written Z-up for CAD programs. With the conventions set, the file shows
-                 * what the screen shows either way; without them this swaps Y and Z.
-                 * @default false
+                 * `yUpToZUp` writes the file Z-up for CAD programs, Y and Z swapped when no conventions are set;
+                 * `keep` writes the model's axes. `zUpToYUp` is refused.
+                 * @default keep
+                 */
+                upAxis?: Base.upAxisConversionEnum | undefined;
+                /**
+                 * When true, the file is turned as `upAxis` `yUpToZUp` does; false, its old default, decides
+                 * nothing. True wins over `upAxis` at its default; beside another chosen turn it is refused.
+                 * @deprecated Give `upAxis` instead; this flag goes in the next major version.
+                 * @default undefined
+                 * @optional true
                  */
                 adjustYtoZ?: boolean | undefined;
                 /**
@@ -22347,7 +23031,7 @@ declare namespace Bit {
              * @beta
              */
             class BuildRecipeDto {
-                constructor(recipe?: Base.Recipe, adjustZtoY?: boolean, emptyWhenFailed?: boolean, facetedMeshes?: boolean, maxTriangles?: number);
+                constructor(recipe?: Base.Recipe, adjustZtoY?: boolean, emptyWhenFailed?: boolean, facetedMeshes?: boolean, maxTriangles?: number, upAxis?: Base.upAxisConversionEnum);
                 /**
                  * The recipe: steps such as polygons, extrusions and cuts, and the roots to build from them, as
                  * a package that describes geometry as data writes it.
@@ -22355,9 +23039,17 @@ declare namespace Bit {
                  */
                 recipe: Base.Recipe;
                 /**
-                 * When true, each shape turns a quarter turn about X so the recipe's Z points along Y, which is
-                 * up when drawn: `(x, y, z)` becomes `(x, z, -y)`.
-                 * @default false
+                 * `zUpToYUp` turns each shape a quarter turn about X so the recipe's Z points along Y, and
+                 * `(x, y, z)` becomes `(x, z, -y)`; `keep` leaves them. `yUpToZUp` is refused.
+                 * @default keep
+                 */
+                upAxis?: Base.upAxisConversionEnum | undefined;
+                /**
+                 * When true, the shapes turn as `upAxis` `zUpToYUp` does; false, its old default, decides nothing.
+                 * True wins over `upAxis` at its default; beside another chosen turn it is refused.
+                 * @deprecated Give `upAxis` instead; this flag goes in the next major version.
+                 * @default undefined
+                 * @optional true
                  */
                 adjustZtoY?: boolean | undefined;
                 /**
@@ -30135,11 +30827,11 @@ declare namespace Bit {
         declare namespace Draw {
             /**
              * The union of every option shape a draw call accepts. Which one applies depends on what is being
-             * drawn - basic geometry, a Manifold solid or cross section, an OCCT shape, or a node - and the
-             * draw API picks the right one from the entity you pass. Reach for the specific option class when
-             * you want type checking on the fields.
+             * drawn - basic geometry, a Manifold solid or cross section, an OCCT shape, an assembly document,
+             * a hatched section, or a node - and the draw API picks the right one from the entity you pass.
+             * Reach for the specific option class when you want type checking on the fields.
              */
-            type DrawOptions = DrawBasicGeometryOptions | DrawManifoldOrCrossSectionOptions | DrawOcctShapeOptions | DrawOcctShapeSimpleOptions | DrawOcctShapeMaterialOptions | DrawNodeOptions | DrawFrameOptions | DrawRecipeMeshesOptions;
+            type DrawOptions = DrawBasicGeometryOptions | DrawManifoldOrCrossSectionOptions | DrawOcctShapeOptions | DrawOcctShapeSimpleOptions | DrawOcctShapeMaterialOptions | DrawNodeOptions | DrawFrameOptions | DrawRecipeMeshesOptions | DrawOcctDocumentOptions | DrawHatchedSectionOptions;
             /**
              * A kernel shape with the looks to draw it in: a base look for the whole shape and groups of
              * faces that override it, by the face indexes `shapes.face.getFaces` gives, with the colors of
@@ -30159,10 +30851,12 @@ declare namespace Bit {
             /**
              * Everything a draw call will accept: points, lines, segments and polylines; Verb curves and
              * surfaces; the handles the OCCT, Manifold and JSCAD kernels return; kernel shapes with their
-             * appearance and what `occt.design.build` returns; tags; a BabylonJS node, which draws as an axis
-             * triad; whatever a layer above these packages has taught the call to draw; and a list of any one
-             * of them. This union is what makes one draw call able to render anything these packages produce
-             * without you having to say which kind it is.
+             * appearance and what `occt.design.build` returns; an assembly document and the annotations
+             * `occt.assembly.query.getDocumentAnnotations` reads from one; a hatched section from
+             * `occt.operations.hatchedSectionByFrame`; tags; a BabylonJS node, which
+             * draws as an axis triad; whatever a layer above these packages has taught the call to draw;
+             * and a list of any one of them. This union is what makes one draw call able to render
+             * anything these packages produce without you having to say which kind it is.
              *
              * A design build draws every placement as a thin instance. Drawn again into the mesh it returned,
              * passed as `babylonMesh`, with the same parts at the same component paths, it only moves them, so
@@ -30181,7 +30875,7 @@ declare namespace Bit {
              * `number[]`, and drawing one is ordinary. Dropping these arms would narrow the union at the cost
              * of making the library's own output undrawable without a cast.
              */
-            type Entity = number[] | Base.Point3 | Base.Line3 | Base.Segment3 | Base.Polyline3 | Base.Frame | Base.VerbCurve | Base.VerbSurface | Inputs.OCCT.TopoDSShapePointer | ShapeWithAppearance | Models.OCCT.DesignBuildResult<Inputs.OCCT.TopoDSShapePointer> | Models.OCCT.DesignSection<Inputs.OCCT.TopoDSShapePointer> | Inputs.OCCT.DecomposedMeshDto | Inputs.Manifold.ManifoldPointer | Inputs.Manifold.CrossSectionPointer | Inputs.Manifold.DecomposedManifoldMeshDto | Inputs.Manifold.RecipeMeshesDto | Inputs.JSCAD.JSCADEntity | Inputs.Tag.TagDto | CustomGeometryDrawable | CustomOverlayDrawable | BABYLON.TransformNode | number[][] | Base.Point3[] | Base.Line3[] | Base.Segment3[] | Base.Polyline3[] | Base.Frame[] | Base.VerbCurve[] | Base.VerbSurface[] | Inputs.OCCT.TopoDSShapePointer[] | ShapeWithAppearance[] | Inputs.OCCT.DecomposedMeshDto[] | Inputs.Manifold.ManifoldPointer[] | Inputs.Manifold.CrossSectionPointer[] | Inputs.Manifold.DecomposedManifoldMeshDto[] | Inputs.JSCAD.JSCADEntity[] | Inputs.Tag.TagDto[] | BABYLON.TransformNode[];
+            type Entity = number[] | Base.Point3 | Base.Line3 | Base.Segment3 | Base.Polyline3 | Base.Frame | Base.VerbCurve | Base.VerbSurface | Inputs.OCCT.TopoDSShapePointer | ShapeWithAppearance | Models.OCCT.DesignBuildResult<Inputs.OCCT.TopoDSShapePointer> | Models.OCCT.DesignSection<Inputs.OCCT.TopoDSShapePointer> | Inputs.OCCT.TDocStdDocumentPointer | Models.OCCT.DocumentAnnotations | Models.OCCT.HatchedSection<Inputs.OCCT.TopoDSShapePointer> | Inputs.OCCT.DecomposedMeshDto | Inputs.Manifold.ManifoldPointer | Inputs.Manifold.CrossSectionPointer | Inputs.Manifold.DecomposedManifoldMeshDto | Inputs.Manifold.RecipeMeshesDto | Inputs.JSCAD.JSCADEntity | Inputs.Tag.TagDto | CustomGeometryDrawable | CustomOverlayDrawable | BABYLON.TransformNode | number[][] | Base.Point3[] | Base.Line3[] | Base.Segment3[] | Base.Polyline3[] | Base.Frame[] | Base.VerbCurve[] | Base.VerbSurface[] | Inputs.OCCT.TopoDSShapePointer[] | ShapeWithAppearance[] | Inputs.OCCT.DecomposedMeshDto[] | Inputs.Manifold.ManifoldPointer[] | Inputs.Manifold.CrossSectionPointer[] | Inputs.Manifold.DecomposedManifoldMeshDto[] | Inputs.JSCAD.JSCADEntity[] | Inputs.Tag.TagDto[] | BABYLON.TransformNode[];
             /**
              * Metadata a drawn tag carries so that handing it back updates it in place.
              */
@@ -30872,6 +31566,235 @@ declare namespace Bit {
                 analysisMax?: number | undefined;
             }
             /**
+             * Built by `draw.optionsMeshing` for the `meshing` of `DrawOcctDocumentOptions`: how closely the
+             * triangles of an assembly document follow its curved faces. Left out, these defaults apply.
+             * @beta
+             */
+            class DrawMeshingOptions {
+                constructor(precision?: number, angularDeflection?: number, relativeDeflection?: boolean, forceFaceDeflection?: boolean, allowQualityDecrease?: boolean);
+                /**
+                 * The largest distance, in model units, the triangles and edge lines may stray from the curved
+                 * faces; smaller is finer and heavier.
+                 * @default 0.01
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.01
+                 * @beta
+                 */
+                precision?: number | undefined;
+                /**
+                 * The largest angle, in radians, a curved face may turn between neighboring triangles; smaller
+                 * follows curvature more closely with more triangles.
+                 * @default 0.5
+                 * @minimum 0.001
+                 * @maximum 3.14159
+                 * @step 0.05
+                 * @beta
+                 */
+                angularDeflection?: number | undefined;
+                /**
+                 * When true, `precision` is a fraction of each edge's and face's size instead of model units, so
+                 * small and large parts get triangles in proportion to their size.
+                 * @default false
+                 * @beta
+                 */
+                relativeDeflection?: boolean | undefined;
+                /**
+                 * When true, every face is meshed at exactly `precision`; when false, a face's precision is
+                 * raised to the average of its edges' and to twice its tolerance.
+                 * @default false
+                 * @beta
+                 */
+                forceFaceDeflection?: boolean | undefined;
+                /**
+                 * When true, a part already meshed more finely may be meshed again at the coarser `precision`.
+                 * @default true
+                 * @beta
+                 */
+                allowQualityDecrease?: boolean | undefined;
+            }
+            /**
+             * Built by `draw.optionsEdges` for the `edges` of `DrawOcctDocumentOptions` and
+             * `DrawHatchedSectionOptions`: the color, width and opacity of the edge lines. Left out, these
+             * defaults apply.
+             * @beta
+             */
+            class DrawEdgesOptions {
+                constructor(edgeColour?: Base.Color, edgeWidth?: number, edgeOpacity?: number);
+                /**
+                 * The color of the edge lines, as a hex string.
+                 * @default #000000
+                 * @beta
+                 */
+                edgeColour?: Base.Color | undefined;
+                /**
+                 * The width of the edge lines, a hundredth of it in model units.
+                 * @default 2
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 * @beta
+                 */
+                edgeWidth?: number | undefined;
+                /**
+                 * How opaque the edge lines are, from 0 for invisible to 1 for opaque.
+                 * @default 1
+                 * @minimum 0
+                 * @maximum 1
+                 * @step 0.1
+                 * @beta
+                 */
+                edgeOpacity?: number | undefined;
+            }
+            /**
+             * Built by `draw.optionsAnnotations` for the `annotations` of `DrawOcctDocumentOptions`: which
+             * saved view's dimensions, tolerances and datums are drawn, and in what color and width. Left
+             * out, these defaults apply.
+             * @beta
+             */
+            class DrawAnnotationsOptions {
+                constructor(annotationsView?: string, annotationColour?: Base.Color, annotationWidth?: number, annotationsFilled?: boolean);
+                /**
+                 * The name of a view the file saved, such as `FRONT`, whose annotations alone are drawn; left
+                 * out, all are. A name no saved view bears is refused.
+                 * @default undefined
+                 * @optional true
+                 * @beta
+                 */
+                annotationsView?: string | undefined;
+                /**
+                 * The color of the annotations' lines and letters, as a hex string.
+                 * @default #0047ab
+                 * @beta
+                 */
+                annotationColour?: Base.Color | undefined;
+                /**
+                 * The width of the annotations' lines, a hundredth of it in model units, as an edge's is.
+                 * @default 2
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 * @beta
+                 */
+                annotationWidth?: number | undefined;
+                /**
+                 * When true, the annotations' letters are filled, as a PMI viewer shows them; when false only
+                 * their outlines are drawn, the lighter choice for a document with many annotations.
+                 * @default true
+                 * @beta
+                 */
+                annotationsFilled?: boolean | undefined;
+            }
+            /**
+             * Built by `draw.optionsOcctDocument` for an assembly document and for the annotations
+             * `occt.assembly.query.getDocumentAnnotations` reads: how the document turns, how it is meshed,
+             * and whether its edges and annotations are drawn. Its faces, front and back, always show the
+             * document's colors.
+             * @beta
+             */
+            class DrawOcctDocumentOptions {
+                constructor(upAxis?: Base.upAxisConversionEnum, meshing?: DrawMeshingOptions, drawEdges?: boolean, edges?: DrawEdgesOptions, drawAnnotations?: boolean, annotations?: DrawAnnotationsOptions);
+                /**
+                 * How the document and its annotations turn: `zUpToYUp` from the file's Z-up into Y-up, as
+                 * `occt.io.loadSTEPorIGES` turns a shape, `yUpToZUp` into Z-up, and `keep` leaves its own axes.
+                 * @default zUpToYUp
+                 * @beta
+                 */
+                upAxis?: Base.upAxisConversionEnum | undefined;
+                /**
+                 * How finely the document is meshed, as `draw.optionsMeshing` builds it; left out, its defaults.
+                 * @default undefined
+                 * @optional true
+                 * @beta
+                 */
+                meshing?: DrawMeshingOptions | undefined;
+                /**
+                 * When false, the edges of the parts are not drawn.
+                 * @default true
+                 * @beta
+                 */
+                drawEdges?: boolean | undefined;
+                /**
+                 * The color, width and opacity of the edges, as `draw.optionsEdges` builds them; left out, its
+                 * defaults.
+                 * @default undefined
+                 * @optional true
+                 * @beta
+                 */
+                edges?: DrawEdgesOptions | undefined;
+                /**
+                 * When true, the document's dimensions, tolerances and datums are drawn with it, as a STEP
+                 * AP242 file shows them.
+                 * @default false
+                 * @beta
+                 */
+                drawAnnotations?: boolean | undefined;
+                /**
+                 * Which annotations are drawn and how, as `draw.optionsAnnotations` builds them; left out, its
+                 * defaults.
+                 * @default undefined
+                 * @optional true
+                 * @beta
+                 */
+                annotations?: DrawAnnotationsOptions | undefined;
+            }
+            /**
+             * Built by `draw.optionsHatchedSection` for what `occt.operations.hatchedSectionByFrame` returns:
+             * the cut faces in `faceColour`, their outlines as `edges` sets them, and the hatch lines in their
+             * own color and width, curves followed within `precision`.
+             * @beta
+             */
+            class DrawHatchedSectionOptions {
+                constructor(precision?: number, faceColour?: Base.Color, drawEdges?: boolean, edges?: DrawEdgesOptions, hatchColour?: Base.Color, hatchWidth?: number);
+                /**
+                 * The largest distance, in model units, the outlines of the cut faces may stray from their
+                 * curves; smaller is finer and heavier.
+                 * @default 0.01
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.01
+                 * @beta
+                 */
+                precision?: number | undefined;
+                /**
+                 * The color of the cut faces, as a hex string.
+                 * @default #ffffff
+                 * @beta
+                 */
+                faceColour?: Base.Color | undefined;
+                /**
+                 * When false, the outlines of the cut faces are not drawn.
+                 * @default true
+                 * @beta
+                 */
+                drawEdges?: boolean | undefined;
+                /**
+                 * The color, width and opacity of the outlines, as `draw.optionsEdges` builds them; left out,
+                 * its defaults.
+                 * @default undefined
+                 * @optional true
+                 * @beta
+                 */
+                edges?: DrawEdgesOptions | undefined;
+                /**
+                 * The color of the hatch lines, and of the regions a solid hatch fills, as a hex string.
+                 * @default #000000
+                 * @beta
+                 */
+                hatchColour?: Base.Color | undefined;
+                /**
+                 * The width of the hatch lines, in the unit the edges' width is given in.
+                 * @default 1
+                 * @minimum 0
+                 * @maximum Infinity
+                 * @step 0.1
+                 * @beta
+                 */
+                hatchWidth?: number | undefined;
+            }
+            /**
              * Feeds `draw.optionsOcctShapeSimple`: the most used OCCT drawing options, precision, face and edge
              * colors and the two-sided rendering. Every option it leaves out takes the default
              * `draw.optionsOcctShape` gives.
@@ -31437,7 +32360,10 @@ declare namespace Bit {
                 manifold = "manifold",
                 recipeMeshes = "recipeMeshes",
                 tag = "tag",
-                tags = "tags"
+                tags = "tags",
+                occtDocument = "occtDocument",
+                occtAnnotations = "occtAnnotations",
+                occtHatchedSection = "occtHatchedSection"
             }
             /**
              * The look `bitbybit.draw` gives what a script draws without options of its own, set once on the
@@ -35161,6 +36087,32 @@ declare namespace Bit {
                 dotted = "dotted"
             }
             /**
+             * What a hatch fills its region with: `solid` ink, or lines `spacing` apart - `ansi31` one run
+             * of lines, `ansi32` lines in pairs a third of the spacing apart, `ansi37` two runs crossing at
+             * right angles.
+             *
+             * The second line of each `ansi32` pair is drawn whole, where the ANSI32 of CAD programs dashes
+             * it; a DXF file names the pattern ANSI32 at its standard scale.
+             * @beta
+             */
+            enum hatchPatternEnum {
+                solid = "solid",
+                ansi31 = "ansi31",
+                ansi32 = "ansi32",
+                ansi37 = "ansi37"
+            }
+            /**
+             * What a dimension measures: a `linear` distance between two points, the `diameter` or the
+             * `radius` of a circle, or the `angle` between two arms that meet at a point.
+             * @beta
+             */
+            enum dimensionKindEnum {
+                linear = "linear",
+                diameter = "diameter",
+                radius = "radius",
+                angular = "angular"
+            }
+            /**
              * A straight line in a drawing path, from `start` to `end`. Points may carry a Z coordinate; one
              * without it lies at Z 0.
              */
@@ -35369,11 +36321,155 @@ declare namespace Bit {
                 segments: (DrawingLineSegmentDto | DrawingArcSegmentDto | DrawingCircleSegmentDto | DrawingPolylineSegmentDto | DrawingSplineSegmentDto | DrawingEllipseSegmentDto)[];
             }
             /**
-             * A part of a drawing: paths drawn on one layer with one color and one line type, which
-             * `io.dxf.dxfCreate` writes as DXF and `io.svg.svgCreate` as SVG.
+             * A line of text, in the stroke font `text.vectorText` draws.
+             *
+             * SVG draws its strokes; DXF writes a text fitted to their width. Accented Latin letters are
+             * drawn; a character the font lacks is a question mark, an emoji two.
+             * @beta
+             */
+            class DrawingTextDto {
+                constructor(text?: string, position?: Base.Point2 | Base.Point3, height?: number, anchor?: "start" | "middle" | "end", rotation?: number, widthFactor?: number);
+                /**
+                 * The text, one line of it: a control character, such as a line break, a tab or U+0085, is
+                 * refused; a line separator is drawn as a question mark.
+                 * @default undefined
+                 */
+                text: string;
+                /**
+                 * The point on the baseline the text is placed by; `anchor` says which point of the line it is.
+                 * @default undefined
+                 */
+                position: Base.Point2 | Base.Point3;
+                /**
+                 * The height of a capital letter, in drawing units.
+                 * @default 3.5
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 */
+                height?: number | undefined;
+                /**
+                 * Which point of the baseline `position` is: where the text starts, its middle or its end.
+                 * @default start
+                 */
+                anchor?: "start" | "middle" | "end" | undefined;
+                /**
+                 * The angle of the baseline in degrees, counterclockwise from the X axis.
+                 * @default 0
+                 */
+                rotation?: number | undefined;
+                /**
+                 * How wide the letters are drawn against their natural width: below 1 narrows a text to fit a
+                 * cell, above 1 widens it.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 */
+                widthFactor?: number | undefined;
+            }
+            /**
+             * The room a drawing text takes, as `io.drawing.textSize` measures it.
+             * @beta
+             */
+            class DrawingTextSizeDto {
+                /**
+                 * The length of the text along its baseline, in drawing units.
+                 * @default undefined
+                 */
+                width: number;
+                /**
+                 * How far the font's highest ink rises above the baseline: a little more than `height`, which
+                 * marks over capitals and tall signs use.
+                 * @default undefined
+                 */
+                above: number;
+                /**
+                 * How far the font's lowest ink drops below the baseline, where the tail of a `g` or a `y` ends.
+                 * @default undefined
+                 */
+                below: number;
+            }
+            /**
+             * A hatched region of a drawing part: what its boundaries enclose, filled with a pattern.
+             *
+             * A boundary inside another cuts a hole, and one whose ends do not meet is closed by a
+             * straight line.
+             * @beta
+             */
+            class DrawingHatchDto {
+                constructor(boundaries?: DrawingPathDto[], pattern?: hatchPatternEnum, angle?: number, spacing?: number);
+                /**
+                 * The closed paths that bound the region, in the drawing's XY plane.
+                 * @default undefined
+                 */
+                boundaries: DrawingPathDto[];
+                /**
+                 * What the region is filled with.
+                 * @default ansi31
+                 */
+                pattern?: hatchPatternEnum | undefined;
+                /**
+                 * The angle of the pattern's lines in degrees, counterclockwise from the X axis; `solid`
+                 * ignores it.
+                 * @default 45
+                 */
+                angle?: number | undefined;
+                /**
+                 * The distance between the pattern's lines, in drawing units; `solid` ignores it. DXF writes
+                 * it as a scale of the pattern in `acad.pat` for an inch drawing, in `acadiso.pat` otherwise.
+                 * @default 3
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 */
+                spacing?: number | undefined;
+            }
+            /**
+             * A hatch and how closely its curved boundaries are followed, for `io.drawing.clippedHatchLines`,
+             * which clips the pattern's lines to the region, and `io.drawing.hatchOutlines`, which gives the
+             * region's outlines as points.
+             * @beta
+             */
+            class DrawingHatchRegionDto {
+                constructor(boundaries?: DrawingPathDto[], pattern?: hatchPatternEnum, angle?: number, spacing?: number, tolerance?: number);
+                /**
+                 * The closed paths that bound the region, in the drawing's XY plane; a boundary inside another
+                 * cuts a hole, and one inside that hole is filled again.
+                 * @default undefined
+                 */
+                boundaries: DrawingPathDto[];
+                /**
+                 * What the region is filled with; `solid` has no lines.
+                 * @default ansi31
+                 */
+                pattern?: hatchPatternEnum | undefined;
+                /**
+                 * The angle of the pattern's lines in degrees, counterclockwise from the X axis.
+                 * @default 45
+                 */
+                angle?: number | undefined;
+                /**
+                 * The distance between the pattern's lines, in drawing units.
+                 * @default 3
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 */
+                spacing?: number | undefined;
+                /**
+                 * How far, in drawing units, the outline may stray from a curved boundary: arcs, circles,
+                 * ellipses and splines become straight pieces this close to the curve.
+                 * @default 0.01
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @maximum Infinity
+                 * @step 0.001
+                 */
+                tolerance?: number | undefined;
+            }
+            /**
+             * A part of a drawing: paths, texts and hatches on one layer, in one color, line type and line
+             * weight, which `io.dxf.dxfCreate` writes as DXF and `io.svg.svgCreate` as SVG.
              */
             class DrawingPartDto {
-                constructor(layer?: string, color?: Base.Color, paths?: DrawingPathDto[], lineType?: lineTypeEnum);
+                constructor(layer?: string, color?: Base.Color, paths?: DrawingPathDto[], lineType?: lineTypeEnum, lineWeight?: number, texts?: DrawingTextDto[], hatches?: DrawingHatchDto[]);
                 /**
                  * The layer the paths go on. Parts may share a layer, which takes the first part's color and
                  * line type; every part's paths keep their own.
@@ -35395,6 +36491,207 @@ declare namespace Bit {
                  * @default continuous
                  */
                 lineType?: lineTypeEnum | undefined;
+                /**
+                 * How wide the part's lines and text strokes are, in drawing units. Left out, the writer's own
+                 * width is used: the drawing's `strokeWidth` in SVG, the layer's in DXF.
+                 * @default undefined
+                 * @optional true
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @beta
+                 */
+                lineWeight?: number | undefined;
+                /**
+                 * Lines of text on the part's layer, in its color.
+                 * @default undefined
+                 * @optional true
+                 * @beta
+                 */
+                texts?: DrawingTextDto[] | undefined;
+                /**
+                 * Hatched regions on the part's layer, in its color.
+                 * @default undefined
+                 * @optional true
+                 * @beta
+                 */
+                hatches?: DrawingHatchDto[] | undefined;
+            }
+            /**
+             * Drawing parts and the one factor `io.drawing.scaleParts` scales them by about the origin, such
+             * as 1/25.4 to turn a drawing in millimetres into inches before writing it.
+             * @beta
+             */
+            class DrawingScalePartsDto {
+                constructor(parts?: DrawingPartDto[], factor?: number);
+                /**
+                 * The parts to scale; they stay as they are and scaled copies come back.
+                 * @default undefined
+                 */
+                parts: DrawingPartDto[];
+                /**
+                 * What every length is multiplied by: 2 doubles the drawing, 25.4 turns inches into
+                 * millimetres.
+                 * @default 1
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 */
+                factor?: number | undefined;
+            }
+            /**
+             * A dimension in the drawing's plane for `io.drawing.dimensionPicture`, which draws it, and
+             * `io.drawing.dimensionExtent`, which measures the box it fills: what it measures, between which
+             * points, and the size of its text and arrows.
+             * @beta
+             */
+            class DrawingDimensionDto {
+                constructor(kind?: dimensionKindEnum, start?: Base.Point2, end?: Base.Point2, direction?: Base.Vector2, offset?: number, angle?: number, value?: number, decimalPlaces?: number, upperTolerance?: number, lowerTolerance?: number, textHeight?: number, arrowLength?: number);
+                /**
+                 * What the dimension measures; it decides what `start`, `end`, `offset` and `angle` mean.
+                 * @default linear
+                 */
+                kind?: dimensionKindEnum | undefined;
+                /**
+                 * For `linear`, the first point measured; for `diameter`, `radius` and `angular`, the center of
+                 * the circle or the point where the two arms of the angle meet.
+                 * @default undefined
+                 */
+                start: Base.Point2;
+                /**
+                 * For `linear`, the second point measured; for `diameter` and `radius`, a point on the circle; for
+                 * `angular`, a point on the first arm, where the arc passes.
+                 * @default undefined
+                 */
+                end: Base.Point2;
+                /**
+                 * For `linear`, the direction measured along, such as [1, 0] for a horizontal dimension; left
+                 * out, from `start` to `end`. Other kinds ignore it.
+                 * @default undefined
+                 * @optional true
+                 */
+                direction?: Base.Vector2 | undefined;
+                /**
+                 * For `linear`, how far the dimension line stands from `start`, in drawing units, to the left of
+                 * `direction`; negative puts it right. Other kinds ignore it.
+                 * @default 10
+                 * @minimum -Infinity
+                 * @maximum Infinity
+                 */
+                offset?: number | undefined;
+                /**
+                 * For `angular`, the angle in degrees from the first arm, the one through `end`,
+                 * counterclockwise to the second arm. Other kinds ignore it.
+                 * @default 90
+                 * @minimum 0
+                 * @maximum 360
+                 * @exclusiveMinimum true
+                 * @exclusiveMaximum true
+                 */
+                angle?: number | undefined;
+                /**
+                 * The number written; left out, the one measured. A diameter is written after the diameter
+                 * sign, a radius after R, an angle before the degree sign.
+                 * @default undefined
+                 * @optional true
+                 */
+                value?: number | undefined;
+                /**
+                 * How many decimals the value keeps; trailing zeros are dropped, so 15.50 shows as 15.5.
+                 * @default 2
+                 * @minimum 0
+                 * @maximum 15
+                 * @step 1
+                 */
+                decimalPlaces?: number | undefined;
+                /**
+                 * How far above the value the measure may lie, written `+0.1`, or `±0.1` when equal to
+                 * `lowerTolerance`; 0 when only `lowerTolerance` is given.
+                 * @default undefined
+                 * @optional true
+                 * @minimum 0
+                 */
+                upperTolerance?: number | undefined;
+                /**
+                 * How far below the value the measure may lie, as an amount, written `-0.05`; 0 when only
+                 * `upperTolerance` is given. Without either, no tolerance is written.
+                 * @default undefined
+                 * @optional true
+                 * @minimum 0
+                 */
+                lowerTolerance?: number | undefined;
+                /**
+                 * The height of the text's digits, in drawing units; the gaps around the lines are sized from it.
+                 * @default 3.5
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 */
+                textHeight?: number | undefined;
+                /**
+                 * The length of each arrowhead, in drawing units; each is a third as wide as it is long. Left
+                 * out, it is `textHeight`.
+                 * @default undefined
+                 * @optional true
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 */
+                arrowLength?: number | undefined;
+            }
+            /**
+             * The box a dimension's picture fills, as `io.drawing.dimensionExtent` and
+             * `io.drawing.dimensionPicture` measure it, by its lowest and highest corner.
+             * @beta
+             */
+            class DrawingExtentDto {
+                /**
+                 * The corner with the least X and the least Y.
+                 * @default undefined
+                 */
+                min: Base.Point2;
+                /**
+                 * The corner with the greatest X and the greatest Y.
+                 * @default undefined
+                 */
+                max: Base.Point2;
+            }
+            /**
+             * A dimension drawn by `io.drawing.dimensionPicture`: its lines, its arrowheads as loops to
+             * fill, its text as strokes and as a drawing text, and the box all of it fills.
+             * @beta
+             */
+            class DrawingDimensionPictureDto {
+                /**
+                 * The dimension line, or its arc, and the extension lines, each a polyline of two or more
+                 * points without two neighbours in one place.
+                 * @default undefined
+                 */
+                lines: Base.Point2[][];
+                /**
+                 * The arrowheads, each a closed triangle running counterclockwise, its first point not repeated;
+                 * the first point of each is its tip.
+                 * @default undefined
+                 */
+                fills: Base.Point2[][];
+                /**
+                 * The text's letters as strokes, each a polyline of two or more points, as
+                 * `io.drawing.textStrokes` draws `text`.
+                 * @default undefined
+                 */
+                textStrokes: Base.Point2[][];
+                /**
+                 * The text as a drawing text, placed and turned so it reads from left to right or from bottom
+                 * to top, for a drawing part's `texts`.
+                 * @default undefined
+                 */
+                text: DrawingTextDto;
+                /**
+                 * The middle of the box the text fills.
+                 * @default undefined
+                 */
+                textPoint: Base.Point2;
+                /**
+                 * The box the lines, the arrowheads and the text fill together.
+                 * @default undefined
+                 */
+                extent: DrawingExtentDto;
             }
             /**
              * A straight line in a drawing path, under its former DXF name.
@@ -35462,10 +36759,11 @@ declare namespace Bit {
             }
             /**
              * A whole DXF drawing for `io.dxf.dxfCreate`: its path parts by layer and color, and the color
-             * format, the version and the unit to write.
+             * format, the version and the unit to write. In inches it is marked imperial, so hatch scales
+             * count from inch patterns.
              */
             class DxfModelDto {
-                constructor(dxfPathsParts?: DrawingPartDto[], colorFormat?: "aci" | "truecolor", acadVersion?: "AC1009" | "AC1015", unit?: Base.unitOfLengthEnum, curveTolerance?: number);
+                constructor(dxfPathsParts?: DrawingPartDto[], colorFormat?: "aci" | "truecolor", acadVersion?: "AC1009" | "AC1015", unit?: Base.unitOfLengthEnum, curveTolerance?: number, lineTypeScale?: number);
                 /**
                  * Array of path parts, each containing paths with segments
                  * @default undefined
@@ -35498,6 +36796,16 @@ declare namespace Bit {
                  * @exclusiveMinimum true
                  */
                 curveTolerance?: number | undefined;
+                /**
+                 * The length of one unit of a dash pattern, in drawing units: `hidden` is 2 units of dash
+                 * and 1 of gap. Left out, a two-hundredth of the drawing's size.
+                 * @default undefined
+                 * @optional true
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @beta
+                 */
+                lineTypeScale?: number | undefined;
             }
             /**
              * The text of a DXF file for `io.dxf.dxfRead`, which reads its drawing into path parts, and
@@ -35523,7 +36831,8 @@ declare namespace Bit {
              */
             class DxfDrawingDto {
                 /**
-                 * The parts, one for each layer, color and line type that holds anything, each entity one path.
+                 * The parts, one for each layer, color and line type that holds anything: each entity one path,
+                 * each text and hatch in its part's `texts` and `hatches`.
                  * @default undefined
                  */
                 parts: DrawingPartDto[];
@@ -35549,7 +36858,7 @@ declare namespace Bit {
              * unit that gives it its true size, and how wide the lines and the border are.
              */
             class SvgModelDto {
-                constructor(parts?: DrawingPartDto[], unit?: Base.unitOfLengthEnum, strokeWidth?: number, margin?: number, tolerance?: number);
+                constructor(parts?: DrawingPartDto[], unit?: Base.unitOfLengthEnum, strokeWidth?: number, margin?: number, tolerance?: number, lineTypeScale?: number);
                 /**
                  * The parts of the drawing; each layer becomes a group that Inkscape reads as a layer.
                  * @default undefined
@@ -35587,12 +36896,22 @@ declare namespace Bit {
                  * @exclusiveMinimum true
                  */
                 tolerance?: number | undefined;
+                /**
+                 * The length of one unit of a dash pattern, in drawing units: `hidden` is 2 units of dash
+                 * and 1 of gap. Left out, a two-hundredth of the drawing's size.
+                 * @default undefined
+                 * @optional true
+                 * @minimum 0
+                 * @exclusiveMinimum true
+                 * @beta
+                 */
+                lineTypeScale?: number | undefined;
             }
             /**
              * One drawing path for `io.svg.pathData`, and how its coordinates are written.
              */
             class SvgPathDataDto {
-                constructor(path?: DrawingPathDto, flipY?: boolean, tolerance?: number);
+                constructor(path?: DrawingPathDto, flipY?: boolean, tolerance?: number, cubicsOnly?: boolean);
                 /**
                  * The path to write as SVG path data.
                  * @default undefined
@@ -35612,6 +36931,13 @@ declare namespace Bit {
                  * @exclusiveMinimum true
                  */
                 tolerance?: number | undefined;
+                /**
+                 * When true, every curve is written as cubic Beziers (`C`), arcs within `tolerance`, for
+                 * renderers that draw only lines and cubics.
+                 * @default false
+                 * @beta
+                 */
+                cubicsOnly?: boolean | undefined;
             }
             /**
              * The text of an SVG file for `io.svg.svgRead`, which reads its drawing into path parts, with the
@@ -37761,6 +39087,25 @@ declare namespace Bit {
                 holes?: Base.Point3[][] | undefined;
             }
             /**
+             * Closed loops lying in one plane and the rule that decides what they enclose, for
+             * `mesh.triangulateLoops`.
+             */
+            class TriangulateLoopsDto {
+                constructor(loops?: Base.Point3[][], fillRule?: Base.loopFillRuleEnum);
+                /**
+                 * The loops, each a list of corners in one plane; the last need not repeat the first, and loops
+                 * may run either way and nest.
+                 * @default undefined
+                 */
+                loops: Base.Point3[][];
+                /**
+                 * How the loops decide what is inside: `evenOdd` leaves every loop inside another open
+                 * whichever way it runs, as letters are filled; `nonZero` lets their directions count.
+                 * @default evenOdd
+                 */
+                fillRule?: Base.loopFillRuleEnum | undefined;
+            }
+            /**
              * Two triangle meshes and how close they may come, for `mesh.meshesWithin`.
              */
             class MeshesWithinDto {
@@ -39154,7 +40499,7 @@ declare namespace Bit {
              * @beta
              */
             class RecipeSurfaceMeshesDto {
-                constructor(recipe?: Base.Recipe, roots?: number[], adjustZtoY?: boolean);
+                constructor(recipe?: Base.Recipe, roots?: number[], adjustZtoY?: boolean, upAxis?: Base.upAxisConversionEnum);
                 /**
                  * The recipe: steps such as polygons, extrusions and triangle meshes, and the roots to build
                  * from them.
@@ -39168,9 +40513,17 @@ declare namespace Bit {
                  */
                 roots?: number[] | undefined;
                 /**
-                 * When true, each mesh turns a quarter turn about X, as a kernel's recipe build does with
-                 * this option: `(x, y, z)` becomes `(x, z, -y)`.
-                 * @default false
+                 * Whether the meshes turn: `zUpToYUp` turns each a quarter turn about X, as a kernel's recipe
+                 * build does, so `(x, y, z)` becomes `(x, z, -y)`; `keep` leaves them. `yUpToZUp` is refused.
+                 * @default keep
+                 */
+                upAxis?: Base.upAxisConversionEnum | undefined;
+                /**
+                 * When true, the meshes turn as `upAxis` `zUpToYUp` turns them; false, its old default, decides
+                 * nothing. True wins over `upAxis` at its default; beside another chosen turn it is refused.
+                 * @deprecated Give `upAxis` instead; this flag goes in the next major version.
+                 * @default undefined
+                 * @optional true
                  */
                 adjustZtoY?: boolean | undefined;
             }
@@ -44817,6 +46170,95 @@ declare namespace Bit {
                 histories: ShapeHistory[];
             }
             /**
+             * What an annotation is: a `dimension`, a geometric `tolerance` or a `datum`.
+             * @beta
+             */
+            type DocumentAnnotationKind = "dimension" | "tolerance" | "datum";
+            /**
+             * The annotations a document holds, as a STEP AP242 file shows them, and the views the file saved,
+             * as `assembly.query.getDocumentAnnotations` reads them. Everything stands in the document's own
+             * axes and units, where `assembly.query.getShapeFromLabel` and the document's meshes put its parts.
+             * Experimental: the shape of this record may still change.
+             * @beta
+             */
+            interface DocumentAnnotations {
+                /** Every annotation, dimensions first, then tolerances, then datums; one of a part placed several times comes once for each placement. */
+                annotations: DocumentAnnotation[];
+                /** The views the file saved, each with the annotations it shows. */
+                views: DocumentSavedView[];
+                /** How many annotations and views were left out because the document held more than the kernel writes in one answer. */
+                leftOut: DocumentAnnotationsLeftOut;
+            }
+            /**
+             * One annotation as it is drawn: its label and what it is, the plane it stands in, and its
+             * presentation as lines and filled letters, placed where the parts it belongs to stand. Lengths
+             * are in the document's units; a number the file holds as infinite reads NaN.
+             * @beta
+             */
+            interface DocumentAnnotation {
+                /** The annotation's label in the document, the same as `assembly.query.getDocumentPmi` gives it. */
+                label: string;
+                /** Whether it is a dimension, a tolerance or a datum. */
+                kind: DocumentAnnotationKind;
+                /** Its type, such as `Size_Diameter` or `Flatness`, or a datum's letter; empty when the file names none. */
+                type: string;
+                /** The name of its presentation, empty when it has none. */
+                name: string;
+                /** The nominal value of a dimension or the value of a tolerance; 0 for a datum. */
+                value: number;
+                /** How many shapes it refers to; 0 for a note that stands by itself. */
+                attached: number;
+                /** The number of the product it belongs to, as the document's product tree numbers it; left out when it belongs to the model as a whole. */
+                product?: number | undefined;
+                /** Which placement of its product this copy stands at, counted from 0 in the order of the product tree; left out without a product. */
+                instance?: number | undefined;
+                /** The plane it stands in, when the file gives one. */
+                plane?: DocumentAnnotationPlane | undefined;
+                /** Where its text is attached, when the file gives that point. */
+                textPoint?: Base.Point3 | undefined;
+                /** Its drawn lines, each a polyline of points; empty without a presentation. */
+                lines: Base.Point3[][];
+                /** Its filled marks, letters above all, each a closed loop of points to fill under the even-odd rule, the first point not repeated. */
+                fills: Base.Point3[][];
+                /** The unit direction its filled marks face, the side they read from; given only with fills. */
+                facing?: Base.Vector3 | undefined;
+            }
+            /**
+             * The plane an annotation stands in: its `origin`, its unit `normal` and the unit `direction` of
+             * its X axis.
+             * @beta
+             */
+            interface DocumentAnnotationPlane {
+                origin: Base.Point3;
+                normal: Base.Vector3;
+                direction: Base.Vector3;
+            }
+            /**
+             * A view a file saved: its label and name, whether it projects in parallel, the `eye` point it looks
+             * from, the unit `direction` it looks along and the unit `up` of its picture, the `width` and
+             * `height` of its window in the document's units, and the labels of the annotations it shows.
+             * @beta
+             */
+            interface DocumentSavedView {
+                label: string;
+                name: string;
+                isParallel: boolean;
+                eye: Base.Point3;
+                direction: Base.Vector3;
+                up: Base.Vector3;
+                width: number;
+                height: number;
+                annotations: string[];
+            }
+            /**
+             * How many annotations and how many views a document holds beyond what one answer carries.
+             * @beta
+             */
+            interface DocumentAnnotationsLeftOut {
+                annotations: number;
+                views: number;
+            }
+            /**
              * The two texts of an OBJ export: `obj`, the mesh, and `mtl`, the material library its `mtllib`
              * line names, empty when the shapes carry no colours or materials.
              */
@@ -44827,7 +46269,8 @@ declare namespace Bit {
             /**
              * The product manufacturing information a document holds, as a STEP AP242 file brings it along: its
              * dimensions, its geometric tolerances and the datums the tolerances refer to. Each names the shapes
-             * it applies to by their labels, which `assembly.query.getShapeFromLabel` reads.
+             * it applies to by their labels, which `assembly.query.getShapeFromLabel` reads, and as the part and
+             * index `assembly.manager.addDocumentPmi` takes, so what is read can be written again.
              */
             interface DocumentPmi {
                 dimensions: PmiDimension[];
@@ -44853,11 +46296,24 @@ declare namespace Bit {
                 upperBound?: number | undefined;
                 shapes: string[];
                 otherShapes: string[];
+                /**
+                 * `shapes` as `assembly.manager.addDocumentPmi` takes them: each a part's label and which face,
+                 * edge or vertex of it, counted as the open getters count them; empty when one of them is not a
+                 * part or a face, edge or vertex of one.
+                 * @beta
+                 */
+                shapeRefs: Inputs.OCCT.PmiShapeDto[];
+                /**
+                 * `otherShapes` in the same form as `shapeRefs`.
+                 * @beta
+                 */
+                otherShapeRefs: Inputs.OCCT.PmiShapeDto[];
             }
             /**
              * A geometric tolerance: its label, its kind, such as `Flatness` or `Position`, its name, its value
              * in the document's length unit (NaN when not finite), the labels of the shapes it applies to, and
-             * the labels of the datums it refers to, which `datums` of the same `DocumentPmi` describes.
+             * the labels of the datums it refers to, primary first, which `datums` of the same `DocumentPmi`
+             * describes.
              */
             interface PmiTolerance {
                 label: string;
@@ -44866,14 +46322,45 @@ declare namespace Bit {
                 value: number;
                 shapes: string[];
                 datums: string[];
+                /**
+                 * `shapes` as `assembly.manager.addDocumentPmi` takes them, as a dimension's `shapeRefs` gives them.
+                 * @beta
+                 */
+                shapeRefs: Inputs.OCCT.PmiShapeDto[];
+                /**
+                 * The letters of the datums `datums` names, in the same order.
+                 * @beta
+                 */
+                datumLetters: string[];
+                /**
+                 * True when the tolerance zone is a cylinder, written with the diameter sign before the value.
+                 * @beta
+                 */
+                diameterZone: boolean;
+                /**
+                 * The material condition the tolerance applies at; `none` when it has none.
+                 * @beta
+                 */
+                material: Inputs.OCCT.pmiMaterialConditionEnum;
             }
             /**
-             * A datum: its label, its name, such as `A`, and the labels of the shapes it is taken from.
+             * A datum: its label, its name, such as `A`, and the labels of the shapes it is taken from. A STEP
+             * file read back gives each datum once, under the label every tolerance's `datums` names.
              */
             interface PmiDatum {
                 label: string;
                 name: string;
                 shapes: string[];
+                /**
+                 * Its letter, the same as `name`, as `assembly.manager.addDocumentPmi` takes it.
+                 * @beta
+                 */
+                letter: string;
+                /**
+                 * `shapes` as `assembly.manager.addDocumentPmi` takes them, as a dimension's `shapeRefs` gives them.
+                 * @beta
+                 */
+                shapeRefs: Inputs.OCCT.PmiShapeDto[];
             }
             /**
              * A shape paired with a stable identifier. Operations that return many shapes use it so a
@@ -44974,6 +46461,55 @@ declare namespace Bit {
             interface HiddenLinesResult<T> {
                 visible: T;
                 hidden: T;
+            }
+            /**
+             * The edges of a view of a shape sorted by kind, each a drawing on the XZ plane. `sharp` holds the
+             * edges where two faces meet at an angle and the free edges, `outline` the silhouettes of curved
+             * faces, which are no edge of the shape, and `smooth` the edges where faces meet without a crease.
+             * Those three are the edges the eye sees; `hiddenSharp`, `hiddenOutline` and `hiddenSmooth` are the
+             * same kinds where faces cover them.
+             */
+            interface HiddenLinesByKindResult<T> {
+                sharp: T;
+                outline: T;
+                smooth: T;
+                hiddenSharp: T;
+                hiddenOutline: T;
+                hiddenSmooth: T;
+            }
+            /**
+             * Shapes cut by the plane of a frame with their cut faces hatched, as
+             * `operations.hatchedSectionByFrame` gives them: the `frame`, squared, and for each shape in the
+             * order given, its cut faces. The hatches stand in the frame's own coordinates, its direction along
+             * X and the normal crossed with the direction along Y, so they write to DXF or SVG beside
+             * `operations.hiddenLines` drawn with the same frame. What lies on the side the frame's normal
+             * points to is the side taken away.
+             * @beta
+             */
+            interface HatchedSection<T> {
+                frame: Base.Frame;
+                shapes: HatchedSectionShape<T>[];
+            }
+            /**
+             * The cut faces of one shape of a hatched section, all hatched at its `angle`; a shape the plane
+             * misses has no `caps`.
+             * @beta
+             */
+            interface HatchedSectionShape<T> {
+                angle: number;
+                caps: HatchedSectionCap<T>[];
+            }
+            /**
+             * One cut face of a hatched section: the `face` in 3D, its hatch lines as straight edges lying in
+             * the face's plane, in one compound, and the `hatch` as drawing data - the face's outer and inner
+             * boundaries in the frame's coordinates with the pattern, angle and spacing - which a drawing
+             * part's `hatches` takes.
+             * @beta
+             */
+            interface HatchedSectionCap<T> {
+                face: T;
+                lines: T;
+                hatch: IO.DrawingHatchDto;
             }
             /**
              * A straight segment from the current point to `to`, which is a sketch point, or an offset from the
@@ -57026,7 +58562,7 @@ declare namespace Bit {
          * @example
          * ```typescript
          * const recipe = await bitbybit.ifc.geometry.recipe({ model });
-         * const solids = await bitbybit.manifold.recipes.build({ recipe, adjustZtoY: true, emptyWhenFailed: true });
+         * const solids = await bitbybit.manifold.recipes.build({ recipe, upAxis: Bit.Inputs.Base.upAxisConversionEnum.zUpToYUp, emptyWhenFailed: true });
          * ```
          */
         build(inputs: Inputs.Manifold.BuildRecipeDto): Promise<Inputs.Manifold.ManifoldPointer[]>;
@@ -57044,7 +58580,7 @@ declare namespace Bit {
          * @example
          * ```typescript
          * const recipe = await bitbybit.ifc.geometry.recipe({ model });
-         * const { meshes, placements } = await bitbybit.manifold.recipes.meshes({ recipe, adjustZtoY: true, emptyWhenFailed: true });
+         * const { meshes, placements } = await bitbybit.manifold.recipes.meshes({ recipe, upAxis: Bit.Inputs.Base.upAxisConversionEnum.zUpToYUp, emptyWhenFailed: true });
          * ```
          */
         meshes(inputs: Inputs.Manifold.BuildRecipeMeshesDto): Promise<Inputs.Manifold.RecipeMeshesDto>;
@@ -57061,10 +58597,10 @@ declare namespace Bit {
          * @drawable true
          * @example
          * ```typescript
-         * const solids = await bitbybit.manifold.recipes.build({ recipe, adjustZtoY: true, emptyWhenFailed: true });
+         * const solids = await bitbybit.manifold.recipes.build({ recipe, upAxis: Bit.Inputs.Base.upAxisConversionEnum.zUpToYUp, emptyWhenFailed: true });
          * const meshes = await bitbybit.manifold.manifold.manifoldsToMeshes({ manifolds: solids });
          * const open = meshes.flatMap((mesh, index) => mesh.triVerts.length === 0 ? [index] : []);
-         * const surfaces = await bitbybit.manifold.recipes.surfaceMeshes({ recipe, roots: open, adjustZtoY: true });
+         * const surfaces = await bitbybit.manifold.recipes.surfaceMeshes({ recipe, roots: open, upAxis: Bit.Inputs.Base.upAxisConversionEnum.zUpToYUp });
          * ```
          */
         surfaceMeshes(inputs: Inputs.Manifold.RecipeSurfaceMeshesDto): Promise<Inputs.Manifold.DecomposedManifoldMeshDto[]>;
@@ -58866,9 +60402,10 @@ declare namespace Bit {
      * Assemblies as OpenCascade documents: a document holds parts, the sub-assemblies that group them
      * and the instances that place them, with names, colors and placements, the way a STEP assembly
      * does. `manager` builds documents step by step from parts and nodes, loads STEP, glTF and OBJ files
-     * into them, changes labels and exports to STEP, glTF, OBJ and PLY; `query` reads parts, shapes,
-     * colors, placements, the hierarchy and the dimensions and tolerances back out. Every label in a
-     * document is addressed by its label id string. A document stays in memory until it is deleted.
+     * into them, changes labels, adds dimensions, datums and tolerances, and exports to STEP, glTF, OBJ
+     * and PLY; `query` reads parts, shapes, colors, placements, the hierarchy and the dimensions and
+     * tolerances back out. Every label in a document is addressed by its label id string. A document
+     * stays in memory until it is deleted.
      * @example
      * ```typescript
      * const box = await bitbybit.occt.shapes.solid.createBox({ width: 10, length: 10, height: 10, center: [0, 0, 0] });
@@ -58878,7 +60415,7 @@ declare namespace Bit {
      * const structure = await bitbybit.occt.assembly.manager.combineStructure({ parts: [part], nodes: [root, instance], clearDocument: false });
      * const doc = await bitbybit.occt.assembly.manager.buildAssemblyDocument({ structure });
      * const parts = await bitbybit.occt.assembly.query.getDocumentParts({ document: doc });
-     * const glb = await bitbybit.occt.assembly.manager.exportDocumentToGltf({ document: doc, meshDeflection: 0.1, meshAngle: 0.5, internalVerticesMode: false, controlSurfaceDeflection: false, mergeFaces: false, forceUVExport: false, fileName: "assembly.glb", tryDownload: false });
+     * const glb = await bitbybit.occt.assembly.manager.exportDocumentToGltf({ document: doc, meshDeflection: 0.1, meshAngle: 0.5, internalVerticesMode: true, controlSurfaceDeflection: false, mergeFaces: false, forceUVExport: false, fileName: "assembly.glb", tryDownload: false });
      * await bitbybit.occt.assembly.manager.deleteDocument({ document: doc });
      * ```
      */
@@ -58889,8 +60426,8 @@ declare namespace Bit {
     /**
      * Building and changing assembly documents: describe parts, assembly nodes and instance nodes one
      * object at a time, combine them into a structure, and build a document from it; or load a STEP,
-     * glTF or OBJ file into a document. Then recolor and rename labels, update or remove parts, and
-     * export to STEP, glTF, OBJ or PLY. A document is an in-memory handle that stays alive until it is
+     * glTF or OBJ file into a document. Then recolor and rename labels, update or remove parts, add
+     * dimensions, datums and tolerances, and export to STEP, glTF, OBJ or PLY. A document is an in-memory handle that stays alive until it is
      * deleted, so build once and query or export as often as needed.
      */
     declare class OCCTAssemblyManager {
@@ -59027,7 +60564,7 @@ declare namespace Bit {
          * ```typescript
          * const structure = await bitbybit.occt.assembly.manager.combineStructure({ parts: [part], nodes: [root, first], clearDocument: false });
          * const doc = await bitbybit.occt.assembly.manager.buildAssemblyDocument({ structure });
-         * const glb = await bitbybit.occt.assembly.manager.exportDocumentToGltf({ document: doc, meshDeflection: 0.1, meshAngle: 0.5, internalVerticesMode: false, controlSurfaceDeflection: false, mergeFaces: false, forceUVExport: false, fileName: "assembly.glb", tryDownload: false });
+         * const glb = await bitbybit.occt.assembly.manager.exportDocumentToGltf({ document: doc, meshDeflection: 0.1, meshAngle: 0.5, internalVerticesMode: true, controlSurfaceDeflection: false, mergeFaces: false, forceUVExport: false, fileName: "assembly.glb", tryDownload: false });
          * ```
          */
         buildAssemblyDocument(inputs: Inputs.OCCT.BuildAssemblyDocumentDto<Inputs.OCCT.TopoDSShapePointer, Inputs.OCCT.TDocStdDocumentPointer>): Promise<Inputs.OCCT.TDocStdDocumentPointer>;
@@ -59048,6 +60585,8 @@ declare namespace Bit {
          * ```typescript
          * const doc = await bitbybit.occt.assembly.manager.loadStepToDoc({ stepData: stepText });
          * const parts = await bitbybit.occt.assembly.query.getDocumentParts({ document: doc });
+         * const options = bitbybit.draw.optionsOcctDocument({ drawAnnotations: true });
+         * const drawn = await bitbybit.draw.drawAnyAsync({ entity: doc, options });
          * ```
          */
         loadStepToDoc(inputs: Inputs.OCCT.LoadStepToDocDto): Promise<Inputs.OCCT.TDocStdDocumentPointer>;
@@ -59092,37 +60631,228 @@ declare namespace Bit {
          * Colors a label of a document, a part, instance or assembly, with red, green, blue and alpha
          * from 0 to 1.
          *
-         * The color is kept when the document is exported to STEP or glTF.
+         * It answers the colored document, which an export or a read given it shows, STEP and glTF
+         * included. A label that names no part, instance or assembly of the document is refused;
+         * `setDocLabelColors` colors many labels in one change.
          * @param inputs - The document, the label and the four color channels
-         * @returns True when the color was set
+         * @returns The colored document
          * @group modify
          * @shortname set label color
          * @drawable false
          * @example
          * ```typescript
-         * const done = await bitbybit.occt.assembly.manager.setDocLabelColor({ document: doc, label: "0:1:1:1", r: 1, g: 0, b: 0, a: 1 });
+         * const colored = await bitbybit.occt.assembly.manager.setDocLabelColor({ document: doc, label: "0:1:1:1", r: 1, g: 0, b: 0, a: 1 });
+         * const step = await bitbybit.occt.assembly.manager.exportDocumentToStep({ document: colored });
          * ```
          */
-        setDocLabelColor(inputs: Inputs.OCCT.SetDocLabelColorDto<Inputs.OCCT.TDocStdDocumentPointer>): Promise<boolean>;
+        setDocLabelColor(inputs: Inputs.OCCT.SetDocLabelColorDto<Inputs.OCCT.TDocStdDocumentPointer>): Promise<Inputs.OCCT.TDocStdDocumentPointer>;
         /**
          * Renames a label of a document, a part, instance or assembly.
+         *
+         * It answers the renamed document, which an export or a read given it shows. A label that names
+         * no part, instance or assembly of the document is refused; `setDocLabelNames` renames many
+         * labels in one change.
          * @param inputs - The document, the label and the new name
-         * @returns True when the name was set
+         * @returns The renamed document
          * @group modify
          * @shortname set label name
          * @drawable false
          * @example
          * ```typescript
-         * const done = await bitbybit.occt.assembly.manager.setDocLabelName({ document: doc, label: "0:1:1:1", name: "Left bracket" });
+         * const renamed = await bitbybit.occt.assembly.manager.setDocLabelName({ document: doc, label: "0:1:1:1", name: "Left bracket" });
+         * const tree = await bitbybit.occt.assembly.query.getAssemblyHierarchy({ document: renamed });
          * ```
          */
-        setDocLabelName(inputs: Inputs.OCCT.SetDocLabelNameDto<Inputs.OCCT.TDocStdDocumentPointer>): Promise<boolean>;
+        setDocLabelName(inputs: Inputs.OCCT.SetDocLabelNameDto<Inputs.OCCT.TDocStdDocumentPointer>): Promise<Inputs.OCCT.TDocStdDocumentPointer>;
+        /**
+         * Colors many labels of a document, parts, instances or assemblies, with one color in one
+         * change.
+         *
+         * It answers the colored document as `setDocLabelColor` does, one change for the whole list. A
+         * label that names no part, instance or assembly is refused before any is colored; an empty
+         * list answers the document as it was.
+         * @param inputs - The document, the labels and the four color channels
+         * @returns The colored document
+         * @group modify
+         * @shortname set labels color
+         * @drawable false
+         * @beta
+         * @example
+         * ```typescript
+         * const parts = await bitbybit.occt.assembly.query.getDocumentParts({ document: doc });
+         * const labels = parts.filter(part => part.type === "part").map(part => part.label);
+         * const colored = await bitbybit.occt.assembly.manager.setDocLabelColors({ document: doc, labels, r: 1, g: 0, b: 0, a: 1 });
+         * ```
+         */
+        setDocLabelColors(inputs: Inputs.OCCT.SetDocLabelColorsDto<Inputs.OCCT.TDocStdDocumentPointer>): Promise<Inputs.OCCT.TDocStdDocumentPointer>;
+        /**
+         * Renames many labels of a document, parts, instances or assemblies, in one change.
+         *
+         * `names` holds each label's new name, in the order of `labels`. A label that is no part,
+         * instance or assembly, a name that is not text, a count unlike the labels' or a label given two
+         * names is refused before any is renamed.
+         * @param inputs - The document, the labels and the new name of each
+         * @returns The renamed document
+         * @group modify
+         * @shortname set labels name
+         * @drawable false
+         * @beta
+         * @example
+         * ```typescript
+         * const renamed = await bitbybit.occt.assembly.manager.setDocLabelNames({ document: doc, labels: ["0:1:1:1", "0:1:1:2"], names: ["Left bracket", "Right bracket"] });
+         * const tree = await bitbybit.occt.assembly.query.getAssemblyHierarchy({ document: renamed });
+         * ```
+         */
+        setDocLabelNames(inputs: Inputs.OCCT.SetDocLabelNamesDto<Inputs.OCCT.TDocStdDocumentPointer>): Promise<Inputs.OCCT.TDocStdDocumentPointer>;
+        /**
+         * Describes one shape of a part for a dimension, datum or tolerance: the part's label and which
+         * face, edge or vertex of it.
+         *
+         * Faces, edges and vertices count from 0 as `shapes.face.getFace`, `shapes.edge.getEdge` and
+         * `shapes.vertex.getVertices` count them on the part's shape, which `assembly.query.getShapeFromLabel`
+         * reads; `kind` `part` means the whole part.
+         * @param inputs - The part's label, whether a face, edge, vertex or the whole part is meant, and its index
+         * @returns The shape, ready for the `shapeRefs` of `createPmiDimension`, `createPmiDatum` and `createPmiTolerance`
+         * @group pmi
+         * @shortname pmi shape
+         * @drawable false
+         * @beta
+         * @example
+         * ```typescript
+         * const top = await bitbybit.occt.assembly.manager.createPmiShape({ part: "0:1:1:1", kind: Bit.Inputs.OCCT.pmiShapeKindEnum.face, index: 5 });
+         * const bottom = await bitbybit.occt.assembly.manager.createPmiShape({ part: "0:1:1:1", kind: Bit.Inputs.OCCT.pmiShapeKindEnum.face, index: 4 });
+         * ```
+         */
+        createPmiShape(inputs: Inputs.OCCT.PmiShapeDto): Promise<Inputs.OCCT.PmiShapeDto>;
+        /**
+         * Describes a dimension for `addDocumentPmi`: what it states, its value and tolerance, the
+         * shapes it measures, and where its picture is drawn.
+         *
+         * With `start` and `end` the picture is drawn as `io.drawing.dimensionPicture` draws it, in the
+         * plane `normal` faces, in the part's own axes; a `presentation` replaces it. Nothing is written
+         * until `addDocumentPmi`.
+         * @param inputs - The type, the value, the tolerance, the shapes and how the picture is drawn
+         * @returns The dimension, ready for `addDocumentPmi`
+         * @group pmi
+         * @shortname pmi dimension
+         * @drawable false
+         * @beta
+         * @example
+         * ```typescript
+         * const thickness = await bitbybit.occt.assembly.manager.createPmiDimension({
+         *     type: Bit.Inputs.OCCT.pmiDimensionTypeEnum.linearDistance, value: 15, upperTolerance: 0.1, lowerTolerance: 0.1,
+         *     shapeRefs: [{ part: "0:1:1:1", index: 5 }], otherShapeRefs: [{ part: "0:1:1:1", index: 4 }],
+         *     start: [30, 0, 15], end: [30, 0, 0], normal: [0, -1, 0], offset: 12,
+         * });
+         * ```
+         */
+        createPmiDimension(inputs: Inputs.OCCT.PmiDimensionDto): Promise<Inputs.OCCT.PmiDimensionDto>;
+        /**
+         * Describes a datum for `addDocumentPmi`: its letter and the shapes it is taken from.
+         *
+         * A tolerance in the same call must refer to it by letter, as a STEP file keeps a datum only
+         * through its tolerances. A letter names one datum in a document, given again only on its
+         * shapes. Nothing is written until `addDocumentPmi`.
+         * @param inputs - The letter, the shapes and an optional presentation
+         * @returns The datum, ready for `addDocumentPmi`
+         * @group pmi
+         * @shortname pmi datum
+         * @drawable false
+         * @beta
+         * @example
+         * ```typescript
+         * const datumA = await bitbybit.occt.assembly.manager.createPmiDatum({ letter: "A", shapeRefs: [{ part: "0:1:1:1", index: 4 }] });
+         * ```
+         */
+        createPmiDatum(inputs: Inputs.OCCT.PmiDatumDto): Promise<Inputs.OCCT.PmiDatumDto>;
+        /**
+         * Describes a geometric tolerance for `addDocumentPmi`: what it controls, its value, the shapes
+         * it applies to and the letters of the datums it refers to, primary first.
+         *
+         * Only `position`, `perpendicularity` and `parallelism` take a diameter zone or a material
+         * condition. Nothing is written until `addDocumentPmi`.
+         * @param inputs - The type, the value, the shapes, the datum letters, the zone and material condition and an optional presentation
+         * @returns The tolerance, ready for `addDocumentPmi`
+         * @group pmi
+         * @shortname pmi tolerance
+         * @drawable false
+         * @beta
+         * @example
+         * ```typescript
+         * const position = await bitbybit.occt.assembly.manager.createPmiTolerance({
+         *     type: Bit.Inputs.OCCT.pmiToleranceTypeEnum.position, value: 0.1, shapeRefs: [{ part: "0:1:1:1", index: 7 }],
+         *     datumLetters: ["A", "B", "C"], diameterZone: true, material: Bit.Inputs.OCCT.pmiMaterialConditionEnum.maximum,
+         * });
+         * ```
+         */
+        createPmiTolerance(inputs: Inputs.OCCT.PmiToleranceDto): Promise<Inputs.OCCT.PmiToleranceDto>;
+        /**
+         * Adds dimensions, datums and tolerances to a document as product manufacturing
+         * information, all of them or, when one is refused, none.
+         *
+         * Each names a part's faces, edges or vertices. It answers the changed document, which
+         * `exportDocumentToStep` writes as STEP AP242 with their pictures; `assembly.query.getDocumentPmi`
+         * lists the items with their labels, as taken here. Calls add up until `removeDocumentPmi`.
+         * @param inputs - The document and the dimensions, datums and tolerances to add
+         * @returns The document with the items added
+         * @group pmi
+         * @shortname add PMI
+         * @drawable false
+         * @beta
+         * @example
+         * ```typescript
+         * const measured = await bitbybit.occt.assembly.manager.addDocumentPmi({
+         *     document: doc,
+         *     dimensions: [{ type: Bit.Inputs.OCCT.pmiDimensionTypeEnum.diameter, value: 10, shapeRefs: [{ part: "0:1:1:1", index: 7 }], start: [30, 20, 15], end: [35, 20, 15] }],
+         *     datums: [{ letter: "A", shapeRefs: [{ part: "0:1:1:1", index: 4 }] }],
+         *     tolerances: [{ type: Bit.Inputs.OCCT.pmiToleranceTypeEnum.perpendicularity, value: 0.02, shapeRefs: [{ part: "0:1:1:1", index: 7 }], datumLetters: ["A"] }],
+         * });
+         * const labels = (await bitbybit.occt.assembly.query.getDocumentPmi({ document: measured })).dimensions.map(d => d.label);
+         * const step = await bitbybit.occt.assembly.manager.exportDocumentToStep({ document: measured });
+         * ```
+         * @example
+         * ```typescript
+         * const pmi = await bitbybit.occt.assembly.query.getDocumentPmi({ document: source });
+         * const { annotations } = await bitbybit.occt.assembly.query.getDocumentAnnotations({ document: source });
+         * const shown = new Map(annotations.map(annotation => [annotation.label, annotation]));
+         * const measured = await bitbybit.occt.assembly.manager.addDocumentPmi({
+         *     document: copy,
+         *     dimensions: pmi.dimensions.map(d => ({ ...d, type: d.type as Bit.Inputs.OCCT.pmiDimensionTypeEnum, presentation: shown.get(d.label) })),
+         *     datums: pmi.datums.map(d => ({ ...d, presentation: shown.get(d.label) })),
+         *     tolerances: pmi.tolerances.map(t => ({ ...t, type: t.type as Bit.Inputs.OCCT.pmiToleranceTypeEnum, presentation: shown.get(t.label) })),
+         * });
+         * ```
+         */
+        addDocumentPmi(inputs: Inputs.OCCT.AddDocumentPmiDto<Inputs.OCCT.TDocStdDocumentPointer>): Promise<Inputs.OCCT.TDocStdDocumentPointer>;
+        /**
+         * Removes every dimension, datum and geometric tolerance from a document, with their pictures and
+         * the saved views that showed only them.
+         *
+         * It answers the document without them, which exports as one that never held PMI and which
+         * `addDocumentPmi` writes into as into a fresh one.
+         * @param inputs - The document
+         * @returns The document without its PMI
+         * @group pmi
+         * @shortname remove PMI
+         * @drawable false
+         * @beta
+         * @example
+         * ```typescript
+         * const cleared = await bitbybit.occt.assembly.manager.removeDocumentPmi({ document: doc });
+         * const measured = await bitbybit.occt.assembly.manager.addDocumentPmi({
+         *     document: cleared,
+         *     dimensions: [{ type: Bit.Inputs.OCCT.pmiDimensionTypeEnum.diameter, value: 12, shapeRefs: [{ part: "0:1:1:1", index: 7 }] }],
+         * });
+         * ```
+         */
+        removeDocumentPmi(inputs: Inputs.OCCT.RemoveDocumentPmiDto<Inputs.OCCT.TDocStdDocumentPointer>): Promise<Inputs.OCCT.TDocStdDocumentPointer>;
         /**
          * Writes an assembly document as a STEP file with its hierarchy, names and colors, and returns
          * the file's bytes.
          *
-         * `author` and `organization` go into the file header; `compress` writes gzip-compressed STEP-Z
-         * instead. Failure throws an error.
+         * `compress` writes gzip-compressed STEP-Z. A document holding dimensions, datums or tolerances is
+         * written as STEP AP242 with them and their pictures, those of each part in that part's own
+         * context and units.
          * @param inputs - The document, the file name, the header details, the compression flag and the download option
          * @returns The STEP file as bytes
          * @group export
@@ -59148,7 +60878,7 @@ declare namespace Bit {
          * @drawable false
          * @example
          * ```typescript
-         * const glb = await bitbybit.occt.assembly.manager.exportDocumentToGltf({ document: doc, meshDeflection: 0.1, meshAngle: 0.5, internalVerticesMode: false, controlSurfaceDeflection: false, mergeFaces: false, forceUVExport: false, fileName: "assembly.glb", tryDownload: false });
+         * const glb = await bitbybit.occt.assembly.manager.exportDocumentToGltf({ document: doc, meshDeflection: 0.1, meshAngle: 0.5, internalVerticesMode: true, controlSurfaceDeflection: false, mergeFaces: false, forceUVExport: false, fileName: "assembly.glb", tryDownload: false });
          * ```
          */
         exportDocumentToGltf(inputs: Inputs.OCCT.ExportDocumentToGltfDto<Inputs.OCCT.TDocStdDocumentPointer>): Promise<Uint8Array>;
@@ -59215,16 +60945,17 @@ declare namespace Bit {
          * Deletes an assembly document and frees the memory it holds.
          *
          * A document built with `buildAssemblyDocument` or loaded with `loadStepToDoc` stays in memory
-         * until this is called, so delete it once its shapes and exports have been read.
+         * until deleted; deleting it deletes the documents its changes made too, and deleting one of
+         * those, such as `setDocLabelColor` answers, frees that one alone, which is made again when read.
          * @param inputs - The document to delete
-         * @returns Nothing; the document handle is no longer valid afterwards
+         * @returns Nothing; a document deleted with every change made from it can no longer be read
          * @group lifecycle
          * @shortname delete document
          * @drawable false
          * @example
          * ```typescript
          * const doc = await bitbybit.occt.assembly.manager.buildAssemblyDocument({ structure });
-         * const glb = await bitbybit.occt.assembly.manager.exportDocumentToGltf({ document: doc, meshDeflection: 0.1, meshAngle: 0.5, internalVerticesMode: false, controlSurfaceDeflection: false, mergeFaces: false, forceUVExport: false, fileName: "assembly.glb", tryDownload: false });
+         * const glb = await bitbybit.occt.assembly.manager.exportDocumentToGltf({ document: doc, meshDeflection: 0.1, meshAngle: 0.5, internalVerticesMode: true, controlSurfaceDeflection: false, mergeFaces: false, forceUVExport: false, fileName: "assembly.glb", tryDownload: false });
          * await bitbybit.occt.assembly.manager.deleteDocument({ document: doc });
          * ```
          */
@@ -59337,14 +61068,14 @@ declare namespace Bit {
          */
         getAssemblyHierarchy(inputs: Inputs.OCCT.DocumentQueryDto<Inputs.OCCT.TDocStdDocumentPointer>): Promise<Models.OCCT.AssemblyHierarchyResult>;
         /**
-         * Reads the product manufacturing information a document holds, as a STEP AP242 file brings it:
-         * dimensions, geometric tolerances and the datums they refer to.
+         * Reads the product manufacturing information a document holds: dimensions, geometric tolerances
+         * and the datums they refer to, each under its own label.
          *
-         * Each entry names its shapes by label, which `getShapeFromLabel` reads. Lengths are in the
-         * document's unit, millimeters for a loaded STEP file, and angles in degrees; a document without
-         * any gives empty lists.
+         * Each entry names its shapes by label, which `getShapeFromLabel` reads, and in `shapeRefs` as the
+         * part and index `manager.addDocumentPmi` takes. Lengths are in the document's unit, angles in
+         * degrees; a document without any gives empty lists.
          * @param inputs - The document
-         * @returns The dimensions, the tolerances and the datums
+         * @returns The dimensions, the tolerances and the datums, each with its label
          * @group query
          * @shortname get PMI
          * @drawable false
@@ -59355,6 +61086,27 @@ declare namespace Bit {
          * ```
          */
         getDocumentPmi(inputs: Inputs.OCCT.DocumentQueryDto<Inputs.OCCT.TDocStdDocumentPointer>): Promise<Models.OCCT.DocumentPmi>;
+        /**
+         * Reads the dimensions, tolerances and datums a document carries as a STEP AP242 file draws
+         * them, and the views the file saved.
+         *
+         * Each has its plane, its lines as polylines and its letters as loops to fill even-odd, in the
+         * document's axes and units or turned Y-up; a part placed twice shows its annotations twice.
+         * Experimental.
+         * @param inputs - The document and how closely curved lines follow their curves
+         * @returns The annotations, the saved views and how many of each were left out
+         * @group query
+         * @shortname get annotations
+         * @drawable false
+         * @beta
+         * @example
+         * ```typescript
+         * const doc = await bitbybit.occt.assembly.manager.loadStepToDoc({ stepData });
+         * const pmi = await bitbybit.occt.assembly.query.getDocumentAnnotations({ document: doc, deflection: 0.05 });
+         * const drawn = await bitbybit.draw.drawAnyAsync({ entity: pmi });
+         * ```
+         */
+        getDocumentAnnotations(inputs: Inputs.OCCT.DocumentAnnotationsDto<Inputs.OCCT.TDocStdDocumentPointer>): Promise<Models.OCCT.DocumentAnnotations>;
     }
     /**
      * Combining OpenCascade shapes with each other: union fuses them into one, difference cuts one away
@@ -61011,9 +62763,9 @@ declare namespace Bit {
         /**
          * Rounds one edge of a shape with a radius that changes along it.
          *
-         * `radiusList` holds the radius at each `paramsU` position; the first and last stand for the
-         * start and end of the edge's curve, whatever its orientation, and the radius may overshoot
-         * between positions. The lists must be equally long, or an error is thrown.
+         * `radiusList` holds the radius at each `paramsU` position, a fraction of the edge's length from
+         * its curve's start, whatever its orientation; between positions it may overshoot. A position
+         * outside 0 to 1, a radius not above 0 or one position with two radii is refused.
          * @param inputs - The shape, its edge, the radii and the positions along the edge they apply at
          * @returns The shape with the rounded edge
          * @group 3d fillets
@@ -61637,9 +63389,9 @@ declare namespace Bit {
      * Reading and writing OpenCascade shapes in exchange formats: STEP, IGES, STL, BREP and DXF in; STEP,
      * STL, BREP, OBJ, PLY, SVG and DXF out; STEP to glTF conversion with the assembly tree, colors and names
      * preserved, and a STEP assembly structure as JSON. Files travel as text or binary data, never as
-     * paths. CAD files stand Z up while this library models Y up, so the `adjustYtoZ` and `adjustZtoY`
-     * flags turn a shape between the two. With the conventions set every file shows what the screen
-     * shows; without them the flags swap Y and Z, which mirrors the shape.
+     * paths. CAD files stand Z up while this library models Y up, so `upAxis` turns a shape between the
+     * two. With the conventions set every file shows what the screen shows; without them a turn swaps Y
+     * and Z, which mirrors the shape.
      */
     declare class OCCTIO {
         readonly occWorkerManager: OCCTWorkerManager;
@@ -61647,7 +63399,7 @@ declare namespace Bit {
          * Writes a shape as STEP, the exchange format for exact CAD geometry, and starts a browser
          * download of the file.
          *
-         * With `adjustYtoZ` true the file is Z-up: with the conventions set it shows what the screen
+         * With `upAxis` `yUpToZUp` the file is Z-up: with the conventions set it shows what the screen
          * shows, without them Y and Z are swapped. The file is in millimetres;
          * `saveShapeSTEPAndReturn` returns the text.
          * @param inputs - The shape, the file name, the axis adjustment, the unit and the download options
@@ -61657,14 +63409,14 @@ declare namespace Bit {
          * @drawable false
          * @example
          * ```typescript
-         * await bitbybit.occt.io.saveShapeSTEP({ shape: box, fileName: "box.step", adjustYtoZ: true, tryDownload: true });
+         * await bitbybit.occt.io.saveShapeSTEP({ shape: box, fileName: "box.step", upAxis: Bit.Inputs.Base.upAxisConversionEnum.yUpToZUp, tryDownload: true });
          * ```
          */
         saveShapeSTEP(inputs: Inputs.OCCT.SaveStepDto<Inputs.OCCT.TopoDSShapePointer>): Promise<void>;
         /**
          * Writes a shape as STEP, the exchange format for exact CAD geometry, and returns its text.
          *
-         * With `adjustYtoZ` true the file is Z-up, as CAD programs expect: with the conventions set it
+         * With `upAxis` `yUpToZUp` the file is Z-up, as CAD programs expect: with the conventions set it
          * shows what the screen shows, and without them Y and Z are swapped. The file is in
          * millimetres, a shape in another `unit` scaled to them.
          * @param inputs - The shape, the file name, the axis adjustment, the unit and the download options
@@ -61674,7 +63426,7 @@ declare namespace Bit {
          * @drawable false
          * @example
          * ```typescript
-         * const step = await bitbybit.occt.io.saveShapeSTEPAndReturn({ shape: box, fileName: "box.step", adjustYtoZ: true, tryDownload: false });
+         * const step = await bitbybit.occt.io.saveShapeSTEPAndReturn({ shape: box, fileName: "box.step", upAxis: Bit.Inputs.Base.upAxisConversionEnum.yUpToZUp, tryDownload: false });
          * ```
          */
         saveShapeSTEPAndReturn(inputs: Inputs.OCCT.SaveStepDto<Inputs.OCCT.TopoDSShapePointer>): Promise<string>;
@@ -61683,7 +63435,7 @@ declare namespace Bit {
          * download of the file.
          *
          * `precision` is the meshing tolerance in model units and `binary` writes the smaller binary
-         * form. With the conventions set the file shows what the screen shows, Z-up with `adjustYtoZ`.
+         * form. With the conventions set the file shows what the screen shows, Z-up under `yUpToZUp`.
          * `saveShapeStlAndReturn` gives the file instead.
          * @param inputs - The shape, the file name, the meshing precision, the axis adjustment, the form and the download options
          * @returns Nothing; the download starts when the file is ready
@@ -61692,7 +63444,7 @@ declare namespace Bit {
          * @drawable false
          * @example
          * ```typescript
-         * await bitbybit.occt.io.saveShapeStl({ shape: box, fileName: "box.stl", precision: 0.01, adjustYtoZ: true, tryDownload: true, binary: true });
+         * await bitbybit.occt.io.saveShapeStl({ shape: box, fileName: "box.stl", precision: 0.01, upAxis: Bit.Inputs.Base.upAxisConversionEnum.yUpToZUp, tryDownload: true, binary: true });
          * ```
          */
         saveShapeStl(inputs: Inputs.OCCT.SaveStlDto<Inputs.OCCT.TopoDSShapePointer>): Promise<void>;
@@ -61701,7 +63453,7 @@ declare namespace Bit {
          * text, or its bytes when `binary` is true.
          *
          * `precision` is the meshing tolerance in model units, smaller following curves more closely.
-         * With the conventions set the file shows what the screen shows, Z-up with `adjustYtoZ`.
+         * With the conventions set the file shows what the screen shows, Z-up under `yUpToZUp`.
          * `fileName` and `tryDownload` matter only for a download.
          * @param inputs - The shape, the file name, the meshing precision, the axis adjustment, the form and the download options
          * @returns The STL file as text, or as bytes when `binary` is true
@@ -61710,8 +63462,8 @@ declare namespace Bit {
          * @drawable false
          * @example
          * ```typescript
-         * const stl = await bitbybit.occt.io.saveShapeStlAndReturn({ shape: box, fileName: "box.stl", precision: 0.01, adjustYtoZ: true, tryDownload: false });
-         * const bytes = await bitbybit.occt.io.saveShapeStlAndReturn({ shape: box, fileName: "box.stl", precision: 0.01, adjustYtoZ: true, tryDownload: false, binary: true });
+         * const stl = await bitbybit.occt.io.saveShapeStlAndReturn({ shape: box, fileName: "box.stl", precision: 0.01, upAxis: Bit.Inputs.Base.upAxisConversionEnum.yUpToZUp, tryDownload: false });
+         * const bytes = await bitbybit.occt.io.saveShapeStlAndReturn({ shape: box, fileName: "box.stl", precision: 0.01, upAxis: Bit.Inputs.Base.upAxisConversionEnum.yUpToZUp, tryDownload: false, binary: true });
          * ```
          */
         saveShapeStlAndReturn(inputs: Inputs.OCCT.SaveStlDto<Inputs.OCCT.TopoDSShapePointer>): Promise<string | Uint8Array>;
@@ -61792,7 +63544,7 @@ declare namespace Bit {
          * browser download of the file.
          *
          * `precision` is the meshing tolerance in model units. With the conventions set the file shows
-         * what the screen shows, Z-up with `adjustYtoZ`. The file name may hold no spaces or slashes;
+         * what the screen shows, Z-up under `yUpToZUp`. The file name may hold no spaces or slashes;
          * `saveShapeObjAndReturn` gives the text instead.
          * @param inputs - The shape, the file name, the meshing precision, the axis adjustment and the download option
          * @returns Nothing; the download starts when the file is ready
@@ -61801,7 +63553,7 @@ declare namespace Bit {
          * @drawable false
          * @example
          * ```typescript
-         * await bitbybit.occt.io.saveShapeObj({ shape: box, fileName: "box.obj", precision: 0.01, adjustYtoZ: false, tryDownload: true });
+         * await bitbybit.occt.io.saveShapeObj({ shape: box, fileName: "box.obj", precision: 0.01, upAxis: Bit.Inputs.Base.upAxisConversionEnum.keep, tryDownload: true });
          * ```
          */
         saveShapeObj(inputs: Inputs.OCCT.SaveObjDto<Inputs.OCCT.TopoDSShapePointer>): Promise<void>;
@@ -61810,7 +63562,7 @@ declare namespace Bit {
          * the file's text.
          *
          * `precision` is the meshing tolerance in model units and coordinates keep six decimals. With
-         * the conventions set the file shows what the screen shows, Z-up with `adjustYtoZ`. `mtl` stays
+         * the conventions set the file shows what the screen shows, Z-up under `yUpToZUp`. `mtl` stays
          * empty, since a shape carries no colors; `assembly.manager.exportDocumentToObj` writes colored
          * parts.
          * @param inputs - The shape, the file name, the meshing precision, the axis adjustment and the download option
@@ -61820,7 +63572,7 @@ declare namespace Bit {
          * @drawable false
          * @example
          * ```typescript
-         * const files = await bitbybit.occt.io.saveShapeObjAndReturn({ shape: box, fileName: "box.obj", precision: 0.01, adjustYtoZ: false, tryDownload: false });
+         * const files = await bitbybit.occt.io.saveShapeObjAndReturn({ shape: box, fileName: "box.obj", precision: 0.01, upAxis: Bit.Inputs.Base.upAxisConversionEnum.keep, tryDownload: false });
          * console.log(files.obj);
          * ```
          */
@@ -61830,7 +63582,7 @@ declare namespace Bit {
          * download of the file.
          *
          * `precision` is the meshing tolerance in model units. With the conventions set the file shows
-         * what the screen shows, Z-up with `adjustYtoZ`. `fileName` names the download and
+         * what the screen shows, Z-up under `yUpToZUp`. `fileName` names the download and
          * `tryDownload` false skips it; `saveShapePlyAndReturn` gives the text instead.
          * @param inputs - The shape, the file name, the meshing precision, the axis adjustment and the download option
          * @returns Nothing; the download starts when the file is ready
@@ -61839,7 +63591,7 @@ declare namespace Bit {
          * @drawable false
          * @example
          * ```typescript
-         * await bitbybit.occt.io.saveShapePly({ shape: box, fileName: "box.ply", precision: 0.01, adjustYtoZ: false, tryDownload: true });
+         * await bitbybit.occt.io.saveShapePly({ shape: box, fileName: "box.ply", precision: 0.01, upAxis: Bit.Inputs.Base.upAxisConversionEnum.keep, tryDownload: true });
          * ```
          */
         saveShapePly(inputs: Inputs.OCCT.SavePlyDto<Inputs.OCCT.TopoDSShapePointer>): Promise<void>;
@@ -61849,7 +63601,7 @@ declare namespace Bit {
          *
          * Coordinates keep six significant digits, so past 1000 units they keep two decimals.
          * `precision` is the meshing tolerance in model units. With the conventions set the file shows
-         * what the screen shows, Z-up with `adjustYtoZ`.
+         * what the screen shows, Z-up under `yUpToZUp`.
          * @param inputs - The shape, the file name, the meshing precision, the axis adjustment and the download option
          * @returns The PLY file as text
          * @group io
@@ -61857,7 +63609,7 @@ declare namespace Bit {
          * @drawable false
          * @example
          * ```typescript
-         * const ply = await bitbybit.occt.io.saveShapePlyAndReturn({ shape: box, fileName: "box.ply", precision: 0.01, adjustYtoZ: false, tryDownload: false });
+         * const ply = await bitbybit.occt.io.saveShapePlyAndReturn({ shape: box, fileName: "box.ply", precision: 0.01, upAxis: Bit.Inputs.Base.upAxisConversionEnum.keep, tryDownload: false });
          * ```
          */
         saveShapePlyAndReturn(inputs: Inputs.OCCT.SavePlyDto<Inputs.OCCT.TopoDSShapePointer>): Promise<string>;
@@ -61993,7 +63745,7 @@ declare namespace Bit {
          * that carries the whole mesh.
          *
          * With `asFaces` true the faces share their corners' edges in a compound that
-         * `shapeFix.sewWithReport` can join into a shell. `adjustZtoY` turns Z-up into Y-up, and a file
+         * `shapeFix.sewWithReport` can join into a shell. `upAxis` `zUpToYUp` turns Z-up into Y-up, and a file
          * without triangles is refused.
          * @param inputs - The STL file, the face option and the axis adjustment
          * @returns A compound of triangular faces, or one face that carries the mesh
@@ -62002,7 +63754,7 @@ declare namespace Bit {
          * @drawable true
          * @example
          * ```typescript
-         * const mesh = await bitbybit.occt.io.loadStl({ stlData: stlText, asFaces: true, adjustZtoY: true });
+         * const mesh = await bitbybit.occt.io.loadStl({ stlData: stlText, asFaces: true, upAxis: Bit.Inputs.Base.upAxisConversionEnum.zUpToYUp });
          * const sewn = await bitbybit.occt.shapeFix.sewWithReport({ shapes: [mesh], tolerance: 1e-6 });
          * ```
          */
@@ -62158,7 +63910,7 @@ declare namespace Bit {
          * @drawable false
          * @example
          * ```typescript
-         * const glb = await bitbybit.occt.io.convertStepToGltf({ stepData: stepText, meshPrecision: 0.005, meshAngle: 0.5, meshRelative: true, internalVerticesMode: false, controlSurfaceDeflection: false });
+         * const glb = await bitbybit.occt.io.convertStepToGltf({ stepData: stepText, meshPrecision: 0.005, meshAngle: 0.5, meshRelative: true, internalVerticesMode: true, controlSurfaceDeflection: false });
          * ```
          */
         convertStepToGltf(inputs: Inputs.OCCT.ConvertStepToGltfDto): Promise<Uint8Array>;
@@ -62182,7 +63934,7 @@ declare namespace Bit {
          * options.readNames = true;
          * options.meshDeflection = 0.005;
          * options.mergeFaces = true;
-         * options.adjustZtoY = true;
+         * options.upAxis = Bit.Inputs.Base.upAxisConversionEnum.zUpToYUp;
          * const glb = await bitbybit.occt.io.convertStepToGltfAdvanced(options);
          * ```
          */
@@ -62291,7 +64043,7 @@ declare namespace Bit {
          * faces.
          *
          * `precision` is the meshing tolerance in model units: smaller values follow curved surfaces
-         * more closely and give more triangles. `adjustYtoZ` makes the points Z-up for tools that treat
+         * more closely and give more triangles. `upAxis` `yUpToZUp` makes the points Z-up for tools that treat
          * Z as up, and `reversedPoints` flips the winding of each triangle.
          * @param inputs - The shape, the meshing precision and the axis and winding options
          * @returns One list of three points per triangle
@@ -62300,7 +64052,7 @@ declare namespace Bit {
          * @drawable false
          * @example
          * ```typescript
-         * const triangles = await bitbybit.occt.shapeFacesToPolygonPoints({ shape: sphere, precision: 0.01, adjustYtoZ: false, reversedPoints: false });
+         * const triangles = await bitbybit.occt.shapeFacesToPolygonPoints({ shape: sphere, precision: 0.01, upAxis: Bit.Inputs.Base.upAxisConversionEnum.keep, reversedPoints: false });
          * ```
          */
         shapeFacesToPolygonPoints(inputs: Inputs.OCCT.ShapeFacesToPolygonPointsDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.Base.Point3[][]>;
@@ -63399,6 +65151,33 @@ declare namespace Bit {
          */
         cutByFrames(inputs: Inputs.OCCT.CutByFramesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Inputs.OCCT.TopoDSCompoundPointer[]>;
         /**
+         * Cuts shapes with the plane of a frame and hatches the cut faces in one call: for each shape its
+         * cut faces, their hatch lines as edges, and each face's hatch as drawing data in the frame's
+         * coordinates.
+         *
+         * The hatches write to DXF or SVG beside `hiddenLines` of the same frame, and `bitbybit.draw`
+         * draws the result. Experimental.
+         * @param inputs - The shapes, the frame, the hatch pattern, angle and spacing, and the tolerances
+         * @returns The frame and, for each shape in order, its angle and its hatched cut faces
+         * @group divisions
+         * @shortname hatched section by frame
+         * @drawable true
+         * @beta
+         * @example
+         * ```typescript
+         * const section = await bitbybit.occt.operations.hatchedSectionByFrame({
+         *     shapes: [housing, shaft],
+         *     frame: { origin: [0, 0, 0], normal: [0, 0, 1], direction: [1, 0, 0] },
+         *     pattern: Bit.Inputs.IO.hatchPatternEnum.ansi31,
+         *     angle: 45,
+         *     spacing: 2,
+         * });
+         * const hatches = section.shapes.flatMap(cut => cut.caps.map(cap => cap.hatch));
+         * const dxf = await bitbybit.occt.io.dxfCreate({ pathsParts: [{ layer: "hatch", paths: [], hatches }] });
+         * ```
+         */
+        hatchedSectionByFrame(inputs: Inputs.OCCT.HatchedSectionByFrameDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.HatchedSection<Inputs.OCCT.TopoDSShapePointer>>;
+        /**
          * Cuts a face into pieces along edges or wires lying on it, like scoring a sheet.
          *
          * A cutter cuts only where it lies on the face, and a closed loop inside it cuts out the region it
@@ -63454,10 +65233,38 @@ declare namespace Bit {
          *     hiddenEdges: true,
          *     focus: 0,
          *     precision: 0.01,
+         *     tidy: false,
          * });
          * ```
          */
         hiddenLines(inputs: Inputs.OCCT.HiddenLinesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.HiddenLinesResult<Inputs.OCCT.TopoDSCompoundPointer>>;
+        /**
+         * Draws a shape as `hiddenLines` does, with the edges sorted by kind, so a drawing can give
+         * each its own line weight.
+         *
+         * `sharp` holds the edges where faces meet at an angle, `outline` the silhouettes of curved
+         * faces and `smooth` the edges where faces meet without a crease; `hiddenSharp`,
+         * `hiddenOutline` and `hiddenSmooth` hold the same where faces cover them.
+         * @param inputs - The shape, the view frame and the drawing options
+         * @returns Six compounds of edges on the XZ plane: three kinds seen and the same three hidden
+         * @group views
+         * @shortname hidden lines by kind
+         * @drawable false
+         * @example
+         * ```typescript
+         * const { sharp, outline, hiddenSharp, hiddenOutline } = await bitbybit.occt.operations.hiddenLinesByKind({
+         *     shape: part,
+         *     frame: { origin: [0, 0, 0], normal: [1, 1, 1], direction: [1, 0, -1] },
+         *     exact: true,
+         *     smoothEdges: false,
+         *     hiddenEdges: true,
+         *     focus: 0,
+         *     precision: 0.01,
+         *     tidy: false,
+         * });
+         * ```
+         */
+        hiddenLinesByKind(inputs: Inputs.OCCT.HiddenLinesDto<Inputs.OCCT.TopoDSShapePointer>): Promise<Models.OCCT.HiddenLinesByKindResult<Inputs.OCCT.TopoDSCompoundPointer>>;
     }
     /**
      * Inch R-series deep groove ball bearings made from their designation, in the unit asked for: the
@@ -64961,7 +66768,7 @@ declare namespace Bit {
          * @example
          * ```typescript
          * const recipe = await bitbybit.ifc.geometry.recipe({ model });
-         * const shapes = await bitbybit.occt.recipes.build({ recipe, adjustZtoY: true, emptyWhenFailed: true });
+         * const shapes = await bitbybit.occt.recipes.build({ recipe, upAxis: Bit.Inputs.Base.upAxisConversionEnum.zUpToYUp, emptyWhenFailed: true });
          * ```
          */
         build(inputs: Inputs.OCCT.BuildRecipeDto): Promise<Inputs.OCCT.TopoDSShapePointer[]>;
@@ -74583,7 +76390,7 @@ declare namespace Bit {
          * @drawable true
          * @example
          * ```typescript
-         * const glb = await bitbybit.occt.io.convertStepToGltf({ stepData: file, meshPrecision: 0.005, meshAngle: 0.5, meshRelative: true, internalVerticesMode: false, controlSurfaceDeflection: false });
+         * const glb = await bitbybit.occt.io.convertStepToGltf({ stepData: file, meshPrecision: 0.005, meshAngle: 0.5, meshRelative: true, internalVerticesMode: true, controlSurfaceDeflection: false });
          * const model = await bitbybit.babylon.io.loadGlbFromArrayBuffer({ glbData: glb, fileName: "part.glb", hidden: false });
          * ```
          */
@@ -77249,6 +79056,10 @@ declare namespace Bit {
          */
         protected drawResolvedAsync(inputs: Inputs.Draw.DrawAny): Promise<Inputs.Draw.DrawnAny<BABYLON.Mesh>>;
         private mergedOcctShapeOptions;
+        private mergedOcctDocumentOptions;
+        private mergedHatchedSectionOptions;
+        private givenOrDrawnOptions;
+        private givenOcctOptions;
         private withDefaults;
         private basicOptions;
         private occtOptions;
@@ -77381,6 +79192,91 @@ declare namespace Bit {
          * ```
          */
         optionsOcctShape(inputs: Inputs.Draw.DrawOcctShapeOptions): Inputs.Draw.DrawOcctShapeOptions;
+        /**
+         * Builds the drawing options for an assembly document, as `occt.assembly.manager.loadStepToDoc`
+         * returns it: how it turns, how finely it is meshed, and whether its edges and its dimensions,
+         * tolerances and datums are drawn, with defaults for what is left out.
+         *
+         * Faces show the document's own colors, an uncolored part grey; the annotations
+         * `occt.assembly.query.getDocumentAnnotations` reads take these options too.
+         * @param inputs - The options to start from
+         * @returns The drawing options
+         * @group document options
+         * @shortname occt document
+         * @beta
+         * @example
+         * ```typescript
+         * const document = await bitbybit.occt.assembly.manager.loadStepToDoc({ stepData });
+         * const meshing = bitbybit.draw.optionsMeshing({ precision: 0.05 });
+         * const annotations = bitbybit.draw.optionsAnnotations({ annotationColour: "#0047ab", annotationsFilled: true });
+         * const options = bitbybit.draw.optionsOcctDocument({ upAxis: Bit.Inputs.Base.upAxisConversionEnum.zUpToYUp, meshing, drawAnnotations: true, annotations });
+         * const drawn = await bitbybit.draw.drawAnyAsync({ entity: document, options });
+         * ```
+         */
+        optionsOcctDocument(inputs: Inputs.Draw.DrawOcctDocumentOptions): Inputs.Draw.DrawOcctDocumentOptions;
+        /**
+         * Builds how finely an assembly document is meshed for drawing, for the `meshing` of
+         * `optionsOcctDocument`, with defaults for what is left out.
+         * @param inputs - The meshing settings to start from
+         * @returns The meshing settings
+         * @group document options
+         * @shortname meshing
+         * @beta
+         * @example
+         * ```typescript
+         * const meshing = bitbybit.draw.optionsMeshing({ precision: 0.05, angularDeflection: 0.3 });
+         * const options = bitbybit.draw.optionsOcctDocument({ meshing });
+         * ```
+         */
+        optionsMeshing(inputs: Inputs.Draw.DrawMeshingOptions): Inputs.Draw.DrawMeshingOptions;
+        /**
+         * Builds the color, width and opacity of the edge lines, for the `edges` of
+         * `optionsOcctDocument` and `optionsHatchedSection`, with defaults for what is left out.
+         * @param inputs - The edge settings to start from
+         * @returns The edge settings
+         * @group document options
+         * @shortname edges
+         * @beta
+         * @example
+         * ```typescript
+         * const edges = bitbybit.draw.optionsEdges({ edgeColour: "#333333", edgeWidth: 1, edgeOpacity: 1 });
+         * const options = bitbybit.draw.optionsOcctDocument({ drawEdges: true, edges });
+         * ```
+         */
+        optionsEdges(inputs: Inputs.Draw.DrawEdgesOptions): Inputs.Draw.DrawEdgesOptions;
+        /**
+         * Builds which of a document's dimensions, tolerances and datums are drawn and how, for the
+         * `annotations` of `optionsOcctDocument`, with defaults for what is left out.
+         * @param inputs - The annotation settings to start from
+         * @returns The annotation settings
+         * @group document options
+         * @shortname annotations
+         * @beta
+         * @example
+         * ```typescript
+         * const annotations = bitbybit.draw.optionsAnnotations({ annotationsView: "FRONT", annotationColour: "#0047ab", annotationWidth: 2, annotationsFilled: true });
+         * const options = bitbybit.draw.optionsOcctDocument({ drawAnnotations: true, annotations });
+         * ```
+         */
+        optionsAnnotations(inputs: Inputs.Draw.DrawAnnotationsOptions): Inputs.Draw.DrawAnnotationsOptions;
+        /**
+         * Builds the drawing options for a hatched section, as `occt.operations.hatchedSectionByFrame`
+         * returns it: the cut faces in `faceColour`, their outlines as `edges` sets them, and the hatch
+         * lines in their own color and width, with defaults for what is left out.
+         * @param inputs - The options to start from
+         * @returns The drawing options
+         * @group document options
+         * @shortname hatched section
+         * @beta
+         * @example
+         * ```typescript
+         * const section = await bitbybit.occt.operations.hatchedSectionByFrame({ shapes: [housing], frame: { origin: [0, 0, 0], normal: [0, 0, 1], direction: [1, 0, 0] } });
+         * const edges = bitbybit.draw.optionsEdges({ edgeColour: "#000000", edgeWidth: 2 });
+         * const options = bitbybit.draw.optionsHatchedSection({ faceColour: "#ffffff", edges, hatchColour: "#000000", hatchWidth: 1 });
+         * const drawn = await bitbybit.draw.drawAnyAsync({ entity: section, options });
+         * ```
+         */
+        optionsHatchedSection(inputs: Inputs.Draw.DrawHatchedSectionOptions): Inputs.Draw.DrawHatchedSectionOptions;
         /**
          * Builds the most used drawing options for OCCT shapes, precision, face and edge colors and
          * two-sided rendering, with defaults for what is left out.
@@ -77555,6 +79451,9 @@ declare namespace Bit {
         private handleShapeWithAppearance;
         private handleShapesWithAppearance;
         private handleDesignBuild;
+        private handleOcctDocument;
+        private handleDocumentAnnotations;
+        private handleHatchedSection;
         private handleJscadMesh;
         private applyNodeSettingsAndMetadata;
         private applyGlobalSettingsAndMetadataAndShadowCasting;
@@ -80211,9 +82110,10 @@ declare namespace Bit {
     declare const angleWithinTurn: (angle: number, turn: number) => number;
     declare const ellipseFramePoint: (frame: EllipseFrame, angle: number) => Point3;
     declare const conicArcOfEllipseArc: (arc: EllipseArc2) => ConicArc;
-    declare const conicArcSamples: (arc: ConicArc, tolerance: number) => Point3[];
+    declare const conicArcSamples: (arc: ConicArc, tolerance: number, budget?: WorkBudget) => Point3[];
     declare const conicArcAsNurbs: (arc: ConicArc) => NurbsCurveForm;
     declare const bulgeArcOf: (start: Point3, end: Point3, bulge: number) => ConicArc;
+    declare const bulgeOfSweep: (sweep: number) => number;
     declare const conicArcExtremes: (arc: ConicArc, axes?: readonly number[]) => Point3[];
     declare const principalArcOf: (arc: ConicArc) => ConicArc;
     type Point3 = Inputs.Base.Point3;
@@ -80261,11 +82161,30 @@ declare namespace Bit {
     declare const refinedSurfaceMesh: (uv: readonly Point2[], positions: readonly Point3[], loops: readonly (readonly number[])[], pointAt: (u: number, v: number) => Point3) => RefinedSurfaceMesh;
     declare function crc32(data: Uint8Array): number;
     declare const writerBudgetOf: (parts: readonly DrawingPart[]) => WorkBudget;
+    declare const ARROW_WIDTH_SHARE: number;
+    declare const TEXT_GAP_SHARE: number;
+    declare const EXTENSION_GAP_SHARE: number;
+    declare const EXTENSION_OVERSHOOT_SHARE: number;
+    declare const ARROWS_INSIDE_ROOM: number;
+    declare const ARROW_TAIL_SHARE: number;
+    declare const ARC_TOLERANCE_SHARE: number;
+    declare const MOST_DECIMAL_PLACES = 15;
+    declare const TOLERANCE_DECIMAL_PLACES = 6;
+    declare const UPRIGHT_SLACK = 1e-9;
+    declare const DIAMETER_SIGN = "\u2300";
+    declare const RADIUS_SIGN = "R";
+    declare const DEGREE_SIGN = "\u00B0";
+    declare const PLUS_MINUS_SIGN = "\u00B1";
+    declare const dimensionExtentOf: (dimension: Resolved.IO.DrawingDimensionDto) => Inputs.IO.DrawingExtentDto;
+    declare const dimensionPictureOf: (dimension: Resolved.IO.DrawingDimensionDto) => Inputs.IO.DrawingDimensionPictureDto;
+    type Point2 = Inputs.Base.Point2;
     type Point3 = Inputs.Base.Point3;
     type Vec3 = Inputs.Base.Vector3;
     declare const ocsAxesOf: (normal: Vec3) => FrameAxes;
     declare const circleArcOf: (segment: DrawingCircle | DrawingArc) => ConicArc;
     declare const ellipseArcOf: (segment: DrawingEllipse) => ConicArc;
+    declare const pointsMeet: (a: Point2 | undefined, b: Point2) => boolean;
+    declare const meetsReversed: (end: Point2 | undefined, start: Point2, finish: Point2) => boolean;
     declare const polylineSpans: (polyline: DrawingPolyline) => number;
     declare const polylineSpanEnd: (polyline: DrawingPolyline, span: number) => Point3;
     declare const bulgeArcOfSpan: (polyline: DrawingPolyline, span: number) => ConicArc | undefined;
@@ -80273,9 +82192,28 @@ declare namespace Bit {
     declare const drawingBounds: (parts: readonly DrawingPart[], tolerance: number, budget?: WorkBudget) => DrawingBounds | undefined;
     declare const drawingSize: (bounds: DrawingBounds | undefined, axes?: number) => number;
     declare const patternUnitOf: (bounds: DrawingBounds | undefined) => number;
+    type Point2 = Inputs.Base.Point2;
+    type Segment2 = Inputs.Base.Segment2;
+    declare const hatchOutlinesOf: (hatch: DrawingHatch, tolerance: number, budget?: WorkBudget) => Point2[][];
+    declare const clippedHatchLinesOf: (hatch: DrawingHatch, tolerance: number, property: string, budget?: WorkBudget) => Segment2[];
+    declare const hatchFamiliesOf: (hatch: DrawingHatch) => DrawingHatchFamily[];
+    declare const hatchLinesOf: (hatch: DrawingHatch, tolerance: number, property: string, budget?: WorkBudget) => Segment2[];
+    declare const drawingLoopsOf: (paths: readonly DrawingPath[], tolerance: number, budget?: WorkBudget) => DrawingLoop[];
+    declare const isDrawable: (value: unknown) => value is number;
+    declare const finiteNumber: (value: unknown, property: string) => number;
     declare const positiveNumber: (value: unknown, property: string) => number;
+    declare const segmentKindOf: (segment: unknown) => DrawingSegment["kind"] | undefined;
     declare const drawingPathOf: (path: Inputs.IO.DrawingPathDto | undefined, property: string) => DrawingPath;
+    declare const drawingTextOf: (text: unknown, property: string) => DrawingText;
+    declare const drawingHatchOf: (hatch: unknown, property: string) => DrawingHatch;
     declare const drawingPartsOf: (parts: readonly unknown[] | undefined, property: string) => DrawingPart[];
+    declare const scaledDrawingParts: (parts: readonly unknown[] | undefined, factor: unknown, property: string) => Inputs.IO.DrawingPartDto[];
+    type Point3 = Inputs.Base.Point3;
+    declare const textInked: (text: DrawingText) => boolean;
+    declare const textStartOf: (text: DrawingText) => Point3;
+    declare const textEndOf: (text: DrawingText) => Point3;
+    declare const textCornersOf: (text: DrawingText) => Point3[];
+    declare const textStrokesOf: (text: DrawingText) => Point3[][];
     type Point3 = Inputs.Base.Point3;
     type Vec3 = Inputs.Base.Vector3;
     interface DrawingLine {
@@ -80323,19 +82261,76 @@ declare namespace Bit {
     interface DrawingPath {
         readonly segments: readonly DrawingSegment[];
     }
+    type DrawingTextAnchor = "start" | "middle" | "end";
+    interface DrawingText {
+        readonly value: string;
+        readonly position: Point3;
+        readonly height: number;
+        readonly anchor: DrawingTextAnchor;
+        readonly rotation: number;
+        readonly rotationDegrees: number;
+        readonly widthFactor: number;
+        readonly width: number;
+    }
+    interface DrawingHatch {
+        readonly boundaries: readonly DrawingPath[];
+        readonly pattern: Inputs.IO.hatchPatternEnum;
+        readonly angle: number;
+        readonly spacing: number;
+    }
+    interface DrawingHatchFamily {
+        readonly turn: HatchFamilyTurn;
+        readonly angle: number;
+        readonly direction: Inputs.Base.Point2;
+        readonly across: Inputs.Base.Point2;
+        readonly phase: number;
+    }
+    interface DrawingLoop {
+        readonly points: readonly Inputs.Base.Point2[];
+        readonly bulges: readonly number[];
+    }
     interface DrawingPart {
         readonly layer: string;
         readonly color: string;
         readonly lineType: Inputs.IO.lineTypeEnum;
+        readonly lineWeight: number | undefined;
         readonly paths: readonly DrawingPath[];
+        readonly texts: readonly DrawingText[];
+        readonly hatches: readonly DrawingHatch[];
     }
     interface DrawingBounds {
         readonly min: Point3;
         readonly max: Point3;
     }
+    interface DrawingDimension {
+        readonly kind: Inputs.IO.dimensionKindEnum;
+        readonly start: Inputs.Base.Point2;
+        readonly end: Inputs.Base.Point2;
+        readonly direction: Inputs.Base.Vector2 | undefined;
+        readonly offset: number;
+        readonly sweep: number;
+        readonly text: string;
+        readonly textHeight: number;
+        readonly arrowLength: number;
+    }
+    interface DimensionLayout {
+        readonly lines: Inputs.Base.Point2[][];
+        readonly fills: Inputs.Base.Point2[][];
+        readonly text: DrawingText;
+    }
+    interface DimensionLine {
+        readonly from: Inputs.Base.Point2;
+        readonly to: Inputs.Base.Point2;
+        readonly arrowAtFrom: boolean;
+    }
+    interface TextInk {
+        readonly low: number;
+        readonly high: number;
+    }
     declare const SAME_POINT = 1e-10;
     declare const PERPENDICULAR_COSINE = 1e-9;
     declare const FULL_TURN_DEGREES = 360;
+    declare const QUARTER_TURN_DEGREES = 90;
     declare const ARBITRARY_AXIS_LIMIT: number;
     declare const FORBIDDEN_LAYER_CHARACTERS: RegExp;
     declare const FIRST_PRINTABLE_CODE = 32;
@@ -80353,6 +82348,21 @@ declare namespace Bit {
     declare const WRITER_WORK_FLOOR: number;
     declare const WRITER_WORK_CEILING: number;
     declare const NUMBERS_PER_PART = 1;
+    declare const NUMBERS_PER_TEXT = 8;
+    declare const NUMBERS_PER_CHARACTER = 64;
+    declare const NUMBERS_PER_HATCH = 4;
+    declare const LONGEST_TEXT = 2000;
+    declare const CONTROL_CHARACTER: RegExp;
+    declare const JOIN_DISTANCE = 1e-9;
+    declare const MOST_HATCH_LINES = 200000;
+    declare const LEAST_LOOP_CORNERS = 3;
+    type HatchFamilyTurn = 0 | typeof QUARTER_TURN_DEGREES;
+    declare const HATCH_FAMILIES: Readonly<Record<string, readonly (readonly [
+        HatchFamilyTurn,
+        number
+    ])[]>>;
+    declare const ANCHOR_SHARES: Readonly<Record<"start" | "middle" | "end", number>>;
+    declare const TEXT_ANCHORS: ReadonlySet<string>;
     declare const NUMBERS_PER_VERTEX = 4;
     declare const NUMBERS_PER_CURVE: Readonly<Record<"line" | "circle" | "arc" | "ellipse", number>>;
     interface LineTypePattern {
@@ -80361,6 +82371,9 @@ declare namespace Bit {
         readonly elements: readonly number[];
     }
     declare const LINE_TYPE_PATTERNS: Readonly<Record<string, LineTypePattern>>;
+    declare const dxfTextValue: (value: string) => string;
+    declare const writeText: (context: DxfEntityContext, text: DrawingText, style: DxfEntityStyle) => void;
+    declare const writeHatch: (context: DxfEntityContext, hatch: DrawingHatch, style: DxfEntityStyle, property: string) => void;
     type Rgb = readonly [
         number,
         number,
@@ -80373,6 +82386,7 @@ declare namespace Bit {
         readonly layer: string;
         readonly color: string;
         readonly lineType: Inputs.IO.lineTypeEnum | undefined;
+        readonly lineWeight: number | undefined;
     }
     interface DxfEntityContext {
         readonly text: DxfText;
@@ -80380,12 +82394,21 @@ declare namespace Bit {
         readonly owner: string;
         readonly colorFormat: "aci" | "truecolor";
         readonly curveTolerance: number;
+        readonly measurement: DxfMeasurement;
     }
+    declare const isModern: (context: DxfEntityContext) => boolean;
+    declare const openEntity: (context: DxfEntityContext, kind: string, style: DxfEntityStyle, owner?: string) => string;
     declare const writeSegment: (context: DxfEntityContext, segment: DrawingSegment, style: DxfEntityStyle) => void;
     declare const dxfTextOf: (data: unknown, property: string) => string;
     declare class DxfGenerator {
         generateDxf(model: Resolved.IO.DxfModelDto): string;
     }
+    declare const planarTurnOf: (map: FrameAxes) => PlanarTurn | undefined;
+    declare const plainDxfText: (value: string) => string;
+    declare const readTextOf: (record: DxfEntityRecord) => ReadText | string | undefined;
+    declare const placedText: (text: ReadText, turn: PlanarTurn, map: FrameAxes) => ReadText;
+    declare const readHatchOf: (record: DxfEntityRecord, measurement: DxfMeasurement) => ReadHatch | string | undefined;
+    declare const placedHatch: (hatch: ReadHatch, turn: PlanarTurn, map: FrameAxes, isPlaced: boolean) => ReadHatch;
     type DxfSegment = Inputs.IO.DrawingPathDto["segments"][number];
     declare const conicSegmentDto: (conic: ReadConic) => DxfSegment | undefined;
     declare const drawingDtoOf: (drawing: ReadDrawing) => Inputs.IO.DxfDrawingDto;
@@ -80406,6 +82429,12 @@ declare namespace Bit {
     declare const polylineSegments: (polyline: ReadPolyline) => ReadSegment[];
     declare const mappedSegments: (map: FrameAxes, segment: ReadSegment) => ReadSegment[];
     declare const principalConicOf: (conic: ReadConic) => PrincipalConic | undefined;
+    type Point3 = Inputs.Base.Point3;
+    type Vec3 = Inputs.Base.Vector3;
+    declare const segmentWork: (segment: ReadSegment) => number;
+    declare const recordPointOf: (record: DxfEntityRecord, codes: readonly number[], fallback?: Point3) => Point3;
+    declare const recordNormalOf: (record: DxfEntityRecord) => Vec3;
+    declare const readSegmentsOf: (record: DxfEntityRecord) => OwnSegments;
     type Point3 = Inputs.Base.Point3;
     type Vec3 = Inputs.Base.Vector3;
     interface DxfGroup {
@@ -80450,14 +82479,41 @@ declare namespace Bit {
         readonly closed: boolean;
     }
     type ReadSegment = ReadLine | ReadConic | ReadPolyline | ReadSpline | ReadFitSpline;
+    interface OwnSegments {
+        readonly segments: readonly ReadSegment[];
+        readonly work: number;
+        readonly flaw: string | undefined;
+        readonly skipped: string | undefined;
+    }
     interface ReadStyle {
         readonly layer: string;
         readonly color: string;
         readonly lineType: Inputs.IO.lineTypeEnum;
     }
+    interface PlanarTurn {
+        readonly scale: number;
+        readonly rotation: number;
+    }
+    interface ReadText {
+        readonly value: string;
+        readonly position: Point3;
+        readonly height: number;
+        readonly anchor: "start" | "middle" | "end";
+        readonly rotation: number;
+        readonly widthFactor: number;
+    }
+    interface ReadHatch {
+        readonly boundaries: readonly (readonly ReadSegment[])[];
+        readonly pattern: Inputs.IO.hatchPatternEnum;
+        readonly angle: number;
+        readonly spacing: number;
+        readonly simplified: boolean;
+    }
     interface ReadEntity {
         readonly style: ReadStyle;
         readonly segments: readonly ReadSegment[];
+        readonly text?: ReadText;
+        readonly hatch?: ReadHatch;
     }
     interface ReadLayer {
         readonly name: string;
@@ -80501,6 +82557,7 @@ declare namespace Bit {
     declare const DEGREES_PER_TURN = 360;
     declare const SAME_SCALE = 1e-9;
     declare const UNIT_CODES: ReadonlyMap<number, Inputs.Base.unitOfLengthEnum>;
+    declare const IMPERIAL_UNIT_CODES: ReadonlySet<number>;
     declare const UNIT_NAMES: ReadonlyMap<number, string>;
     declare const DRAWN_ENTITIES: Set<string>;
     declare const Y_OFFSET = 10;
@@ -80542,8 +82599,72 @@ declare namespace Bit {
         readonly elevation: 38;
         readonly space: 67;
     };
-    declare const readDxfDrawing: (text: string, includeHidden: boolean) => ReadDrawing;
+    declare const ANNOTATED_ENTITIES: Set<string>;
+    declare const ANNOTATION_GROUP: {
+        readonly text: 1;
+        readonly otherY: 21;
+        readonly height: 40;
+        readonly widthFactor: 41;
+        readonly patternScale: 41;
+        readonly edgeWeight: 42;
+        readonly baseX: 43;
+        readonly baseY: 44;
+        readonly offsetX: 45;
+        readonly offsetY: 46;
+        readonly dash: 49;
+        readonly patternAngle: 52;
+        readonly lineAngle: 53;
+        readonly solid: 70;
+        readonly justified: 72;
+        readonly edgeType: 72;
+        readonly hasBulge: 72;
+        readonly verticalJustified: 73;
+        readonly counterclockwise: 73;
+        readonly rational: 73;
+        readonly closedLoop: 73;
+        readonly periodic: 74;
+        readonly lineCount: 78;
+        readonly dashCount: 79;
+        readonly loopCount: 91;
+        readonly loopFlags: 92;
+        readonly vertexCount: 93;
+        readonly edgeDegree: 94;
+        readonly knotCount: 95;
+        readonly pointCount: 96;
+        readonly sources: 97;
+        readonly fitCount: 97;
+        readonly owner: 330;
+    };
+    declare const TEXT_JUSTIFIED: {
+        readonly left: 0;
+        readonly center: 1;
+        readonly right: 2;
+        readonly aligned: 3;
+        readonly middle: 4;
+        readonly fit: 5;
+    };
+    declare const TEXT_VERTICAL: {
+        readonly baseline: 0;
+        readonly bottom: 1;
+        readonly middle: 2;
+        readonly top: 3;
+    };
+    declare const MIDDLE_DROP_SHARE = 0.5;
+    declare const HATCH_EDGE: {
+        readonly line: 1;
+        readonly arc: 2;
+        readonly ellipse: 3;
+        readonly spline: 4;
+    };
+    declare const HATCH_POLYLINE_FLAG = 2;
+    declare const TEXT_CODES: RegExp;
+    declare const TEXT_CONTROLS: RegExp;
+    declare const SAME_TURN = 1e-9;
+    declare const SAME_ANGLE_DEGREES = 0.000001;
+    declare const readDxfDrawing: (text: string, includeHidden: boolean, annotated?: boolean) => ReadDrawing;
     type DxfVersion = "AC1009" | "AC1015";
+    type DxfMeasurement = "imperial" | "metric";
+    declare const dxfMeasurementOf: (unit: string | undefined) => DxfMeasurement;
     interface DxfLayerRow {
         readonly name: string;
         readonly color: string;
@@ -80608,6 +82729,8 @@ declare namespace Bit {
     declare const numberOf: (record: DxfEntityRecord, code: number, fallback: number) => number;
     declare const numbersOf: (record: DxfEntityRecord, code: number) => number[];
     declare const decodedText: (value: string) => string;
+    declare const sectionsOf: (groups: readonly DxfGroup[]) => Map<string, DxfGroup[]>;
+    declare const headerGroupOf: (header: readonly DxfGroup[], name: string) => DxfGroup | undefined;
     declare const DXF_FIRST_HANDLE = 32;
     declare const DXF_INSUNITS: Readonly<Record<string, string>>;
     declare const DXF_IMPERIAL_MEASUREMENT = "0";
@@ -80683,6 +82806,16 @@ declare namespace Bit {
     declare const DXF_RATIONAL_FLAG = 4;
     declare const DXF_POLYLINE_3D_FLAG = 8;
     declare const DXF_MAX_NAME_LENGTH = 255;
+    declare const DXF_LINE_WEIGHTS: number[];
+    declare const DXF_LINE_WEIGHTS_PER_MILLIMETRE = 100;
+    declare const DXF_TEXT_STYLE = "Standard";
+    declare const DXF_CODED_BACKSLASH = "\\U+005C";
+    declare const DXF_CHARACTER_CODE_START: RegExp;
+    declare const DXF_FIT_JUSTIFICATION = "5";
+    declare const DXF_POLYLINE_BOUNDARY = "3";
+    declare const DXF_HATCH_NAMES: Readonly<Record<string, string>>;
+    declare const DXF_HATCH_NATIVE_ANGLE = 45;
+    declare const DXF_HATCH_NATIVE_SPACING: Readonly<Record<DxfMeasurement, Readonly<Record<string, number>>>>;
     declare const bytesOfData: (data: unknown) => Uint8Array | undefined;
     declare const GLB_MAGIC = 1179937895;
     declare const GLB_VERSION = 2;
@@ -81076,7 +83209,7 @@ declare namespace Bit {
         readonly moves: readonly SvgMove[];
         readonly closed: boolean;
     }
-    declare const strokeOf: (segment: DrawingSegment, tolerance: number, budget?: WorkBudget) => SvgStroke;
+    declare const strokeOf: (segment: DrawingSegment, tolerance: number, budget?: WorkBudget, cubicsOnly?: boolean) => SvgStroke;
     declare const reversedStroke: (stroke: SvgStroke) => SvgStroke;
     declare const strokeEnd: (stroke: SvgStroke) => Point2;
     type StyleProps = Record<string, string>;
@@ -81113,11 +83246,13 @@ declare namespace Bit {
         readonly unit: string | undefined;
         readonly strokeWidth: number | undefined;
         readonly margin: number | undefined;
+        readonly lineTypeScale: number | undefined;
         readonly tolerance: number;
         readonly property: string;
     }
     interface SvgPathOptions {
         readonly flipY: boolean;
+        readonly cubicsOnly: boolean;
         readonly tolerance: number;
         readonly property: string;
     }
@@ -81142,7 +83277,6 @@ declare namespace Bit {
     declare const SVG_DECIMALS = 6;
     declare const TRAILING_FRACTION_ZEROS: RegExp;
     declare const LEAST_VIEW_SPAN: number;
-    declare const SVG_JOIN_DISTANCE = 1e-9;
     declare const STROKE_SHARE: number;
     declare const MARGIN_SHARE: number;
     declare const SVG_UNITS: Readonly<Record<string, readonly [
@@ -81151,6 +83285,8 @@ declare namespace Bit {
     ]>>;
     declare const ID_UNSAFE: RegExp;
     declare const PATH_COLOR = "#000000";
+    declare const PATTERN_ID_RADIX = 16;
+    declare const PATTERN_ID_DIGITS = 8;
     declare class WorkBudget {
         readonly capacity: number;
         private used;
@@ -81298,6 +83434,7 @@ declare namespace Bit {
     declare const snappedLength: (value: number, from: UnitOfLength, to: UnitOfLength) => number;
     declare const tableLength: (value: number, from: UnitOfLength, table: UnitOfLength) => number;
     declare function lengthsConverted<T extends Readonly<Record<K, number>>, K extends keyof T>(record: T, fields: readonly K[], from: UnitOfLength, to: UnitOfLength): T;
+    declare function filledLoopTriangles(positions: ArrayLike<number>, loops: readonly (readonly number[])[], rule: FillRule2): number[];
     declare const RIGID_TOLERANCE = 1e-7;
     declare const LINEAR_COLUMN_STARTS: readonly [
         0,
@@ -81570,6 +83707,42 @@ declare namespace Bit {
         readonly nodes?: readonly GltfNode[];
     }
     type UnitOfLength = `${Inputs.Base.unitOfLengthEnum}`;
+    type StrokePoint = readonly [
+        number,
+        number
+    ];
+    interface StrokeGlyph {
+        readonly advance: number;
+        readonly strokes: readonly (readonly StrokePoint[])[];
+    }
+    interface StrokeFontMarks {
+        readonly height: number;
+        readonly above: Readonly<Record<number, readonly (number | undefined)[]>>;
+        readonly below: Readonly<Record<number, readonly (number | undefined)[]>>;
+    }
+    interface StrokeOverlay {
+        readonly base: number;
+        readonly strokes: readonly (number | undefined)[];
+    }
+    interface StrokeFontLetters {
+        readonly height: number;
+        readonly overlaid: Readonly<Record<number, StrokeOverlay>>;
+        readonly drawn: Readonly<Record<number, readonly (number | undefined)[]>>;
+    }
+    interface StrokeComposition {
+        readonly base: number;
+        readonly above: number | undefined;
+        readonly below: number | undefined;
+    }
+    interface StrokeFontInk {
+        readonly lowest: number;
+        readonly highest: number;
+    }
+    interface StrokeFontFacts {
+        readonly lowest: number;
+        readonly highest: number;
+        readonly glyphs: Map<number, StrokeGlyph>;
+    }
     declare const signedVolumeOf: (positions: ArrayLike<number>, indices: ArrayLike<number>, start?: number, end?: number) => number;
     /**
      * Smooth normals for a mesh that arrives without them: each point takes the sum of the normals of
@@ -81647,6 +83820,24 @@ declare namespace Bit {
     declare function treesNested(first: TriangleTree, second: TriangleTree): boolean;
     declare function pointsOnTree(tree: TriangleTree, most: number): Vec[];
     declare function treeBox(tree: TriangleTree): TreeBox | undefined;
+    declare function strokeGlyph(font: VectorFont, code: number): StrokeGlyph;
+    declare function strokeFontInk(font: VectorFont): StrokeFontInk;
+    declare function strokeTextAdvance(font: VectorFont, text: string): number;
+    declare function strokeTextStrokes(font: VectorFont, text: string): StrokePoint[][];
+    declare const STROKE_LETTERS: StrokeFontLetters;
+    declare const UNKNOWN_GLYPH = 63;
+    declare const FIRST_COMPOSED = 128;
+    declare const LAST_UNIT = 65535;
+    declare const MOST_UNITS = 3;
+    declare const SOFT_DOTTED: ReadonlySet<number>;
+    declare const SOFT_DOT_FLOOR = 15;
+    declare const MARK_GAP = 1.25;
+    declare const MARK_RISE = 4;
+    declare const LEAST_RISE_SHARE = 0.25;
+    declare const FULL_MARK_ADVANCE = 10;
+    declare const BASELINE_REACH = 1;
+    declare const OGONEK = 808;
+    declare const STROKE_MARKS: StrokeFontMarks;
     /**
      * Builds drawings as data, for any file format: segments of every kind, paths joined from segments,
      * and parts that put paths on a layer with a color and a line type. `io.dxf.dxfCreate` writes the
@@ -81775,6 +83966,204 @@ declare namespace Bit {
          * ```
          */
         part(inputs: Inputs.IO.DrawingPartDto): Inputs.IO.DrawingPartDto;
+        /**
+         * Scales drawing parts about the origin, returning new parts and leaving the given ones unchanged.
+         *
+         * Points, radii, axes, text heights, hatch spacings and line weights are multiplied by `factor`;
+         * angles, bulges, knots and weights stay. Scale before writing with `io.dxf.dxfCreate` or
+         * `io.svg.svgCreate`: their `unit` labels the drawing and never scales it. A factor not above 0
+         * throws.
+         * @param inputs - The parts and the factor
+         * @returns New parts, scaled
+         * @group drawing
+         * @shortname scale parts
+         * @drawable false
+         * @beta
+         * @example
+         * ```typescript
+         * const plate = bitbybit.io.drawing.part({ layer: "cut", paths: [{ segments: [{ center: [0, 0], radius: 25.4 }] }], lineWeight: 0.5 });
+         * const inches = bitbybit.io.drawing.scaleParts({ parts: [plate], factor: 1 / 25.4 });
+         * const dxf = bitbybit.io.dxf.dxfCreate({ dxfPathsParts: inches, unit: Bit.Inputs.Base.unitOfLengthEnum.inch });
+         * ```
+         */
+        scaleParts(inputs: Inputs.IO.DrawingScalePartsDto): Inputs.IO.DrawingPartDto[];
+        /**
+         * Makes a line of text for a drawing part's `texts`, in the single-line stroke font.
+         *
+         * The text is placed by a point on its baseline; `anchor` says whether that point is its start,
+         * middle or end, `rotation` turns it and `widthFactor` narrows or widens its letters.
+         * @param inputs - The text, its position and height, its anchor, its angle and its width factor
+         * @returns The text
+         * @group drawing
+         * @shortname text
+         * @drawable false
+         * @beta
+         * @example
+         * ```typescript
+         * const title = bitbybit.io.drawing.text({ text: "BRACKET", position: [20, 10], height: 5 });
+         * const notes = bitbybit.io.drawing.part({ layer: "text", paths: [], texts: [title], lineWeight: 0.35 });
+         * ```
+         */
+        text(inputs: Inputs.IO.DrawingTextDto): Inputs.IO.DrawingTextDto;
+        /**
+         * Makes a hatched region for a drawing part's `hatches`: what the boundaries enclose, filled with
+         * a pattern of lines or with solid ink.
+         *
+         * A boundary inside another cuts a hole, and a boundary whose ends do not meet is closed by a
+         * straight line.
+         * @param inputs - The boundary paths, the pattern, and the angle and spacing of its lines
+         * @returns The hatch
+         * @group drawing
+         * @shortname hatch
+         * @drawable false
+         * @beta
+         * @example
+         * ```typescript
+         * const outline = bitbybit.io.drawing.polylineSegment({ points: [[0, 0], [40, 0], [40, 30], [0, 30]], closed: true });
+         * const bore = bitbybit.io.drawing.circleSegment({ center: [20, 15], radius: 6 });
+         * const cut = bitbybit.io.drawing.hatch({ boundaries: [{ segments: [outline] }, { segments: [bore] }], angle: 45, spacing: 3 });
+         * const section = bitbybit.io.drawing.part({ layer: "hatch", paths: [], hatches: [cut], lineWeight: 0.18 });
+         * ```
+         */
+        hatch(inputs: Inputs.IO.DrawingHatchDto): Inputs.IO.DrawingHatchDto;
+        /**
+         * Gives the lines of a hatch's pattern, each from side to side of the box around its
+         * boundaries, for a renderer that draws them itself and clips them to the region.
+         *
+         * The lines stand where `io.svg.svgCreate` and `io.dxf.dxfCreate` put them, each whole. `solid`
+         * gives none, and a spacing too fine for the region throws.
+         * @param inputs - The boundary paths, the pattern, and the angle and spacing of its lines
+         * @returns The lines, each a start and an end point
+         * @group drawing
+         * @shortname hatch lines
+         * @drawable false
+         * @beta
+         * @example
+         * ```typescript
+         * const outline = bitbybit.io.drawing.polylineSegment({ points: [[0, 0], [40, 0], [40, 30], [0, 30]], closed: true });
+         * const lines = bitbybit.io.drawing.hatchLines({ boundaries: [{ segments: [outline] }], angle: 45, spacing: 3 });
+         * ```
+         */
+        hatchLines(inputs: Inputs.IO.DrawingHatchDto): Inputs.Base.Segment2[];
+        /**
+         * Gives the lines of a hatch's pattern clipped to its region, for a renderer that draws them
+         * itself.
+         *
+         * Inside follows the even-odd rule over every boundary, as `io.svg.svgCreate` fills a hatch, and
+         * curves are followed within `tolerance`. The lines stand where `hatchLines` puts them. `solid`
+         * gives none; a spacing too fine for the region throws.
+         * @param inputs - The boundary paths, the pattern, the angle and spacing of its lines, and the tolerance for curves
+         * @returns The pieces of the lines inside the region, each a start and an end point
+         * @group drawing
+         * @shortname clipped hatch lines
+         * @drawable false
+         * @beta
+         * @example
+         * ```typescript
+         * const outline = bitbybit.io.drawing.polylineSegment({ points: [[0, 0], [40, 0], [40, 30], [0, 30]], closed: true });
+         * const bore = bitbybit.io.drawing.circleSegment({ center: [20, 15], radius: 6 });
+         * const lines = bitbybit.io.drawing.clippedHatchLines({ boundaries: [{ segments: [outline] }, { segments: [bore] }], angle: 45, spacing: 3, tolerance: 0.01 });
+         * ```
+         */
+        clippedHatchLines(inputs: Inputs.IO.DrawingHatchRegionDto): Inputs.Base.Segment2[];
+        /**
+         * Gives the outlines of a hatch's region as closed loops of points, curves followed within
+         * `tolerance`, for a renderer that fills the region itself.
+         *
+         * Each loop lists every corner once. Fill them under the even-odd rule, as
+         * `mesh.triangulateLoops` does, to keep the holes open.
+         * Example: a circle of radius 5 at tolerance 0.01 -> one loop of 50 points
+         * @param inputs - The boundary paths and the tolerance for curves; the pattern, angle and spacing play no part
+         * @returns The loops, each a list of points
+         * @group drawing
+         * @shortname hatch outlines
+         * @drawable false
+         * @beta
+         * @example
+         * ```typescript
+         * const outline = bitbybit.io.drawing.polylineSegment({ points: [[0, 0], [40, 0], [40, 30], [0, 30]], closed: true });
+         * const bore = bitbybit.io.drawing.circleSegment({ center: [20, 15], radius: 6 });
+         * const loops = bitbybit.io.drawing.hatchOutlines({ boundaries: [{ segments: [outline] }, { segments: [bore] }], tolerance: 0.01 });
+         * ```
+         */
+        hatchOutlines(inputs: Inputs.IO.DrawingHatchRegionDto): Inputs.Base.Point2[][];
+        /**
+         * Measures a drawing text: its length along the baseline, and how far the font's ink reaches
+         * above and below it.
+         *
+         * The width is what `io.svg.svgCreate` draws and `io.dxf.dxfCreate` fits the text to; the
+         * position is not needed to measure it. A text that is not one line throws.
+         * Example: 'I' at height 21 -> width 8, above 25, below 7
+         * @param inputs - The text with its height and width factor
+         * @returns The width, and the reach of the font's ink above and below the baseline
+         * @group drawing
+         * @shortname text size
+         * @drawable false
+         * @beta
+         * @example
+         * ```typescript
+         * const size = bitbybit.io.drawing.textSize({ text: "SECTION A-A", position: [0, 0], height: 3.5 });
+         * const cellWidth = size.width + 2;
+         * ```
+         */
+        textSize(inputs: Inputs.IO.DrawingTextDto): Inputs.IO.DrawingTextSizeDto;
+        /**
+         * Draws a drawing text as the strokes of its letters, each a list of points in the drawing's
+         * coordinates, placed, turned and narrowed as the text says.
+         *
+         * These are the strokes `io.svg.svgCreate` writes. A text that is not one line throws.
+         * Example: 'I' at height 21 from [10, 20] -> one stroke, [[14, 41, 0], [14, 20, 0]]
+         * @param inputs - The text, its position and height, its anchor, its angle and its width factor
+         * @returns The strokes, each a list of points
+         * @group drawing
+         * @shortname text strokes
+         * @drawable false
+         * @beta
+         * @example
+         * ```typescript
+         * const strokes = bitbybit.io.drawing.textStrokes({ text: "A-A", position: [0, 0], height: 5, anchor: "middle" });
+         * ```
+         */
+        textStrokes(inputs: Inputs.IO.DrawingTextDto): Inputs.Base.Point3[][];
+        /**
+         * Draws a dimension in the drawing's plane: its dimension line or arc, its extension lines, filled
+         * arrowheads touching them, and its value in the stroke font.
+         *
+         * The text reads from left to right or from bottom to top, past the line's end when the line is
+         * too short for it; arrows go outside a span too short for them.
+         * @param inputs - What the dimension measures, its points, its tolerance and the size of its text and arrows
+         * @returns The lines, the arrowheads to fill, the text as strokes and as a drawing text, and the box they fill
+         * @group drawing
+         * @shortname dimension picture
+         * @drawable false
+         * @beta
+         * @example
+         * ```typescript
+         * const picture = bitbybit.io.drawing.dimensionPicture({ kind: Bit.Inputs.IO.dimensionKindEnum.linear, start: [0, 0], end: [60, 0], offset: 12, upperTolerance: 0.1, lowerTolerance: 0.1 });
+         * const edges = bitbybit.io.drawing.part({ layer: "dimensions", paths: [...picture.lines, ...picture.textStrokes].map(points => ({ segments: [{ points }] })) });
+         * ```
+         */
+        dimensionPicture(inputs: Inputs.IO.DrawingDimensionDto): Inputs.IO.DrawingDimensionPictureDto;
+        /**
+         * Measures the box a dimension's picture fills, the box `dimensionPicture` gives, without drawing
+         * the letters.
+         *
+         * The box holds the whole height the stroke font's letters may reach, so a layout can make room
+         * before drawing.
+         * Example: a linear dimension from [0, 0] to [60, 0] at offset 12 -> min [0, 0.875], max [60, 17.04]
+         * @param inputs - What the dimension measures, its points, its tolerance and the size of its text and arrows
+         * @returns The lowest and highest corners of the box
+         * @group drawing
+         * @shortname dimension extent
+         * @drawable false
+         * @beta
+         * @example
+         * ```typescript
+         * const box = bitbybit.io.drawing.dimensionExtent({ kind: Bit.Inputs.IO.dimensionKindEnum.diameter, start: [0, 0], end: [5, 0] });
+         * const width = box.max[0] - box.min[0];
+         * ```
+         */
+        dimensionExtent(inputs: Inputs.IO.DrawingDimensionDto): Inputs.IO.DrawingExtentDto;
         /**
          * Converts an SVG file into a DXF file, reading it as `io.svg.svgRead` does and writing it as
          * `io.dxf.dxfCreate` does.
@@ -81931,9 +84320,9 @@ declare namespace Bit {
         /**
          * Reads a DXF file into path parts by layer, color and line type, the model `dxfCreate` writes.
          *
-         * Lines, arcs, circles, ellipses, polylines and splines are read exactly in the file's
-         * coordinates, block inserts expanded. Text, dimensions and hatches are left out and named in
-         * `warnings`; splines given only by fit points are read by `occt.io.loadDxf`.
+         * Lines, arcs, circles, ellipses, polylines and splines are read exactly, block inserts
+         * expanded, with single-line texts and hatches. Multi-line text and dimensions are named in
+         * `warnings`; `occt.io.loadDxf` reads splines given only by fit points.
          * @param inputs - The DXF file, as text or bytes, and whether hidden layers are read
          * @returns The drawing's parts, unit, version and warnings
          * @group dxf
@@ -81960,17 +84349,19 @@ declare namespace Bit {
     }
     /**
      * Writes SVG drawings from the same path parts DXF files are made of: lines, arcs, circles, bulged
-     * polylines, splines and ellipses, kept exact wherever SVG can draw them. Reads SVG files back into
-     * those parts, by layer, color and line type.
+     * polylines, splines and ellipses, kept exact wherever SVG can draw them, with texts drawn as the
+     * strokes of their letters and hatches filled with patterns. Reads SVG files back into those parts,
+     * by layer, color and line type.
      */
     declare class Svg {
         /**
          * Writes an SVG file from path parts, each layer an Inkscape layer.
          *
          * Arcs, circles, ellipses and bulges stay exact arcs, unweighted splines up to degree 3 exact
-         * Beziers, others cubics within `tolerance` (at least a millionth of the drawing). Y points up, Z
-         * is dropped and `unit` gives the true size. A drawing too large to write throws.
-         * @param inputs - The path parts, the unit, the line width, the border and the curve tolerance
+         * Beziers, others cubics within `tolerance`. Texts become letter strokes, hatches patterned
+         * regions. Y points up, Z is dropped and `unit` gives the true size. A drawing too large to
+         * write throws.
+         * @param inputs - The path parts with their texts, hatches and line weights, the unit, the line width, the border, the dash scale and the curve tolerance
          * @returns The SVG file as text
          * @group svg
          * @shortname svg create
@@ -81988,9 +84379,9 @@ declare namespace Bit {
          * Writes one drawing path as SVG path data, the text of a `path` element's `d` attribute.
          *
          * Segments that meet are drawn as one stroke, reversed where a segment ends where the stroke is,
-         * and a stroke that returns to its start is closed. Curves are kept exact as `svgCreate` keeps
-         * them.
-         * @param inputs - The path, whether Y is negated, and the curve tolerance
+         * and a stroke that returns to its start is closed. Curves stay exact as in `svgCreate`, or with
+         * `cubicsOnly` become cubic Beziers within `tolerance`.
+         * @param inputs - The path, whether Y is negated, the curve tolerance and whether only cubics are written
          * @returns SVG path data
          * @group svg
          * @shortname path data
@@ -82003,11 +84394,11 @@ declare namespace Bit {
          */
         pathData(inputs: Inputs.IO.SvgPathDataDto): string;
         /**
-         * Reads an SVG file into path parts by layer, color and line type, the model `svgCreate` writes.
+         * Reads an SVG file into path parts by layer, color and line type.
          *
-         * Lines, arcs and Bezier curves are read exactly, transforms applied and Y turned up. Inkscape
+         * Lines, arcs and Bezier curves are read exactly, transforms applied, Y up. Inkscape
          * layers are layers, each stroke color (else fill) a color, each dash pattern a line type. Text
-         * and images are left out and named in `warnings`.
+         * and images are left out, named in `warnings`; `svgCreate`'s texts and hatches return as paths.
          * @param inputs - The SVG text, the unit to read it in and whether hidden elements are read
          * @returns The drawing's parts, unit, view box and warnings
          * @group svg
@@ -83946,6 +86337,25 @@ declare namespace Bit {
          */
         triangulatePolygon(inputs: Inputs.Mesh.PolygonWithHolesDto): Inputs.Base.Mesh3;
         /**
+         * Fills closed loops lying in one plane with triangles, as letters are filled.
+         *
+         * Outlines and holes come from how the loops nest, in any order or direction; under the default
+         * even-odd rule the middle of an `O` stays open.
+         * Example: a 4 by 4 square around a 2 by 2 square -> a ring of area 12
+         * @param inputs - The loops and the fill rule
+         * @returns The triangles, each three points
+         * @group polygon
+         * @shortname triangulate loops
+         * @drawable false
+         * @example
+         * ```typescript
+         * const outer = [[-2, -2, 0], [2, -2, 0], [2, 2, 0], [-2, 2, 0]];
+         * const inner = [[-1, -1, 0], [1, -1, 0], [1, 1, 0], [-1, 1, 0]];
+         * const ring = bitbybit.mesh.triangulateLoops({ loops: [outer, inner], fillRule: Bit.Inputs.Base.loopFillRuleEnum.evenOdd });
+         * ```
+         */
+        triangulateLoops(inputs: Inputs.Mesh.TriangulateLoopsDto): Inputs.Base.Mesh3;
+        /**
          * Measures the volume a closed triangle mesh encloses, with a sign: positive when its triangles
          * face outwards by the right-hand rule, negative when they all face inwards.
          *
@@ -85730,9 +88140,9 @@ declare namespace Bit {
         /**
          * Draws one character as line paths with a simple stroke font.
          *
-         * The paths lie flat on the XZ plane, scaled so the character is `height` tall, and are
-         * returned with the character's width and height. An unknown character is drawn as a question
-         * mark.
+         * The paths lie flat on the XZ plane, the character `height` tall, and come with its width and
+         * height. Accented Latin letters are drawn with their marks, other unknown characters as a
+         * question mark.
          * Example: 'A' at height 10 -> the strokes of an A, 10 units tall
          * @param inputs - The character, its height and its offsets
          * @returns The character's width, height and stroke paths as lists of points
@@ -86839,7 +89249,7 @@ declare namespace Bit {
          * @example
          * ```typescript
          * const file = await bitbybit.asset.getFile({ fileName: "part.step" });
-         * const shape = await bitbybit.occt.io.loadSTEPorIGES({ assetFile: file, adjustZtoY: true });
+         * const shape = await bitbybit.occt.io.loadSTEPorIGES({ assetFile: file, upAxis: Bit.Inputs.Base.upAxisConversionEnum.zUpToYUp });
          * ```
          */
         getFile(inputs: Inputs.Asset.GetAssetDto): Promise<File>;
@@ -86908,7 +89318,7 @@ declare namespace Bit {
          * @example
          * ```typescript
          * const file = await bitbybit.asset.fetchFile({ url: "https://example.com/models/part.step" });
-         * const shape = await bitbybit.occt.io.loadSTEPorIGES({ assetFile: file, adjustZtoY: true });
+         * const shape = await bitbybit.occt.io.loadSTEPorIGES({ assetFile: file, upAxis: Bit.Inputs.Base.upAxisConversionEnum.zUpToYUp });
          * ```
          */
         fetchFile(inputs: Inputs.Asset.FetchDto): Promise<File>;
@@ -87646,7 +90056,7 @@ declare namespace Bit {
     /**
      * Reading and writing CAD files with OCCT: everything `io` offers on the kernel, plus loaders that
      * take a STEP or IGES file as a File object or as its text and give back a shape. Files are Z-up by
-     * convention, so `adjustZtoY` turns the loaded shape to this library's Y-up unless it is set false.
+     * convention, so `upAxis` turns the loaded shape to this library's Y-up unless it is set to `keep`.
      */
     declare class OCCTWIO extends OCCTIO {
         readonly occWorkerManager: OCCTWorkerManager;
@@ -87655,7 +90065,7 @@ declare namespace Bit {
          * Reads a STEP or IGES file, given as a File, into one shape.
          *
          * The file's extension decides the kind: `.step`, `.stp` are STEP, `.iges`, `.igs` are IGES.
-         * `adjustZtoY` turns the file's Z-up into Y-up, and the shape comes back in `unit`, scaled from
+         * `upAxis` turns the file's Z-up into Y-up, and the shape comes back in `unit`, scaled from
          * the file's own. A file that cannot be read gives undefined.
          * @param inputs - The file, the axis adjustment and the unit
          * @returns The loaded shape
@@ -87664,7 +90074,7 @@ declare namespace Bit {
          * @example
          * ```typescript
          * const file = await bitbybit.asset.getFile({ fileName: "part.step" });
-         * const shape = await bitbybit.occt.io.loadSTEPorIGES({ assetFile: file, adjustZtoY: true });
+         * const shape = await bitbybit.occt.io.loadSTEPorIGES({ assetFile: file, upAxis: Bit.Inputs.Base.upAxisConversionEnum.zUpToYUp });
          * await bitbybit.draw.drawAnyAsync({ entity: shape });
          * ```
          */
@@ -87673,7 +90083,7 @@ declare namespace Bit {
          * Reads a STEP or IGES file, given as its text, into one shape; `fileType` says which of the
          * two formats the text is in.
          *
-         * `adjustZtoY` turns the file's Z-up into Y-up, and the shape comes back in `unit`, scaled from
+         * `upAxis` turns the file's Z-up into Y-up, and the shape comes back in `unit`, scaled from
          * the file's own. Text that cannot be read gives undefined.
          * @param inputs - The file text, its format, the axis adjustment and the unit
          * @returns The loaded shape
@@ -87682,7 +90092,7 @@ declare namespace Bit {
          * @example
          * ```typescript
          * const text = await bitbybit.asset.fetchText({ url: "https://example.com/models/part.step" });
-         * const shape = await bitbybit.occt.io.loadSTEPorIGESFromText({ text, fileType: Bit.Inputs.OCCT.fileTypeEnum.step, adjustZtoY: true });
+         * const shape = await bitbybit.occt.io.loadSTEPorIGESFromText({ text, fileType: Bit.Inputs.OCCT.fileTypeEnum.step, upAxis: Bit.Inputs.Base.upAxisConversionEnum.zUpToYUp });
          * ```
          */
         loadSTEPorIGESFromText(inputs: Inputs.OCCT.ImportStepIgesFromTextDto): Promise<Inputs.OCCT.TopoDSShapePointer>;
